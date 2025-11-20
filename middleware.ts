@@ -33,5 +33,5 @@ export async function middleware(request: NextRequest) {
 
 // Esegui il middleware su tutte le rotte tranne quelle specificate
 export const config = {
-  matcher: ['/((?!api/auth|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api/auth|api/discord|_next/static|_next/image|favicon.ico).*)'],
 };
