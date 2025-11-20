@@ -9,38 +9,47 @@ datasource db {
   url      = env("DATABASE_URL_IARP")
 }
 
-// Modello per rappresentare la tabella users del FiveM/IARP
+// Modello per rappresentare la tabella users del FiveM/IARP (ESX Framework)
 model GameUser {
-  id           Int       @id @default(autoincrement())
-  identifier   String?   @unique // Steam ID o identificatore simile
-  firstname    String? // Nome
-  lastname     String? // Cognome
-  dateofbirth  String? // Data di nascita come stringa
-  sex          String? // Sesso
-  height       Int? // Altezza
-  phone_number String? // Numero di telefono
+  // Identificatori
+  id            Int       @id @default(autoincrement())
+  identifier    String    @unique @db.VarChar(255) // Steam ID o simile (es: char1:04e9c91f...)
   
-  // Campi aggiuntivi da users.sql
-  accounts     String?   @db.LongText // Conti bancari in JSON
-  group        String?   @default("user") @db.VarChar(50) // Gruppo utente
-  inventory    String?   @db.LongText // Inventario in JSON
-  job          String?   @default("unemployed") @db.VarChar(20) // Lavoro principale
-  job_grade    Int?      @default(0) // Grado lavoro principale
-  loadout      String?   @db.LongText // Armi in JSON
-  metadata     String?   @db.LongText // Metadati in JSON
-  position     String?   @db.LongText // Posizione in JSON
-  status       String?   @db.LongText // Stato in JSON
-  nationality  String?   @db.VarChar(111) // Nazionalità
-  skin         String?   @db.LongText // Dati skin in JSON
-  bankingData  String?   @db.LongText // Dati bancari in JSON
-  job2         String?   @default("unemployed") @db.VarChar(50) // Lavoro secondario
-  job2_grade   Int?      @default(0) // Grado lavoro secondario
-  immProfilo   String?   @db.LongText // URL immagine profilo
-  tattoos      String?   @db.LongText // Tatuaggi in JSON
-  badge        Int?      // Numero badge
-  jail         Int?      @default(0) // Tempo in prigione
-  is_dead      Boolean?  @default(false) // Stato di morte
-  last_updated DateTime? // Ultimo aggiornamento
-
+  // Dati anagrafici
+  firstname     String?   @db.VarChar(255)
+  lastname      String?   @db.VarChar(255)
+  dateofbirth   String?   @db.VarChar(255) // Formato: YYYY-MM-DD
+  sex           String?   @db.VarChar(1)   // 'm' o 'f'
+  height        String?   @db.VarChar(255) // Può essere null
+  nationality   String?   @db.VarChar(255) // Es: "Italy"
+  phone_number  String?   @db.VarChar(255)
+  
+  // Dati di gioco (JSON)
+  accounts      String?   @db.Text         // JSON: {"bank": 23345, "black_money": 0, "money": 8700}
+  group         String?   @db.VarChar(255) // "user", "admin", etc
+  inventory     String?   @db.LongText     // JSON array degli item nell'inventario
+  job           String?   @db.VarChar(255) // Nome lavoro (es: "carabinieri")
+  job_grade     String?   @db.VarChar(255) // Grado lavoro (string, non int!)
+  job2          String?   @db.VarChar(255) // Secondo lavoro
+  job2_grade    String?   @db.VarChar(255) // Grado secondo lavoro (string!)
+  loadout       String?   @db.LongText     // JSON array delle armi
+  metadata      String?   @db.Text         // JSON: {"lastPlaytime": 1953, "health": 200, "armor": 0, "jobDuty": true}
+  position      String?   @db.Text         // JSON: {"x": -266.88, "y": -1046.91, "z": 27.02, "heading": 158.74}
+  status        String?   @db.LongText     // JSON array: [{"name": "drunk", "val": 0}, {"name": "hunger", "val": 824200}, ...]
+  is_dead       String?   @db.VarChar(255) // "0" o "1" (string!)
+  
+  // Aspetto
+  skin          String?   @db.LongText     // JSON complesso con model, components, props, faceFeatures, etc
+  tattoos       String?   @db.LongText     // JSON array dei tatuaggi
+  
+  // Dati aggiuntivi
+  immProfilo    String?   @db.Text         // URL immagine profilo Discord
+  bankingData   String?   @db.Text         // JSON: {"nameSurname": "Francesco Santillo", "iban": "iarp952724", "pin": 0, "transactions": [...]}
+  badge         String?   @db.VarChar(255) // Può essere null
+  jail          String?   @db.VarChar(255) // Tempo in prigione (es: "0")
+  
   @@map("users")
+  @@index([identifier], map: "index_identifier")
+  @@index([firstname], map: "index_firstname")
+  @@index([lastname], map: "index_lastname")
 }
