@@ -56,6 +56,9 @@ function LoginContent() {
           </div>
           <h1 className="text-3xl font-bold text-police-blue-dark dark:text-white">Sistema FDO</h1>
           <p className="text-police-gray-dark dark:text-gray-300 mt-2">Accedi al Database delle Forze dell'Ordine</p>
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 rounded-md border border-amber-200 dark:border-amber-800">
+            ⚠️ Sistema per uso videoludico/roleplay - Dati fittizi
+          </p>
         </div>
         
         {error && (

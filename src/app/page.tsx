@@ -20,7 +20,10 @@ export default function Home() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-police-blue-light to-police-blue-dark">
       <div className="text-white text-center">
         <h1 className="text-3xl font-bold mb-2">Sistema FDO</h1>
-        <p>Reindirizzamento in corso...</p>
+        <p className="mb-4">Reindirizzamento in corso...</p>
+        <p className="text-xs text-amber-300 mt-4">
+          ⚠️ Sistema per uso videoludico/roleplay
+        </p>
       </div>
     </div>
   );

@@ -47,10 +47,10 @@ export async function GET(
     let additionalData;
     
     try {
-      const data = await prisma.$queryRawUnsafe<any[]>(
+      const data = await prisma.$queryRawUnsafe(
         "SELECT sentence, fine, incidentDescription, seizedItems, department, signingOfficers, accomplices FROM fdo_arrests WHERE id = ?", 
         arrestId
-      );
+      ) as any[];
       
       if (data && data.length > 0) {
         additionalData = data[0];
