@@ -33,14 +33,14 @@ interface GameUser {
   group?: string | null;
   inventory?: string | null;     // JSON
   job?: string | null;
-  job_grade?: string | null;     // STRING non number!
+  job_grade?: number | null;     // Number in database
   job2?: string | null;
-  job2_grade?: string | null;    // STRING non number!
+  job2_grade?: number | null;    // Number in database
   loadout?: string | null;       // JSON
   metadata?: string | null;      // JSON
   position?: string | null;      // JSON
   status?: string | null;        // JSON
-  is_dead?: string | null;       // STRING "0" o "1"
+  is_dead?: number | null;       // Number 0 o 1
   
   // Aspetto
   skin?: string | null;          // JSON
@@ -50,7 +50,7 @@ interface GameUser {
   immProfilo?: string | null;
   bankingData?: string | null;   // JSON
   badge?: string | null;
-  jail?: string | null;          // STRING
+  jail?: number | null;          // Number
   
   [key: string]: any;
 }

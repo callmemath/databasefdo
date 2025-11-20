@@ -29,14 +29,14 @@ model GameUser {
   group         String?   @db.VarChar(255) // "user", "admin", etc
   inventory     String?   @db.LongText     // JSON array degli item nell'inventario
   job           String?   @db.VarChar(255) // Nome lavoro (es: "carabinieri")
-  job_grade     String?   @db.VarChar(255) // Grado lavoro (string, non int!)
+  job_grade     Int?                       // Grado lavoro (0, 1, 2, etc)
   job2          String?   @db.VarChar(255) // Secondo lavoro
-  job2_grade    String?   @db.VarChar(255) // Grado secondo lavoro (string!)
+  job2_grade    Int?                       // Grado secondo lavoro
   loadout       String?   @db.LongText     // JSON array delle armi
   metadata      String?   @db.Text         // JSON: {"lastPlaytime": 1953, "health": 200, "armor": 0, "jobDuty": true}
   position      String?   @db.Text         // JSON: {"x": -266.88, "y": -1046.91, "z": 27.02, "heading": 158.74}
   status        String?   @db.LongText     // JSON array: [{"name": "drunk", "val": 0}, {"name": "hunger", "val": 824200}, ...]
-  is_dead       String?   @db.VarChar(255) // "0" o "1" (string!)
+  is_dead       Int?                       // 0 o 1
   
   // Aspetto
   skin          String?   @db.LongText     // JSON complesso con model, components, props, faceFeatures, etc
@@ -46,7 +46,7 @@ model GameUser {
   immProfilo    String?   @db.Text         // URL immagine profilo Discord
   bankingData   String?   @db.Text         // JSON: {"nameSurname": "Francesco Santillo", "iban": "iarp952724", "pin": 0, "transactions": [...]}
   badge         String?   @db.VarChar(255) // Può essere null
-  jail          String?   @db.VarChar(255) // Tempo in prigione (es: "0")
+  jail          Int?                       // Tempo in prigione (numero, es: 0)
   
   @@map("users")
   @@index([identifier], map: "index_identifier")
