@@ -20,16 +20,6 @@ export async function GET(
     const license = await prisma.weaponLicense.findUnique({
       where: { id },
       include: {
-        citizen: {
-          select: {
-            id: true,
-            firstname: true,
-            lastname: true,
-            dateofbirth: true,
-            sex: true,
-            phone_number: true,
-          },
-        },
         officer: {
           select: {
             id: true,
@@ -50,7 +40,19 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ license });
+    // Carica i dati del cittadino dal database IARP
+    let citizenData = null;
+    if (license.citizenId) {
+      citizenData = await prisma.findGameUserById(license.citizenId);
+    }
+
+    // Costruisci l'oggetto di risposta con i dati combinati
+    const licenseWithRelations = {
+      ...license,
+      citizen: citizenData
+    };
+
+    return NextResponse.json({ license: licenseWithRelations });
   } catch (error) {
     console.error('Errore nel recupero del porto d\'armi:', error);
     return NextResponse.json(
@@ -98,14 +100,6 @@ export async function PATCH(
       where: { id },
       data: updateData,
       include: {
-        citizen: {
-          select: {
-            id: true,
-            firstname: true,
-            lastname: true,
-            dateofbirth: true,
-          },
-        },
         officer: {
           select: {
             name: true,
@@ -117,7 +111,19 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({ license });
+    // Carica i dati del cittadino dal database IARP
+    let citizenData = null;
+    if (license.citizenId) {
+      citizenData = await prisma.findGameUserById(license.citizenId);
+    }
+
+    // Costruisci l'oggetto di risposta con i dati combinati
+    const licenseWithRelations = {
+      ...license,
+      citizen: citizenData
+    };
+
+    return NextResponse.json({ license: licenseWithRelations });
   } catch (error) {
     console.error('Errore nell\'aggiornamento del porto d\'armi:', error);
     return NextResponse.json(

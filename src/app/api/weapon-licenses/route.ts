@@ -34,24 +34,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      where.OR = [
-        { licenseNumber: { contains: search } },
-        { citizen: { firstname: { contains: search } } },
-        { citizen: { lastname: { contains: search } } },
-      ];
+      // Nota: Non possiamo più filtrare direttamente per firstname/lastname
+      // perché citizen non è più una relazione. Filtreremo solo per numero licenza
+      where.licenseNumber = { contains: search };
     }
 
     const licenses = await prisma.weaponLicense.findMany({
       where,
       include: {
-        citizen: {
-          select: {
-            id: true,
-            firstname: true,
-            lastname: true,
-            dateofbirth: true,
-          },
-        },
         officer: {
           select: {
             id: true,
@@ -67,7 +57,32 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ licenses });
+    // Carica i dati dei cittadini dal database IARP
+    const licensesWithCitizens = await Promise.all(
+      licenses.map(async (license) => {
+        let citizenData = null;
+        if (license.citizenId) {
+          citizenData = await prisma.findGameUserById(license.citizenId);
+        }
+        return {
+          ...license,
+          citizen: citizenData
+        };
+      })
+    );
+
+    // Se c'è una ricerca per nome, filtra i risultati dopo aver caricato i dati dei cittadini
+    let filteredLicenses = licensesWithCitizens;
+    if (search && !where.licenseNumber) {
+      const searchLower = search.toLowerCase();
+      filteredLicenses = licensesWithCitizens.filter((license) => {
+        if (!license.citizen) return false;
+        const fullName = `${license.citizen.firstname} ${license.citizen.lastname}`.toLowerCase();
+        return fullName.includes(searchLower);
+      });
+    }
+
+    return NextResponse.json({ licenses: filteredLicenses });
   } catch (error) {
     console.error('Errore nel recupero dei porto d\'armi:', error);
     return NextResponse.json(
@@ -107,10 +122,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verifica se il cittadino esiste
-    const citizen = await prisma.gameUser.findUnique({
-      where: { id: parseInt(citizenId) },
-    });
+    // Verifica se il cittadino esiste nel database IARP
+    const citizen = await prisma.findGameUserById(parseInt(citizenId));
 
     if (!citizen) {
       return NextResponse.json(
@@ -146,14 +159,6 @@ export async function POST(request: NextRequest) {
         officerId: session.user.id,
       },
       include: {
-        citizen: {
-          select: {
-            id: true,
-            firstname: true,
-            lastname: true,
-            dateofbirth: true,
-          },
-        },
         officer: {
           select: {
             name: true,
@@ -165,21 +170,27 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Carica i dati del cittadino dal database IARP
+    const licenseWithCitizen = {
+      ...license,
+      citizen
+    };
+
     // 🔔 Invia notifica Discord per nuova licenza porto d'armi
     try {
       await discordWebhook.notifyNewWeaponLicense({
-        licenseId: Number(license.id),
-        citizenName: `${license.citizen.firstname} ${license.citizen.lastname}`,
+        licenseId: Number(licenseWithCitizen.id),
+        citizenName: `${citizen.firstname} ${citizen.lastname}`,
         type: licenseType,
         validUntil: new Date(expiryDate),
-        issuedBy: `${license.officer.name} ${license.officer.surname}`,
+        issuedBy: `${licenseWithCitizen.officer.name} ${licenseWithCitizen.officer.surname}`,
       });
     } catch (webhookError) {
       // Non bloccare la creazione della licenza se il webhook fallisce
       console.error('Errore durante l\'invio della notifica Discord:', webhookError);
     }
 
-    return NextResponse.json({ license }, { status: 201 });
+    return NextResponse.json({ license: licenseWithCitizen }, { status: 201 });
   } catch (error) {
     console.error('Errore nella creazione del porto d\'armi:', error);
     return NextResponse.json(
