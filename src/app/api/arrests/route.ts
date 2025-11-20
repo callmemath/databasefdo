@@ -178,10 +178,10 @@ export async function POST(req: NextRequest) {
         console.log("✅ Campi sanzione aggiornati con successo");
         
         // Verifica immediata del salvataggio
-        const verification = await prisma.$queryRawUnsafe<any[]>(
+        const verification = await prisma.$queryRawUnsafe(
           "SELECT sentence, fine FROM fdo_arrests WHERE id = ?",
           arrest.id
-        );
+        ) as any[];
         console.log("🔍 Verifica salvataggio sanzioni:", verification[0]);
       } else {
         console.log("⚠️ Nessun campo sanzione da aggiornare");

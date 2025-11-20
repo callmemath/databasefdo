@@ -236,10 +236,10 @@ export async function PUT(
     // Recupera tutti i dati aggiuntivi aggiornati direttamente dal database
     let additionalData;
     try {
-      const data = await prisma.$queryRawUnsafe<any[]>(
+      const data = await prisma.$queryRawUnsafe(
         "SELECT sentence, fine, incidentDescription, seizedItems, department, signingOfficers, accomplices FROM fdo_arrests WHERE id = ?", 
         arrestId
-      );
+      ) as any[];
       
       if (data && data.length > 0) {
         additionalData = data[0];
