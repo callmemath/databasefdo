@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 247, 250, 252;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 247, 250, 252;
+    --background-start-rgb: 26, 32, 44;
+    --background-end-rgb: 17, 24, 39;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+@layer components {
+  /* Button Styles */
+  .btn {
+    @apply px-4 py-2 rounded-md font-medium transition-all duration-200 ease-in-out;
+  }
+  
+  .btn-primary {
+    @apply bg-police-blue text-white hover:bg-police-blue-dark;
+  }
+  
+  .btn-secondary {
+    @apply bg-police-gray text-police-blue-dark hover:bg-police-gray-dark hover:text-white;
+  }
+  
+  .btn-danger {
+    @apply bg-police-accent-red text-white hover:bg-red-700;
+  }
+  
+  /* Card Styles */
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-card p-6 transition-all duration-300;
+  }
+  
+  .card-hover {
+    @apply hover:shadow-card-hover transform hover:-translate-y-1;
+  }
+  
+  /* Dark mode text adjustments */
+  .dark .text-police-gray-dark {
+    @apply text-police-text-light;
+  }
+  
+  .dark .text-police-blue-dark {
+    @apply text-police-blue-light;
+  }
+  
+  /* Form Styles */
+  .form-input {
+    @apply rounded-md border-police-gray focus:border-police-blue focus:ring focus:ring-police-blue focus:ring-opacity-50;
+  }
+  
+  /* Animation Classes */
+  .fade-in {
+    @apply animate-fade-in;
+  }
+  
+  .slide-in {
+    @apply animate-slide-in;
+  }
+  
+  /* Badge Styles */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-blue {
+    @apply bg-police-blue bg-opacity-10 text-police-blue;
+  }
+  
+  .badge-red {
+    @apply bg-police-accent-red bg-opacity-10 text-police-accent-red;
+  }
+  
+  .badge-gold {
+    @apply bg-police-accent-gold bg-opacity-10 text-police-accent-gold;
+  }
+  
+  /* Table Styles */
+  .table-container {
+    @apply w-full overflow-x-auto rounded-lg shadow;
+  }
+  
+  .table {
+    @apply min-w-full divide-y divide-police-gray dark:divide-gray-600;
+  }
+  
+  .table-header {
+    @apply bg-police-gray-light dark:bg-gray-700;
+  }
+  
+  .table-header-cell {
+    @apply px-6 py-3 text-left text-xs font-medium text-police-blue-dark dark:text-white uppercase tracking-wider;
+  }
+  
+  .table-body {
+    @apply bg-white dark:bg-gray-800 divide-y divide-police-gray dark:divide-gray-600;
+  }
+  
+  .table-row {
+    @apply hover:bg-police-gray-light dark:hover:bg-gray-700 transition-colors duration-200;
+  }
+  
+  .table-cell {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-police-blue-dark dark:text-white;
+  }
+  
+  /* Dark mode content styling */
+  .dark .prose h3, .dark .prose h4 {
+    @apply text-police-text-light;
+  }
+  
+  .dark .prose p, .dark .prose ul, .dark .prose li {
+    @apply text-police-text-muted;
+  }
+  
+  .dark .prose table thead {
+    @apply bg-gray-700;
+  }
+  
+  .dark .prose table thead th {
+    @apply text-white;
+  }
+  
+  .dark .prose table tbody td {
+    @apply text-white;
+  }
+  
+  .dark .prose table tbody {
+    @apply bg-gray-800;
+  }
+  
+  .dark .prose table tbody td {
+    @apply text-police-text-light border-gray-600;
+  }
+  
+  .dark .prose .font-medium, .dark .prose strong {
+    @apply text-police-text-light;
+  }
+  
+  .dark .prose .text-police-gray-dark, .dark .prose .text-sm.text-police-gray-dark {
+    @apply text-police-text-muted;
+  }
+  
+  .dark .prose .text-police-blue-dark {
+    @apply text-police-text-light;
+  }
+  
+  .dark .prose .border-police-gray {
+    @apply border-gray-600;
+  }
+  
+  .dark .prose .bg-police-gray-light {
+    @apply bg-gray-700;
+  }
+  
+  .dark .prose .bg-white {
+    @apply bg-gray-800;
+  }
+}

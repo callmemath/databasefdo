@@ -1,0 +1,237 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Configurazione per il database delle forze dell'ordine (FDO)
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL_FDO")
+}
+
+// Modello per gli utenti (operatori delle forze dell'ordine)
+model User {
+  id         String   @id @default(cuid())
+  name       String
+  surname    String
+  email      String   @unique
+  password   String // Sarà hashed
+  badge      String   @unique // Numero di matricola
+  department String // Dipartimento (Polizia, Carabinieri, ecc.)
+  rank       String // Grado
+  image      String? // URL immagine profilo
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relazioni
+  arrestsAsOfficer   Arrest[]      @relation("OfficerArrests")
+  reportsAsOfficer   Report[]      @relation("OfficerReports")
+  wantedAsOfficer    Wanted[]      @relation("OfficerWanted")
+  weaponLicensesAsOfficer WeaponLicense[] @relation("OfficerWeaponLicenses")
+  apiTokens          ApiToken[]
+  sessions           Session[]
+  Account            Account[]
+
+  @@map("fdo_users")
+}
+
+// Modello per rappresentare la tabella users del FiveM
+model GameUser {
+  id           Int       @id @default(autoincrement())
+  identifier   String?   @unique // Steam ID o identificatore simile
+  firstname    String? // Nome
+  lastname     String? // Cognome
+  dateofbirth  String? // Data di nascita come stringa
+  sex          String? // Sesso
+  height       Int? // Altezza
+  phone_number String? // Numero di telefono
+  
+  // Campi aggiuntivi da users.sql
+  accounts     String?   @db.LongText // Conti bancari in JSON
+  group        String?   @default("user") @db.VarChar(50) // Gruppo utente
+  inventory    String?   @db.LongText // Inventario in JSON
+  job          String?   @default("unemployed") @db.VarChar(20) // Lavoro principale
+  job_grade    Int?      @default(0) // Grado lavoro principale
+  loadout      String?   @db.LongText // Armi in JSON
+  metadata     String?   @db.LongText // Metadati in JSON
+  position     String?   @db.LongText // Posizione in JSON
+  status       String?   @db.LongText // Stato in JSON
+  nationality  String?   @db.VarChar(111) // Nazionalità
+  skin         String?   @db.LongText // Dati skin in JSON
+  bankingData  String?   @db.LongText // Dati bancari in JSON
+  job2         String?   @default("unemployed") @db.VarChar(50) // Lavoro secondario
+  job2_grade   Int?      @default(0) // Grado lavoro secondario
+  immProfilo   String?   @db.LongText // URL immagine profilo
+  tattoos      String?   @db.LongText // Tatuaggi in JSON
+  badge        Int?      // Numero badge
+  jail         Int?      @default(0) // Tempo in prigione
+  is_dead      Boolean?  @default(false) // Stato di morte
+  last_updated DateTime? // Ultimo aggiornamento
+
+  // Relazioni
+  arrests Arrest[] @relation("CitizenArrests")
+  reports Report[] @relation("CitizenReports")
+  accusedReports Report[] @relation("AccusedReports")
+  wanted Wanted[] @relation("CitizenWanted")
+  weaponLicenses WeaponLicense[] @relation("CitizenWeaponLicenses")
+
+  @@map("users")
+}
+
+// Modello per i token API che saranno usati per l'autenticazione di servizi esterni
+model ApiToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  name      String // Nome descrittivo (es. "Bot Discord")
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+  lastUsed  DateTime?
+  userId    String // L'utente che ha creato il token
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("fdo_api_tokens")
+}
+
+// Modelli per NextAuth.js
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("fdo_accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("fdo_sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("fdo_verification_tokens")
+}
+
+// Modello per gli arresti
+model Arrest {
+  id                  String   @id @default(cuid())
+  date                DateTime @default(now())
+  location            String
+  description         String
+  charges             String
+  sentence            String?  // Pena detentiva (es: "2 anni")
+  fine                Int?     // Multa da pagare in dollari/euro
+  citizenId           Int      // ID del cittadino (utente del gioco)
+  officerId           String   // ID dell'ufficiale (utente del sistema)
+  incidentDescription String?  // Descrizione dettagliata degli accaduti
+  seizedItems         String?  // Oggetti sequestrati
+  department          String   // Dipartimento che ha effettuato l'arresto
+  signingOfficers     Json?    // Array di ufficiali firmatari [{ id, name, badge }]
+  accomplices         Json?    // Array di complici [{ id, name, birthDate }]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relazioni
+  citizen GameUser @relation("CitizenArrests", fields: [citizenId], references: [id])
+  officer User     @relation("OfficerArrests", fields: [officerId], references: [id])
+
+  @@map("fdo_arrests")
+}
+
+// Modello per i rapporti/denunce
+model Report {
+  id          String   @id @default(cuid())
+  title       String
+  date        DateTime @default(now())
+  description String
+  type        String // Tipo di rapporto (furto, violenza, ecc.)
+  location    String // Luogo dell'incidente
+  isAnonymous Boolean  @default(false) // Rapporto anonimo o meno
+  officerId   String
+  citizenId   Int? // ID del cittadino denunciante (utente del gioco, può essere nullo)
+  accusedId   Int? // ID del cittadino accusato/denunciato (utente del gioco, può essere nullo)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relazioni
+  officer User      @relation("OfficerReports", fields: [officerId], references: [id])
+  citizen GameUser? @relation("CitizenReports", fields: [citizenId], references: [id])
+  accused GameUser? @relation("AccusedReports", fields: [accusedId], references: [id])
+
+  @@map("fdo_reports")
+}
+
+// Modello per i ricercati
+model Wanted {
+  id             String   @id @default(cuid())
+  citizenId      Int      // ID del cittadino ricercato
+  crimes         String   @db.Text // Elenco dei reati contestati, separati da virgola
+  description    String   @db.Text // Descrizione delle attività criminali o altri dettagli
+  lastSeen       String?  // Ultimo avvistamento (luogo, data)
+  dangerLevel    String   // Livello di pericolosità: "low", "medium", "high", "extreme"
+  bounty         Int?     // Eventuale taglia sulla cattura
+  status         String   @default("active") // Stato: "active", "captured", "closed"
+  notes          String?  @db.Text // Note aggiuntive
+  imageUrl       String?  // URL immagine del ricercato
+  officerId      String   // ID dell'operatore che ha inserito il ricercato
+  insertedAt     DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relazioni
+  citizen GameUser @relation(name: "CitizenWanted", fields: [citizenId], references: [id])
+  officer User     @relation(name: "OfficerWanted", fields: [officerId], references: [id])
+
+  @@index([citizenId])
+  @@index([officerId])
+  @@map("fdo_wanted")
+}
+
+// Modello per i porto d'armi
+model WeaponLicense {
+  id                String   @id @default(cuid())
+  licenseNumber     String   @unique // Numero porto d'armi (es: "PDA-2024-001234")
+  citizenId         Int      // ID del cittadino
+  licenseType       String   // Tipo: "sport_target", "hunting", "defense", "collection", "carry"
+  issueDate         DateTime // Data di rilascio
+  expiryDate        DateTime // Data di scadenza
+  status            String   @default("active") // Stato: "active", "expired", "suspended", "revoked"
+  issuingAuthority  String   // Autorità di rilascio (es: "Questura di Roma")
+  restrictions      String?  @db.Text // Eventuali restrizioni (es: "Solo tiro al bersaglio")
+  authorizedWeapons Json?    // Array di armi autorizzate [{type, caliber, model, serialNumber}]
+  notes             String?  @db.Text // Note aggiuntive
+  suspensionReason  String?  @db.Text // Motivo sospensione/revoca
+  officerId         String   // ID dell'operatore che ha inserito/modificato
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relazioni
+  citizen GameUser @relation("CitizenWeaponLicenses", fields: [citizenId], references: [id])
+  officer User     @relation("OfficerWeaponLicenses", fields: [officerId], references: [id])
+
+  @@index([citizenId])
+  @@index([licenseNumber])
+  @@index([status])
+  @@map("fdo_weapon_licenses")
+}

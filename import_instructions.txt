@@ -1,0 +1,30 @@
+-- Istruzioni per importare i dati nella tabella fdo_citizens
+
+1. Accedi a phpMyAdmin tramite il browser all'indirizzo: http://localhost:8080/
+
+2. Inserisci le credenziali:
+   - Server: fdo_database
+   - Username: root
+   - Password: rootpassword
+
+3. Seleziona il database "fdo_database" dalla barra laterale
+
+4. Seleziona la tabella "fdo_citizens"
+
+5. Clicca sulla scheda "Import" nella barra in alto
+
+6. Nella pagina di importazione:
+   - Clicca su "Scegli file" e seleziona il file "remaining_users.csv"
+   - In "Format of imported file" seleziona "CSV"
+   - In "Fields terminated by" inserisci: \t (tabulazione)
+   - In "Fields enclosed by" lascia vuoto
+   - In "Fields escaped by" lascia \
+   - In "Lines terminated by" lascia auto
+   - Assicurati che sia selezionata l'opzione "First line contains column names"
+   - Nella sezione "Column names" assicurati che le colonne siano mappate correttamente
+
+7. Scorri in basso e clicca su "Import" per iniziare l'importazione
+
+8. Controlla i messaggi di conferma o di errore dopo l'importazione
+
+Nota: Se ci sono errori durante l'importazione, potrebbe essere necessario modificare il file CSV per eliminare caratteri speciali o formattare diversamente i dati.
