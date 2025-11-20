@@ -2,16 +2,24 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import prismaIARP from './prisma-iarp';
 
-// Funzione helper per estrarre l'ID numerico dall'identifier (es: "char1:xyz" -> 1)
-export function extractIdFromIdentifier(identifier: string | null): number {
+// Funzione per estrarre un ID numerico dall'identifier
+// L'identifier ha formato "char1:hash" - prendiamo la parte dopo i : e convertiamo i primi caratteri in numero
+function extractNumericId(identifier: string): number {
   if (!identifier) return 0;
-  const match = identifier.match(/^char(\d+):/);
-  return match ? parseInt(match[1]) : 0;
+  
+  // Estrai la parte dopo i :
+  const parts = identifier.split(':');
+  const hashPart = parts.length > 1 ? parts[1] : identifier;
+  
+  // Converti i primi 8 caratteri esadecimali in un numero
+  // Questo genera un ID univoco ma consistente per ogni identifier
+  const numericPart = hashPart.substring(0, 8);
+  return parseInt(numericPart, 16);
 }
 
 // Definizione delle interfacce per i metodi estesi
 export interface GameUser {
-  id: number;              // ID numerico estratto da identifier
+  id: number;
   identifier?: string | null;
   firstname?: string | null;
   lastname?: string | null;
@@ -117,10 +125,10 @@ const findGameUsersQuery = async (
     })
   ]);
   
-  // Aggiungi l'ID numerico estratto dall'identifier a ogni utente
+  // Aggiungi l'ID numerico estratto dall'identifier
   const usersWithId = users.map(user => ({
     ...user,
-    id: extractIdFromIdentifier(user.identifier)
+    id: extractNumericId(user.identifier || '')
   }));
   
   return { data: usersWithId as GameUser[], total };
@@ -130,24 +138,40 @@ const findGameUserByIdQuery = async (
   prisma: PrismaClient,
   id: number
 ): Promise<GameUser | null> => {
-  // Cerca l'utente con identifier che inizia con "char{id}:"
-  const users = await prismaIARP.gameUser.findMany({
-    where: {
-      identifier: {
-        startsWith: `char${id}:`
-      }
-    },
-    take: 1
+  // Ottieni tutti gli utenti e cerca quello con l'ID corrispondente
+  // (l'ID è derivato dall'identifier, quindi dobbiamo controllare tutti)
+  const allUsers = await prismaIARP.gameUser.findMany({
+    select: {
+      identifier: true,
+      firstname: true,
+      lastname: true,
+      dateofbirth: true,
+      sex: true,
+      nationality: true,
+      phone_number: true,
+      height: true,
+      accounts: true,
+      group: true,
+      inventory: true,
+      loadout: true,
+      metadata: true,
+      position: true,
+      status: true,
+      skin: true,
+      bankingData: true,
+      immProfilo: true,
+      tattoos: true,
+    }
   });
   
-  if (users.length === 0) return null;
+  // Trova l'utente il cui ID numerico corrisponde
+  const user = allUsers.find(u => extractNumericId(u.identifier || '') === id);
   
-  const user = users[0];
+  if (!user) return null;
   
-  // Aggiungi l'ID numerico estratto dall'identifier
   return {
     ...user,
-    id: extractIdFromIdentifier(user.identifier)
+    id: extractNumericId(user.identifier || '')
   } as GameUser;
 };
 
