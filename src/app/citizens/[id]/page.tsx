@@ -210,18 +210,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
             </h1>
           </div>
           <div className="mt-3 md:mt-0 flex flex-wrap gap-2">
-            {citizen.is_dead && (
-              <Badge variant="red">Deceduto</Badge>
-            )}
-            {citizen.jail && Number(citizen.jail) > 0 && (
-              <Badge variant="gold">In prigione</Badge>
-            )}
-            {isWanted && (
-              <Badge variant="red">Ricercato</Badge>
-            )}
-            {hasRecentReports() && (
-              <Badge variant="blue">Segnalazioni recenti</Badge>
-            )}
+            {/* Badge rimossi - non mostriamo più lo stato */}
           </div>
         </div>
       </div>
@@ -332,75 +321,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                   </div>
                 </div>
                 
-                <div>
-                  <h3 className="text-lg font-semibold text-police-blue-dark dark:text-police-text-light mb-4 flex items-center">
-                    <Briefcase className="h-5 w-5 mr-2 text-police-blue" />
-                    Occupazione e Stato
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-medium text-police-gray-dark dark:text-police-text-muted">
-                        Lavoro Principale
-                      </h4>
-                      <p className="text-police-blue-dark dark:text-police-text-light">
-                        {citizen.job && citizen.job !== 'unemployed'
-                          ? `${citizen.job}${citizen.job_grade ? ` (Livello ${citizen.job_grade})` : ''}`
-                          : 'Disoccupato'}
-                      </p>
-                    </div>
-                    
-                    {citizen.job2 && citizen.job2 !== 'unemployed' && (
-                      <div>
-                        <h4 className="text-sm font-medium text-police-gray-dark dark:text-police-text-muted">
-                          Lavoro Secondario
-                        </h4>
-                        <p className="text-police-blue-dark dark:text-police-text-light">
-                          {citizen.job2}
-                          {citizen.job2_grade ? ` (Livello ${citizen.job2_grade})` : ''}
-                        </p>
-                      </div>
-                    )}
-                    
-                    {citizen.badge && (
-                      <div>
-                        <h4 className="text-sm font-medium text-police-gray-dark dark:text-police-text-muted">
-                          Numero Badge
-                        </h4>
-                        <p className="text-police-blue-dark dark:text-police-text-light flex items-center">
-                          <Shield className="h-4 w-4 mr-1 text-police-gray-dark dark:text-police-text-muted" />
-                          {citizen.badge}
-                        </p>
-                      </div>
-                    )}
-                    
-                    <div>
-                      <h4 className="text-sm font-medium text-police-gray-dark dark:text-police-text-muted">
-                        Ultimo Aggiornamento
-                      </h4>
-                      <p className="text-police-blue-dark dark:text-police-text-light flex items-center">
-                        <Clock className="h-4 w-4 mr-1 text-police-gray-dark dark:text-police-text-muted" />
-                        {citizen.last_updated ? formatDateTime(citizen.last_updated) : 'Data non disponibile'}
-                      </p>
-                    </div>
-                    
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {citizen.is_dead && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                          <AlertCircle className="h-3 w-3 mr-1" />
-                          Deceduto
-                        </span>
-                      )}
-                      
-                      {citizen.jail && Number(citizen.jail) > 0 && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          In prigione ({citizen.jail} minuti)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                {/* Occupazione e Stato rimossi per richiesta */}
               </div>
             </div>
           </Card>
@@ -1027,59 +948,25 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
         
         {/* Colonna laterale */}
         <div className="lg:col-span-1 space-y-6">
-          {/* Stato Cittadino */}
+          {/* Azioni Rapide */}
           <Card>
             <h2 className="text-lg font-semibold text-police-blue-dark dark:text-police-text-light mb-4 flex items-center">
               <UserCheck className="h-5 w-5 mr-2 text-police-blue" />
-              Stato Cittadino
+              Azioni Rapide
             </h2>
             
             <div className="space-y-3">
-              {citizen.is_dead && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
-                  <div className="flex">
-                    <AlertCircle className="h-5 w-5 text-red-500 dark:text-red-400 mr-2 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium text-red-700 dark:text-red-300">
-                        Deceduto
-                      </p>
-                      <p className="text-sm text-red-600 dark:text-red-400">
-                        Questo cittadino risulta deceduto nel sistema.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <Link href={`/reports/new?citizenId=${citizen.id}`} className="block w-full">
+                <Button variant="outline" fullWidth leftIcon={<FileText className="h-4 w-4" />}>
+                  Crea Denuncia
+                </Button>
+              </Link>
               
-              {citizen.jail && Number(citizen.jail) > 0 && (
-                <div className="p-3 bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-md">
-                  <div className="flex">
-                    <AlertCircle className="h-5 w-5 text-orange-500 dark:text-orange-400 mr-2 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium text-orange-700 dark:text-orange-300">
-                        Attualmente in prigione
-                      </p>
-                      <p className="text-sm text-orange-600 dark:text-orange-400">
-                        Tempo rimanente: {citizen.jail} minuti
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <div className="mt-4">
-                <Link href={`/reports/new?citizenId=${citizen.id}`} className="block w-full mb-2">
-                  <Button variant="outline" fullWidth leftIcon={<FileText className="h-4 w-4" />}>
-                    Crea Denuncia
-                  </Button>
-                </Link>
-                
-                <Link href={`/reports/new?accusedId=${citizen.id}`} className="block w-full">
-                  <Button variant="outline" fullWidth leftIcon={<AlertTriangle className="h-4 w-4" />}>
-                    Denuncia come Accusato
-                  </Button>
-                </Link>
-              </div>
+              <Link href={`/reports/new?accusedId=${citizen.id}`} className="block w-full">
+                <Button variant="outline" fullWidth leftIcon={<AlertTriangle className="h-4 w-4" />}>
+                  Denuncia come Accusato
+                </Button>
+              </Link>
             </div>
           </Card>
           

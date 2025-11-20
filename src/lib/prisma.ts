@@ -2,9 +2,16 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import prismaIARP from './prisma-iarp';
 
+// Funzione helper per estrarre l'ID numerico dall'identifier (es: "char1:xyz" -> 1)
+export function extractIdFromIdentifier(identifier: string | null): number {
+  if (!identifier) return 0;
+  const match = identifier.match(/^char(\d+):/);
+  return match ? parseInt(match[1]) : 0;
+}
+
 // Definizione delle interfacce per i metodi estesi
 export interface GameUser {
-  id: number;
+  id: number;              // ID numerico estratto da identifier
   identifier?: string | null;
   firstname?: string | null;
   lastname?: string | null;
@@ -98,38 +105,50 @@ const findGameUsersQuery = async (
       take,
       orderBy: { lastname: orderBy.lastname },
       select: {
-        id: true,
         identifier: true,
         firstname: true,
         lastname: true,
         dateofbirth: true,
         sex: true,
         nationality: true,
-        job: true,
-        job_grade: true,
-        job2: true,
-        job2_grade: true,
-        badge: true,
-        jail: true,
-        is_dead: true,
         phone_number: true,
         height: true,
       }
     })
   ]);
   
-  return { data: users as GameUser[], total };
+  // Aggiungi l'ID numerico estratto dall'identifier a ogni utente
+  const usersWithId = users.map(user => ({
+    ...user,
+    id: extractIdFromIdentifier(user.identifier)
+  }));
+  
+  return { data: usersWithId as GameUser[], total };
 };
 
 const findGameUserByIdQuery = async (
   prisma: PrismaClient,
   id: number
 ): Promise<GameUser | null> => {
-  const user = await prismaIARP.gameUser.findUnique({
-    where: { id }
+  // Cerca l'utente con identifier che inizia con "char{id}:"
+  const users = await prismaIARP.gameUser.findMany({
+    where: {
+      identifier: {
+        startsWith: `char${id}:`
+      }
+    },
+    take: 1
   });
   
-  return user as GameUser | null;
+  if (users.length === 0) return null;
+  
+  const user = users[0];
+  
+  // Aggiungi l'ID numerico estratto dall'identifier
+  return {
+    ...user,
+    id: extractIdFromIdentifier(user.identifier)
+  } as GameUser;
 };
 
 // Clear any cached instances that might have old schema
