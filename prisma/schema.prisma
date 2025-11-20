@@ -37,28 +37,8 @@ model User {
   @@map("fdo_users")
 }
 
-// Modello per rappresentare la tabella users del FiveM (database IARP)
-// NOTA: Questo è solo un riferimento per le relazioni
-// Il vero accesso avviene tramite schema-iarp.prisma e client separato
-model GameUser {
-  id           Int       @id @default(autoincrement())
-  identifier   String?   @unique
-  firstname    String?
-  lastname     String?
-  dateofbirth  String?
-  sex          String?
-  height       Int?
-  phone_number String?
-  
-  // Relazioni (solo per struttura, non crea foreign keys cross-database)
-  arrests Arrest[] @relation("CitizenArrests")
-  reports Report[] @relation("CitizenReports")
-  accusedReports Report[] @relation("AccusedReports")
-  wanted Wanted[] @relation("CitizenWanted")
-  weaponLicenses WeaponLicense[] @relation("CitizenWeaponLicenses")
-
-  @@ignore // Ignora questo model, non creare/gestire la tabella
-}
+// NOTA: Il model GameUser (cittadini) è gestito dallo schema separato prisma/schema-iarp.prisma
+// e accessibile tramite il client prismaIARP in src/lib/prisma-iarp.ts
 
 // Modello per i token API che saranno usati per l'autenticazione di servizi esterni
 model ApiToken {
@@ -123,7 +103,7 @@ model Arrest {
   charges             String
   sentence            String?  // Pena detentiva (es: "2 anni")
   fine                Int?     // Multa da pagare in dollari/euro
-  citizenId           Int      // ID del cittadino (utente del gioco)
+  citizenId           Int      // ID del cittadino (riferimento a database IARP)
   officerId           String   // ID dell'ufficiale (utente del sistema)
   incidentDescription String?  // Descrizione dettagliata degli accaduti
   seizedItems         String?  // Oggetti sequestrati
@@ -133,10 +113,10 @@ model Arrest {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  // Relazioni
-  citizen GameUser @relation("CitizenArrests", fields: [citizenId], references: [id])
+  // Relazioni (solo con tabelle nello stesso database)
   officer User     @relation("OfficerArrests", fields: [officerId], references: [id])
 
+  @@index([citizenId])
   @@map("fdo_arrests")
 }
 
@@ -150,23 +130,23 @@ model Report {
   location    String // Luogo dell'incidente
   isAnonymous Boolean  @default(false) // Rapporto anonimo o meno
   officerId   String
-  citizenId   Int? // ID del cittadino denunciante (utente del gioco, può essere nullo)
-  accusedId   Int? // ID del cittadino accusato/denunciato (utente del gioco, può essere nullo)
+  citizenId   Int? // ID del cittadino denunciante (riferimento a database IARP)
+  accusedId   Int? // ID del cittadino accusato (riferimento a database IARP)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relazioni
+  // Relazioni (solo con tabelle nello stesso database)
   officer User      @relation("OfficerReports", fields: [officerId], references: [id])
-  citizen GameUser? @relation("CitizenReports", fields: [citizenId], references: [id])
-  accused GameUser? @relation("AccusedReports", fields: [accusedId], references: [id])
 
+  @@index([citizenId])
+  @@index([accusedId])
   @@map("fdo_reports")
 }
 
 // Modello per i ricercati
 model Wanted {
   id             String   @id @default(cuid())
-  citizenId      Int      // ID del cittadino ricercato
+  citizenId      Int      // ID del cittadino ricercato (riferimento a database IARP)
   crimes         String   @db.Text // Elenco dei reati contestati, separati da virgola
   description    String   @db.Text // Descrizione delle attività criminali o altri dettagli
   lastSeen       String?  // Ultimo avvistamento (luogo, data)
@@ -179,8 +159,7 @@ model Wanted {
   insertedAt     DateTime @default(now())
   updatedAt      DateTime @updatedAt
   
-  // Relazioni
-  citizen GameUser @relation(name: "CitizenWanted", fields: [citizenId], references: [id])
+  // Relazioni (solo con tabelle nello stesso database)
   officer User     @relation(name: "OfficerWanted", fields: [officerId], references: [id])
 
   @@index([citizenId])
@@ -192,7 +171,7 @@ model Wanted {
 model WeaponLicense {
   id                String   @id @default(cuid())
   licenseNumber     String   @unique // Numero porto d'armi (es: "PDA-2024-001234")
-  citizenId         Int      // ID del cittadino
+  citizenId         Int      // ID del cittadino (riferimento a database IARP)
   licenseType       String   // Tipo: "sport_target", "hunting", "defense", "collection", "carry"
   issueDate         DateTime // Data di rilascio
   expiryDate        DateTime // Data di scadenza
@@ -206,8 +185,7 @@ model WeaponLicense {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  // Relazioni
-  citizen GameUser @relation("CitizenWeaponLicenses", fields: [citizenId], references: [id])
+  // Relazioni (solo con tabelle nello stesso database)
   officer User     @relation("OfficerWeaponLicenses", fields: [officerId], references: [id])
 
   @@index([citizenId])
