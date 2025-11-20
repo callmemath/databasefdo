@@ -1,7 +1,21 @@
 // Questo file è una soluzione temporanea per gestire la mancanza del modello GameUser nel client Prisma generato
 import { PrismaClient, Prisma } from '@prisma/client';
 import prismaIARP from './prisma-iarp';
-import { extractIdFromIdentifier } from './prisma';
+
+// Funzione per estrarre un ID numerico dall'identifier
+// L'identifier ha formato "char1:hash" - prendiamo la parte dopo i : e convertiamo i primi caratteri in numero
+function extractNumericId(identifier: string): number {
+  if (!identifier) return 0;
+  
+  // Estrai la parte dopo i :
+  const parts = identifier.split(':');
+  const hashPart = parts.length > 1 ? parts[1] : identifier;
+  
+  // Converti i primi 8 caratteri esadecimali in un numero
+  // Questo genera un ID univoco ma consistente per ogni identifier
+  const numericPart = hashPart.substring(0, 8);
+  return parseInt(numericPart, 16);
+}
 
 // Definisci tipi per le opzioni e i risultati
 interface GameUserOptions {
@@ -103,34 +117,49 @@ class ExtendedPrismaClient extends PrismaClient {
       })
     ]);
     
-    // Aggiungi l'ID numerico estratto dall'identifier a ogni utente
+    // Aggiungi l'ID numerico estratto dall'identifier
     const usersWithId = users.map(user => ({
       ...user,
-      id: extractIdFromIdentifier(user.identifier)
+      id: extractNumericId(user.identifier || '')
     }));
     
     return { data: usersWithId as GameUser[], total };
   }
   
   async findGameUserById(id: number): Promise<GameUser | null> {
-    // Cerca l'utente con identifier che inizia con "char{id}:"
-    const users = await prismaIARP.gameUser.findMany({
-      where: {
-        identifier: {
-          startsWith: `char${id}:`
-        }
-      },
-      take: 1
+    // Ottieni tutti gli utenti e cerca quello con l'ID corrispondente
+    const allUsers = await prismaIARP.gameUser.findMany({
+      select: {
+        identifier: true,
+        firstname: true,
+        lastname: true,
+        dateofbirth: true,
+        sex: true,
+        nationality: true,
+        phone_number: true,
+        height: true,
+        accounts: true,
+        group: true,
+        inventory: true,
+        loadout: true,
+        metadata: true,
+        position: true,
+        status: true,
+        skin: true,
+        bankingData: true,
+        immProfilo: true,
+        tattoos: true,
+      }
     });
     
-    if (users.length === 0) return null;
+    // Trova l'utente il cui ID numerico corrisponde
+    const user = allUsers.find(u => extractNumericId(u.identifier || '') === id);
     
-    const user = users[0];
+    if (!user) return null;
     
-    // Aggiungi l'ID numerico estratto dall'identifier
     return {
       ...user,
-      id: extractIdFromIdentifier(user.identifier)
+      id: extractNumericId(user.identifier || '')
     } as GameUser;
   }
 }
