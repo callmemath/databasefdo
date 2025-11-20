@@ -1,0 +1,46 @@
+// Schema separato per database IARP (users table)
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/client-iarp"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL_IARP")
+}
+
+// Modello per rappresentare la tabella users del FiveM/IARP
+model GameUser {
+  id           Int       @id @default(autoincrement())
+  identifier   String?   @unique // Steam ID o identificatore simile
+  firstname    String? // Nome
+  lastname     String? // Cognome
+  dateofbirth  String? // Data di nascita come stringa
+  sex          String? // Sesso
+  height       Int? // Altezza
+  phone_number String? // Numero di telefono
+  
+  // Campi aggiuntivi da users.sql
+  accounts     String?   @db.LongText // Conti bancari in JSON
+  group        String?   @default("user") @db.VarChar(50) // Gruppo utente
+  inventory    String?   @db.LongText // Inventario in JSON
+  job          String?   @default("unemployed") @db.VarChar(20) // Lavoro principale
+  job_grade    Int?      @default(0) // Grado lavoro principale
+  loadout      String?   @db.LongText // Armi in JSON
+  metadata     String?   @db.LongText // Metadati in JSON
+  position     String?   @db.LongText // Posizione in JSON
+  status       String?   @db.LongText // Stato in JSON
+  nationality  String?   @db.VarChar(111) // Nazionalità
+  skin         String?   @db.LongText // Dati skin in JSON
+  bankingData  String?   @db.LongText // Dati bancari in JSON
+  job2         String?   @default("unemployed") @db.VarChar(50) // Lavoro secondario
+  job2_grade   Int?      @default(0) // Grado lavoro secondario
+  immProfilo   String?   @db.LongText // URL immagine profilo
+  tattoos      String?   @db.LongText // Tatuaggi in JSON
+  badge        Int?      // Numero badge
+  jail         Int?      @default(0) // Tempo in prigione
+  is_dead      Boolean?  @default(false) // Stato di morte
+  last_updated DateTime? // Ultimo aggiornamento
+
+  @@map("users")
+}
