@@ -11,9 +11,8 @@ datasource db {
 
 // Modello per rappresentare la tabella users del FiveM/IARP (ESX Framework)
 model GameUser {
-  // Identificatori
-  id            Int       @id @default(autoincrement())
-  identifier    String    @unique @db.VarChar(255) // Steam ID o simile (es: char1:04e9c91f...)
+  // Identificatori - identifier è la primary key (es: "char1:04e9c91f...")
+  identifier    String    @id @db.VarChar(255)
   
   // Dati anagrafici
   firstname     String?   @db.VarChar(255)
