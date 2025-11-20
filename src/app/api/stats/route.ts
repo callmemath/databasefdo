@@ -58,13 +58,6 @@ export async function GET(req: NextRequest) {
         take: 5,
         orderBy: { date: 'desc' },
         include: {
-          citizen: {
-            select: {
-              id: true,
-              firstname: true,
-              lastname: true
-            }
-          },
           officer: {
             select: {
               id: true,
@@ -81,20 +74,6 @@ export async function GET(req: NextRequest) {
         take: 5,
         orderBy: { date: 'desc' },
         include: {
-          citizen: {
-            select: {
-              id: true,
-              firstname: true,
-              lastname: true
-            }
-          },
-          accused: {
-            select: {
-              id: true,
-              firstname: true,
-              lastname: true
-            }
-          },
           officer: {
             select: {
               id: true,
@@ -181,6 +160,39 @@ export async function GET(req: NextRequest) {
       count
     }));
 
+    // Carica i dati dei cittadini per gli arresti recenti
+    const arrestsWithCitizens = await Promise.all(
+      recentArrests.map(async (arrest) => {
+        let citizenData = null;
+        if (arrest.citizenId) {
+          citizenData = await prisma.findGameUserById(arrest.citizenId);
+        }
+        return {
+          ...arrest,
+          citizen: citizenData
+        };
+      })
+    );
+
+    // Carica i dati dei cittadini per i report recenti
+    const reportsWithCitizens = await Promise.all(
+      recentReports.map(async (report) => {
+        let citizenData = null;
+        let accusedData = null;
+        if (report.citizenId) {
+          citizenData = await prisma.findGameUserById(report.citizenId);
+        }
+        if (report.accusedId) {
+          accusedData = await prisma.findGameUserById(report.accusedId);
+        }
+        return {
+          ...report,
+          citizen: citizenData,
+          accused: accusedData
+        };
+      })
+    );
+
     const responseData = {
       counts: {
         users: totalUsers,
@@ -188,8 +200,8 @@ export async function GET(req: NextRequest) {
         reports: totalReports
       },
       recent: {
-        arrests: recentArrests,
-        reports: recentReports
+        arrests: arrestsWithCitizens,
+        reports: reportsWithCitizens
       },
       charts: {
         departmentArrestStats,

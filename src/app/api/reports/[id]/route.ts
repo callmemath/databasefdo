@@ -31,8 +31,6 @@ export async function GET(
             rank: true,
           }
         },
-        citizen: true,
-        accused: true,
       }
     });
 
@@ -40,7 +38,29 @@ export async function GET(
       return NextResponse.json({ error: "Report non trovato" }, { status: 404 });
     }
 
-    return NextResponse.json(report);
+    // Carica i dati del cittadino e dell'accusato dal database IARP
+    let citizenData = null;
+    if (report.citizenId) {
+      citizenData = await prisma.findGameUserById(report.citizenId);
+    }
+    
+    let accusedData = null;
+    if (report.accusedId) {
+      accusedData = await prisma.findGameUserById(report.accusedId);
+    }
+
+    // Costruisci l'oggetto di risposta con i dati combinati
+    const reportWithRelations = {
+      ...report,
+      citizen: citizenData,
+      accused: accusedData
+    };
+
+    if (!report) {
+      return NextResponse.json({ error: "Report non trovato" }, { status: 404 });
+    }
+
+    return NextResponse.json(reportWithRelations);
   } catch (error) {
     console.error("Errore durante il recupero del report:", error);
     return NextResponse.json(
