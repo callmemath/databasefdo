@@ -1,0 +1,64 @@
+version: '3'
+
+services:
+  # Database MySQL per l'applicazione FDO
+  fdo_mysql:
+    image: mysql:8.0
+    container_name: fdo_database
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 
+      MYSQL_DATABASE: fdo_database
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 
+    ports:
+      - "3307:3306"
+    volumes:
+      - fdo_mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - fdo_network
+
+  # Database MySQL simulato per FiveM (per sviluppo locale)
+  fivem_mysql:
+    image: mysql:8.0
+    container_name: fivem_database
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 
+      MYSQL_DATABASE: fivem_database
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 
+    ports:
+      - "3308:3306"
+    volumes:
+      - fivem_mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - fdo_network
+
+  # Interfaccia di amministrazione per i database MySQL (opzionale)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: fdo_phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: fdo_mysql
+      PMA_USER: root
+      PMA_PASSWORD: 
+      PMA_ARBITRARY: 1
+    ports:
+      - "8080:80"
+    depends_on:
+      - fdo_mysql
+      - fivem_mysql
+    networks:
+      - fdo_network
+
+volumes:
+  fdo_mysql_data:
+  fivem_mysql_data:
+
+networks:
+  fdo_network:
+    driver: bridge
