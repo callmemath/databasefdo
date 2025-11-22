@@ -210,3 +210,6 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 export default prisma;
+
+// Export anche il PrismaClient base per operazioni che non richiedono estensioni
+export { PrismaClient };

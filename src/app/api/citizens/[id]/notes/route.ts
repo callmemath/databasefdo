@@ -3,7 +3,14 @@ import { PrismaClient } from '@prisma/client';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
-const prisma = new PrismaClient();
+// Usa una singola istanza globale di PrismaClient
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+const prisma = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 // GET: Recupera tutte le note di un cittadino
 export async function GET(
@@ -22,7 +29,7 @@ export async function GET(
     }
 
     // Recupera tutte le note del cittadino, ordinate per data (più recenti prima)
-    const notes = await prisma.citizenNote.findMany({
+    const notes = await (prisma as any).citizenNote.findMany({
       where: {
         citizenId: citizenId,
       },
@@ -88,8 +95,21 @@ export async function POST(
       );
     }
 
+    // Verifica che l'utente esista nel database
+    const officer = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!officer) {
+      console.error('Utente non trovato nel database:', session.user.id);
+      return NextResponse.json(
+        { error: 'Utente non trovato nel database' },
+        { status: 404 }
+      );
+    }
+
     // Crea la nuova nota
-    const note = await prisma.citizenNote.create({
+    const note = await (prisma as any).citizenNote.create({
       data: {
         content: content.trim(),
         citizenId: citizenId,
