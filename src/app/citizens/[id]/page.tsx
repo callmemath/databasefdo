@@ -220,28 +220,76 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
         <div className="lg:col-span-2 space-y-6">
           {/* Sezione informazioni personali */}
           <Card className="overflow-hidden">
-            <div className="bg-gradient-to-r from-police-blue-light to-police-blue p-6 dark:from-police-blue-dark dark:to-police-blue-darker text-white flex items-center">
-              <div className="flex-shrink-0">
-                {citizen.immProfilo ? (
-                  <img 
-                    src={citizen.immProfilo} 
-                    alt={`${citizen.firstname} ${citizen.lastname}`}
-                    className="h-24 w-24 rounded-full object-cover border-4 border-white"
-                  />
-                ) : (
-                  <div className="h-24 w-24 rounded-full bg-white flex items-center justify-center text-police-blue text-3xl font-bold">
-                    {getInitials(citizen.firstname, citizen.lastname)}
-                  </div>
-                )}
-              </div>
-              <div className="ml-6">
-                <h2 className="text-2xl font-bold">
-                  {citizen.firstname} {citizen.lastname}
-                </h2>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <div className="flex items-center text-sm">
-                    <Fingerprint className="h-4 w-4 mr-1" />
-                    ID: {citizen.id}
+            <div className="bg-gradient-to-r from-police-blue-light to-police-blue p-6 dark:from-police-blue-dark dark:to-police-blue-darker text-white">
+              <div className="flex items-start gap-6">
+                {/* Immagine profilo migliorata */}
+                <div className="flex-shrink-0">
+                  {citizen.immProfilo ? (
+                    <div className="relative group">
+                      <img 
+                        src={citizen.immProfilo} 
+                        alt={`${citizen.firstname} ${citizen.lastname}`}
+                        className="h-32 w-32 rounded-lg object-cover border-4 border-white shadow-xl transition-transform group-hover:scale-105"
+                        onError={(e) => {
+                          // Fallback se l'immagine non carica
+                          const target = e.currentTarget as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLDivElement;
+                          if (fallback) {
+                            fallback.classList.remove('hidden');
+                            fallback.classList.add('flex');
+                          }
+                        }}
+                      />
+                      <div className="hidden h-32 w-32 rounded-lg bg-white/20 backdrop-blur-sm border-4 border-white shadow-xl items-center justify-center">
+                        <div className="text-center">
+                          <User className="h-12 w-12 mx-auto mb-2 opacity-60" />
+                          <span className="text-4xl font-bold">
+                            {getInitials(citizen.firstname, citizen.lastname)}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Badge overlay per stato speciale */}
+                      {citizen.badge && (
+                        <div className="absolute -bottom-2 -right-2 bg-yellow-400 text-yellow-900 rounded-full p-2 shadow-lg border-2 border-white">
+                          <Shield className="h-5 w-5" />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="h-32 w-32 rounded-lg bg-white/20 backdrop-blur-sm border-4 border-white shadow-xl flex items-center justify-center">
+                      <div className="text-center">
+                        <User className="h-12 w-12 mx-auto mb-2 opacity-60" />
+                        <span className="text-4xl font-bold">
+                          {getInitials(citizen.firstname, citizen.lastname)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Informazioni intestazione */}
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-3xl font-bold mb-2">
+                    {citizen.firstname} {citizen.lastname}
+                  </h2>
+                  <div className="flex flex-wrap gap-3 text-sm">
+                    <div className="flex items-center bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5">
+                      <Fingerprint className="h-4 w-4 mr-2" />
+                      <span className="font-medium">ID: {citizen.id}</span>
+                    </div>
+                    {citizen.nationality && (
+                      <div className="flex items-center bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5">
+                        <Flag className="h-4 w-4 mr-2" />
+                        <span>{citizen.nationality}</span>
+                      </div>
+                    )}
+                    {citizen.phone_number && (
+                      <div className="flex items-center bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5">
+                        <Phone className="h-4 w-4 mr-2" />
+                        <span>{citizen.phone_number}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
