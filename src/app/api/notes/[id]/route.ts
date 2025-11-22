@@ -6,7 +6,7 @@ import prisma from '@/lib/prisma';
 // PUT /api/notes/[id] - Update a note
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -29,7 +29,8 @@ export async function PUT(
       );
     }
 
-    const noteId = params.id;
+    const resolvedParams = await params;
+    const noteId = resolvedParams.id;
     const body = await request.json();
     const { content } = body;
 
@@ -91,7 +92,7 @@ export async function PUT(
 // DELETE /api/notes/[id] - Delete a note
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -114,7 +115,8 @@ export async function DELETE(
       );
     }
 
-    const noteId = params.id;
+    const resolvedParams = await params;
+    const noteId = resolvedParams.id;
 
     // Verifica che la nota esista e appartenga all'utente
     const existingNote = await prisma.citizenNote.findUnique({
