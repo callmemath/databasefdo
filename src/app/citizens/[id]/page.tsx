@@ -30,6 +30,8 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
   const [addingNote, setAddingNote] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
+  const [deleteConfirmNoteId, setDeleteConfirmNoteId] = useState<string | null>(null);
+  const [noteError, setNoteError] = useState<string | null>(null);
   
   // Funzione per formattare la data
   const formatDate = (dateString: string) => {
@@ -124,7 +126,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
   }, [id]);
 
   // Funzione per caricare le note
-  const fetchNotes = async () => {
+  const fetchNotes = React.useCallback(async () => {
     try {
       setNotesLoading(true);
       const response = await fetch(`/api/citizens/${id}/notes`);
@@ -140,14 +142,14 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
     } finally {
       setNotesLoading(false);
     }
-  };
+  }, [id]);
 
   // Carica le note quando si seleziona il tab notes
   useEffect(() => {
     if (activeTab === 'notes') {
       fetchNotes();
     }
-  }, [activeTab, id]);
+  }, [activeTab, fetchNotes]);
 
   // Funzione per aggiungere una nota
   const handleAddNote = async () => {
@@ -155,6 +157,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
     
     try {
       setAddingNote(true);
+      setNoteError(null);
       const response = await fetch(`/api/citizens/${id}/notes`, {
         method: 'POST',
         headers: {
@@ -172,7 +175,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
       setNewNote(''); // Pulisci il campo
     } catch (err) {
       console.error('Errore durante l\'aggiunta della nota:', err);
-      alert('Errore nell\'aggiunta della nota');
+      setNoteError('Errore nell\'aggiunta della nota. Riprova più tardi.');
     } finally {
       setAddingNote(false);
     }
@@ -180,9 +183,8 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
 
   // Funzione per eliminare una nota
   const handleDeleteNote = async (noteId: string) => {
-    if (!confirm('Sei sicuro di voler eliminare questa nota?')) return;
-    
     try {
+      setNoteError(null);
       const response = await fetch(`/api/citizens/${id}/notes/${noteId}`, {
         method: 'DELETE',
       });
@@ -192,9 +194,11 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
       }
 
       setNotes(notes.filter(note => note.id !== noteId));
+      setDeleteConfirmNoteId(null);
     } catch (err) {
       console.error('Errore durante l\'eliminazione della nota:', err);
-      alert('Errore nell\'eliminazione della nota');
+      setNoteError('Errore nell\'eliminazione della nota. Riprova più tardi.');
+      setDeleteConfirmNoteId(null);
     }
   };
 
@@ -215,6 +219,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
     if (!editingContent.trim()) return;
     
     try {
+      setNoteError(null);
       const response = await fetch(`/api/citizens/${id}/notes/${noteId}`, {
         method: 'PATCH',
         headers: {
@@ -233,7 +238,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
       setEditingContent('');
     } catch (err) {
       console.error('Errore durante la modifica della nota:', err);
-      alert('Errore nella modifica della nota');
+      setNoteError('Errore nella modifica della nota. Riprova più tardi.');
     }
   };
 
@@ -1109,6 +1114,20 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                     Note su {citizen.firstname} {citizen.lastname}
                   </h3>
                   
+                  {/* Messaggio di errore */}
+                  {noteError && (
+                    <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                      <p className="text-sm text-red-600 dark:text-red-400">{noteError}</p>
+                      <button
+                        onClick={() => setNoteError(null)}
+                        className="ml-auto text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                  
                   {/* Form per aggiungere nota */}
                   <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
                     <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
@@ -1174,7 +1193,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                                     <Edit className="h-4 w-4" />
                                   </button>
                                   <button
-                                    onClick={() => handleDeleteNote(note.id)}
+                                    onClick={() => setDeleteConfirmNoteId(note.id)}
                                     className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                     title="Elimina nota"
                                   >
@@ -1224,6 +1243,38 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                       <p className="text-police-gray-dark dark:text-police-text-muted">
                         Nessuna nota disponibile su questo cittadino.
                       </p>
+                    </div>
+                  )}
+                  
+                  {/* Modale conferma eliminazione */}
+                  {deleteConfirmNoteId && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+                        <div className="flex items-center mb-4">
+                          <AlertTriangle className="h-6 w-6 text-red-500 mr-3" />
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            Conferma Eliminazione
+                          </h3>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-400 mb-6">
+                          Sei sicuro di voler eliminare questa nota? Questa azione non può essere annullata.
+                        </p>
+                        <div className="flex justify-end gap-3">
+                          <button
+                            onClick={() => setDeleteConfirmNoteId(null)}
+                            className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                          >
+                            Annulla
+                          </button>
+                          <button
+                            onClick={() => handleDeleteNote(deleteConfirmNoteId)}
+                            className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors flex items-center gap-2"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Elimina
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
