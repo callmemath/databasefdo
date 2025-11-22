@@ -5,7 +5,6 @@ import MainLayout from '../../../components/layout/MainLayout';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
-import CitizenNotes from '../../../components/citizens/CitizenNotes';
 import { 
   ArrowLeft, User, Calendar, MapPin, Briefcase, Phone, Mail, 
   AlertCircle, FileText, Shield, Users, Fingerprint, CreditCard, 
@@ -22,6 +21,12 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'records' | 'reports' | 'accusations' | 'arrests' | 'weapons' | 'notes'>('records');
+  
+  // Stato per le note
+  const [notes, setNotes] = useState<any[]>([]);
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [newNote, setNewNote] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
   
   // Funzione per formattare la data
   const formatDate = (dateString: string) => {
@@ -114,6 +119,61 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
     
     fetchCitizen();
   }, [id]);
+
+  // Funzione per caricare le note
+  const fetchNotes = async () => {
+    try {
+      setNotesLoading(true);
+      const response = await fetch(`/api/citizens/${id}/notes`);
+      
+      if (!response.ok) {
+        throw new Error('Errore nel caricamento delle note');
+      }
+      
+      const data = await response.json();
+      setNotes(data.notes || []);
+    } catch (err) {
+      console.error('Errore durante il caricamento delle note:', err);
+    } finally {
+      setNotesLoading(false);
+    }
+  };
+
+  // Carica le note quando si seleziona il tab notes
+  useEffect(() => {
+    if (activeTab === 'notes' && notes.length === 0) {
+      fetchNotes();
+    }
+  }, [activeTab, id]);
+
+  // Funzione per aggiungere una nota
+  const handleAddNote = async () => {
+    if (!newNote.trim()) return;
+    
+    try {
+      setAddingNote(true);
+      const response = await fetch(`/api/citizens/${id}/notes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: newNote.trim() }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Errore nell\'aggiunta della nota');
+      }
+
+      const data = await response.json();
+      setNotes([data.note, ...notes]); // Aggiungi la nota all'inizio
+      setNewNote(''); // Pulisci il campo
+    } catch (err) {
+      console.error('Errore durante l\'aggiunta della nota:', err);
+      alert('Errore nell\'aggiunta della nota');
+    } finally {
+      setAddingNote(false);
+    }
+  };
 
   // Funzione per ottenere le prime iniziali del nome e cognome
   const getInitials = (firstName?: string, lastName?: string) => {
@@ -475,7 +535,11 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                 >
                   <div className="flex items-center">
                     <FileText className="h-4 w-4 mr-2" />
-                    Note
+                    Note {notes.length > 0 && (
+                      <span className="ml-1.5 bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-400 text-xs rounded-full w-5 h-5 inline-flex items-center justify-center">
+                        {notes.length}
+                      </span>
+                    )}
                   </div>
                 </button>
               </div>
@@ -977,10 +1041,81 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
               
               {/* Tab Note */}
               {activeTab === 'notes' && (
-                <CitizenNotes 
-                  citizenId={citizen.id}
-                  citizenName={`${citizen.firstname} ${citizen.lastname}`}
-                />
+                <div>
+                  <h3 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center">
+                    <FileText className="h-5 w-5 mr-2 text-gray-500" />
+                    Note su {citizen.firstname} {citizen.lastname}
+                  </h3>
+                  
+                  {/* Form per aggiungere nota */}
+                  <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      Aggiungi Nota
+                    </h4>
+                    <textarea
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      placeholder="Scrivi una nota su questo cittadino..."
+                      className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-police-blue dark:focus:ring-police-blue-light resize-none"
+                      rows={4}
+                      disabled={addingNote}
+                    />
+                    <div className="mt-3 flex justify-end">
+                      <Button
+                        variant="primary"
+                        onClick={handleAddNote}
+                        disabled={!newNote.trim() || addingNote}
+                        leftIcon={<FileText className="h-4 w-4" />}
+                      >
+                        {addingNote ? 'Salvataggio...' : 'Aggiungi Nota'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Lista note */}
+                  {notesLoading ? (
+                    <div className="p-8 text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-police-blue mx-auto"></div>
+                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Caricamento note...</p>
+                    </div>
+                  ) : notes.length > 0 ? (
+                    <div className="space-y-4">
+                      {notes.map((note: any) => (
+                        <div
+                          key={note.id}
+                          className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <Shield className="h-4 w-4 text-police-blue" />
+                              <div>
+                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                  {note.officer.rank} {note.officer.name} {note.officer.surname}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {note.officer.department} - Badge {note.officer.badge}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {formatDateTime(note.createdAt)}
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap mt-2 pl-6">
+                            {note.content}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 border border-dashed border-gray-200 dark:border-gray-700 rounded-md text-center">
+                      <p className="text-police-gray-dark dark:text-police-text-muted">
+                        Nessuna nota disponibile su questo cittadino.
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </Card>
