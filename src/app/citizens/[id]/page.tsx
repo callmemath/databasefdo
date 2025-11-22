@@ -5,6 +5,7 @@ import MainLayout from '../../../components/layout/MainLayout';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
+import CitizenNotes from '../../../components/citizens/CitizenNotes';
 import { 
   ArrowLeft, User, Calendar, MapPin, Briefcase, Phone, Mail, 
   AlertCircle, FileText, Shield, Users, Fingerprint, CreditCard, 
@@ -308,7 +309,8 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                       <h4 className="text-sm font-medium text-police-gray-dark dark:text-police-text-muted">
                         Nome Completo
                       </h4>
-                      <p className="text-police-blue-dark dark:text-police-text-light">
+                      <p className="text-police-blue-dark dark:text-police-text-light flex items-center">
+                        <User className="h-4 w-4 mr-1 text-police-gray-dark dark:text-police-text-muted" />
                         {citizen.firstname} {citizen.lastname}
                       </p>
                     </div>
@@ -327,7 +329,8 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                       <h4 className="text-sm font-medium text-police-gray-dark dark:text-police-text-muted">
                         Genere
                       </h4>
-                      <p className="text-police-blue-dark dark:text-police-text-light">
+                      <p className="text-police-blue-dark dark:text-police-text-light flex items-center">
+                        <Users className="h-4 w-4 mr-1 text-police-gray-dark dark:text-police-text-muted" />
                         {citizen.sex === 'm' ? 'Maschile' : 
                          citizen.sex === 'f' ? 'Femminile' : 'Non specificato'}
                       </p>
@@ -974,21 +977,10 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
               
               {/* Tab Note */}
               {activeTab === 'notes' && (
-                <div>
-                  <h3 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center">
-                    <FileText className="h-5 w-5 mr-2 text-gray-500" />
-                    Note su {citizen.firstname} {citizen.lastname}
-                  </h3>
-                  
-                  <div className="p-4 border border-dashed border-gray-200 dark:border-gray-700 rounded-md text-center">
-                    <p className="text-police-gray-dark dark:text-police-text-muted mb-2">
-                      Nessuna nota disponibile su questo cittadino.
-                    </p>
-                    <p className="text-sm text-police-gray-dark dark:text-police-text-muted">
-                      Le note saranno disponibili in una futura versione.
-                    </p>
-                  </div>
-                </div>
+                <CitizenNotes 
+                  citizenId={citizen.id}
+                  citizenName={`${citizen.firstname} ${citizen.lastname}`}
+                />
               )}
             </div>
           </Card>

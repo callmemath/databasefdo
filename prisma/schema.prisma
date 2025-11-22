@@ -30,6 +30,7 @@ model User {
   reportsAsOfficer   Report[]      @relation("OfficerReports")
   wantedAsOfficer    Wanted[]      @relation("OfficerWanted")
   weaponLicensesAsOfficer WeaponLicense[] @relation("OfficerWeaponLicenses")
+  citizenNotes       CitizenNote[] @relation("OfficerNotes")
   apiTokens          ApiToken[]
   sessions           Session[]
   Account            Account[]
@@ -192,4 +193,21 @@ model WeaponLicense {
   @@index([licenseNumber])
   @@index([status])
   @@map("fdo_weapon_licenses")
+}
+
+// Modello per le note dei cittadini
+model CitizenNote {
+  id        String   @id @default(cuid())
+  citizenId Int      // ID del cittadino (riferimento a database IARP)
+  content   String   @db.Text // Contenuto della nota
+  createdBy String   // ID dell'operatore che ha creato la nota
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relazioni
+  officer User @relation("OfficerNotes", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([citizenId])
+  @@index([createdBy])
+  @@map("fdo_citizen_notes")
 }
