@@ -127,15 +127,18 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
 
   // Funzione per caricare le note
   const fetchNotes = React.useCallback(async () => {
+    console.log('🔍 fetchNotes chiamata per citizenId:', id);
     try {
       setNotesLoading(true);
       const response = await fetch(`/api/citizens/${id}/notes`);
+      console.log('📡 Risposta fetch note:', response.status, response.ok);
       
       if (!response.ok) {
         throw new Error('Errore nel caricamento delle note');
       }
       
       const data = await response.json();
+      console.log('📝 Note ricevute:', data.notes);
       setNotes(data.notes || []);
     } catch (err) {
       console.error('Errore durante il caricamento delle note:', err);
@@ -146,7 +149,9 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
 
   // Carica le note quando si seleziona il tab notes
   useEffect(() => {
+    console.log('🔄 useEffect note - activeTab:', activeTab);
     if (activeTab === 'notes') {
+      console.log('✅ Tab notes selezionato, chiamo fetchNotes');
       fetchNotes();
     }
   }, [activeTab, fetchNotes]);
