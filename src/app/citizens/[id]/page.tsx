@@ -229,7 +229,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                       <img 
                         src={citizen.immProfilo} 
                         alt={`${citizen.firstname} ${citizen.lastname}`}
-                        className="h-32 w-32 rounded-lg object-cover border-4 border-white shadow-xl transition-transform group-hover:scale-105"
+                        className="h-32 w-32 rounded-full object-cover border-4 border-white shadow-xl transition-transform group-hover:scale-105"
                         onError={(e) => {
                           // Fallback se l'immagine non carica
                           const target = e.currentTarget as HTMLImageElement;
@@ -241,7 +241,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                           }
                         }}
                       />
-                      <div className="hidden h-32 w-32 rounded-lg bg-white/20 backdrop-blur-sm border-4 border-white shadow-xl items-center justify-center">
+                      <div className="hidden h-32 w-32 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white shadow-xl items-center justify-center">
                         <div className="text-center">
                           <User className="h-12 w-12 mx-auto mb-2 opacity-60" />
                           <span className="text-4xl font-bold">
@@ -257,7 +257,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                       )}
                     </div>
                   ) : (
-                    <div className="h-32 w-32 rounded-lg bg-white/20 backdrop-blur-sm border-4 border-white shadow-xl flex items-center justify-center">
+                    <div className="h-32 w-32 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white shadow-xl flex items-center justify-center">
                       <div className="text-center">
                         <User className="h-12 w-12 mx-auto mb-2 opacity-60" />
                         <span className="text-4xl font-bold">
