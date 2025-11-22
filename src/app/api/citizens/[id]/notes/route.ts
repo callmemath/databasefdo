@@ -6,7 +6,7 @@ import prisma from '@/lib/prisma';
 // GET /api/citizens/[id]/notes - Get all notes for a citizen
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,7 +18,8 @@ export async function GET(
       );
     }
 
-    const citizenId = parseInt(params.id);
+    const resolvedParams = await params;
+    const citizenId = parseInt(resolvedParams.id);
     
     if (isNaN(citizenId)) {
       return NextResponse.json(
@@ -61,7 +62,7 @@ export async function GET(
 // POST /api/citizens/[id]/notes - Create a new note
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -84,7 +85,8 @@ export async function POST(
       );
     }
 
-    const citizenId = parseInt(params.id);
+    const resolvedParams = await params;
+    const citizenId = parseInt(resolvedParams.id);
     
     if (isNaN(citizenId)) {
       return NextResponse.json(
