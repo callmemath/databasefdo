@@ -8,7 +8,8 @@ import Badge from '../../../components/ui/Badge';
 import { 
   ArrowLeft, User, Calendar, MapPin, Briefcase, Phone, Mail, 
   AlertCircle, FileText, Shield, Users, Fingerprint, CreditCard, 
-  Info, Clock, Flag, Ruler, UserCheck, AlertTriangle, Tag, Target 
+  Info, Clock, Flag, Ruler, UserCheck, AlertTriangle, Tag, Target,
+  Edit, Trash2, Save, X
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,6 +28,8 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
   const [notesLoading, setNotesLoading] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [addingNote, setAddingNote] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
   
   // Funzione per formattare la data
   const formatDate = (dateString: string) => {
@@ -141,7 +144,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
 
   // Carica le note quando si seleziona il tab notes
   useEffect(() => {
-    if (activeTab === 'notes' && notes.length === 0) {
+    if (activeTab === 'notes') {
       fetchNotes();
     }
   }, [activeTab, id]);
@@ -172,6 +175,65 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
       alert('Errore nell\'aggiunta della nota');
     } finally {
       setAddingNote(false);
+    }
+  };
+
+  // Funzione per eliminare una nota
+  const handleDeleteNote = async (noteId: string) => {
+    if (!confirm('Sei sicuro di voler eliminare questa nota?')) return;
+    
+    try {
+      const response = await fetch(`/api/citizens/${id}/notes/${noteId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Errore nell\'eliminazione della nota');
+      }
+
+      setNotes(notes.filter(note => note.id !== noteId));
+    } catch (err) {
+      console.error('Errore durante l\'eliminazione della nota:', err);
+      alert('Errore nell\'eliminazione della nota');
+    }
+  };
+
+  // Funzione per iniziare la modifica di una nota
+  const handleStartEdit = (note: any) => {
+    setEditingNoteId(note.id);
+    setEditingContent(note.content);
+  };
+
+  // Funzione per annullare la modifica
+  const handleCancelEdit = () => {
+    setEditingNoteId(null);
+    setEditingContent('');
+  };
+
+  // Funzione per salvare la modifica
+  const handleSaveEdit = async (noteId: string) => {
+    if (!editingContent.trim()) return;
+    
+    try {
+      const response = await fetch(`/api/citizens/${id}/notes/${noteId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: editingContent.trim() }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Errore nella modifica della nota');
+      }
+
+      const data = await response.json();
+      setNotes(notes.map(note => note.id === noteId ? data.note : note));
+      setEditingNoteId(null);
+      setEditingContent('');
+    } catch (err) {
+      console.error('Errore durante la modifica della nota:', err);
+      alert('Errore nella modifica della nota');
     }
   };
 
@@ -1086,7 +1148,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                           className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow"
                         >
                           <div className="flex items-start justify-between mb-2">
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-2 flex-1">
                               <Shield className="h-4 w-4 text-police-blue" />
                               <div>
                                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -1097,14 +1159,63 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                                 </p>
                               </div>
                             </div>
-                            <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {formatDateTime(note.createdAt)}
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {formatDateTime(note.createdAt)}
+                              </div>
+                              {editingNoteId !== note.id && (
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => handleStartEdit(note)}
+                                    className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                    title="Modifica nota"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteNote(note.id)}
+                                    className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                    title="Elimina nota"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
-                          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap mt-2 pl-6">
-                            {note.content}
-                          </p>
+                          
+                          {editingNoteId === note.id ? (
+                            <div className="mt-2 pl-6">
+                              <textarea
+                                value={editingContent}
+                                onChange={(e) => setEditingContent(e.target.value)}
+                                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-police-blue dark:focus:ring-police-blue-light resize-none"
+                                rows={3}
+                              />
+                              <div className="mt-2 flex justify-end gap-2">
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-1"
+                                >
+                                  <X className="h-4 w-4" />
+                                  Annulla
+                                </button>
+                                <button
+                                  onClick={() => handleSaveEdit(note.id)}
+                                  disabled={!editingContent.trim()}
+                                  className="px-3 py-1.5 text-sm bg-police-blue text-white hover:bg-police-blue-dark rounded flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <Save className="h-4 w-4" />
+                                  Salva
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap mt-2 pl-6">
+                              {note.content}
+                            </p>
+                          )}
                         </div>
                       ))}
                     </div>
