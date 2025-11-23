@@ -199,7 +199,7 @@ model WeaponLicense {
 model CitizenNote {
   id        String   @id @default(cuid())
   content   String   @db.Text // Contenuto della nota
-  citizenId Int      // ID del cittadino (riferimento a database IARP)
+  citizenId BigInt   // ID del cittadino (riferimento a database IARP) - BIGINT per supportare ID grandi
   officerId String   // ID dell'operatore che ha scritto la nota
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
