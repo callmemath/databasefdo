@@ -204,8 +204,8 @@ model CitizenNote {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relazioni (solo con tabelle nello stesso database)
-  officer User @relation("OfficerCitizenNotes", fields: [officerId], references: [id])
+  // Relazione opzionale - l'officer potrebbe non esistere nella tabella User
+  officer User? @relation("OfficerCitizenNotes", fields: [officerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([citizenId])
   @@index([officerId])
