@@ -5,8 +5,13 @@ import { getToken } from 'next-auth/jwt';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Se l'utente sta cercando di accedere alla pagina di login, consentiamo l'accesso
+  // Consenti l'accesso alla pagina di login
   if (pathname === '/login') {
+    return NextResponse.next();
+  }
+
+  // Consenti le API di autenticazione senza controllo
+  if (pathname.startsWith('/api/auth')) {
     return NextResponse.next();
   }
   
@@ -15,7 +20,19 @@ export async function middleware(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
   
-  // Reindirizza alla pagina di login se non autenticato
+  // Per le API (escluse quelle di auth), restituisci 401 se non autenticato
+  if (pathname.startsWith('/api/')) {
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Non autorizzato' },
+        { status: 401 }
+      );
+    }
+    // Se autenticato, consenti l'accesso all'API
+    return NextResponse.next();
+  }
+  
+  // Per le pagine normali, reindirizza al login se non autenticato
   if (!token) {
     const url = new URL('/login', request.url);
     url.searchParams.set('callbackUrl', encodeURI(request.url));
@@ -31,7 +48,7 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Esegui il middleware su tutte le rotte tranne quelle specificate
+// Esegui il middleware su tutte le rotte tranne risorse statiche
 export const config = {
-  matcher: ['/((?!api/auth|api/discord|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
