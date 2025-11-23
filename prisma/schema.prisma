@@ -198,14 +198,13 @@ model WeaponLicense {
 // Modello per le note sui cittadini
 model CitizenNote {
   id        String   @id @default(cuid())
-  content   String   @db.Text // Contenuto della nota
-  citizenId BigInt   // ID del cittadino (riferimento a database IARP) - BIGINT per supportare ID grandi
-  officerId String   // ID dell'operatore che ha scritto la nota
+  content   String   @db.Text
+  citizenId BigInt
+  officerId String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relazione opzionale - l'officer potrebbe non esistere nella tabella User
-  officer User? @relation("OfficerCitizenNotes", fields: [officerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  officer User @relation("OfficerCitizenNotes", fields: [officerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([citizenId])
   @@index([officerId])

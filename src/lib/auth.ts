@@ -79,7 +79,7 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt", // Usa JWT per la gestione delle sessioni
-    maxAge: 30 * 24 * 60 * 60, // 30 giorni
+    maxAge: 8 * 60 * 60, // 8 ore
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
