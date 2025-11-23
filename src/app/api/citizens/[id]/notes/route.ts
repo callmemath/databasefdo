@@ -12,7 +12,10 @@ export async function GET(
     const resolvedParams = await params;
     const citizenId = parseInt(resolvedParams.id);
 
+    console.log('🔍 GET /api/citizens/[id]/notes - citizenId:', citizenId);
+
     if (isNaN(citizenId)) {
+      console.log('❌ ID cittadino non valido:', resolvedParams.id);
       return NextResponse.json(
         { error: 'ID cittadino non valido' },
         { status: 400 }
@@ -20,6 +23,7 @@ export async function GET(
     }
 
     // Recupera tutte le note del cittadino, ordinate per data (più recenti prima)
+    console.log('📡 Cerco note per citizenId:', citizenId);
     const notes = await (prisma as any).citizenNote.findMany({
       where: {
         citizenId: citizenId,
@@ -41,9 +45,12 @@ export async function GET(
       },
     });
 
+    console.log('✅ Note trovate:', notes.length);
+    console.log('📝 Note:', JSON.stringify(notes, null, 2));
+
     return NextResponse.json({ notes });
   } catch (error) {
-    console.error('Errore nel recupero delle note:', error);
+    console.error('❌ Errore nel recupero delle note:', error);
     return NextResponse.json(
       { error: 'Errore nel recupero delle note' },
       { status: 500 }
