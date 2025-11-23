@@ -29,11 +29,16 @@ export async function GET(
     console.log('📡 Cerco note per citizenId:', citizenId);
     console.log('📡 Tipo di citizenId:', typeof citizenId);
     
-    // Query diretta per debug
+    // Query diretta per debug - converte BigInt a string per il log
     const allNotesRaw: any = await prisma.$queryRaw`SELECT * FROM fdo_citizen_notes LIMIT 5`;
     console.log('🔍 Query diretta - note nel DB:', allNotesRaw.length);
     if (allNotesRaw.length > 0) {
-      console.log('🔍 Prima nota RAW:', JSON.stringify(allNotesRaw[0], null, 2));
+      // Converti BigInt per il log
+      const firstNoteForLog = {
+        ...allNotesRaw[0],
+        citizenId: allNotesRaw[0].citizenId.toString()
+      };
+      console.log('🔍 Prima nota RAW:', JSON.stringify(firstNoteForLog, null, 2));
     }
     
     // Ora cerchiamo le note per questo cittadino - usa BigInt
