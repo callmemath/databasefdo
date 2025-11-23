@@ -27,7 +27,23 @@ export async function GET(
 
     // Recupera tutte le note del cittadino, ordinate per data (più recenti prima)
     console.log('📡 Cerco note per citizenId:', citizenId);
-    const notes = await prisma.citizenNote.findMany({
+    console.log('📡 Tipo di citizenId:', typeof citizenId);
+    
+    // Query diretta per debug
+    const allNotesRaw: any = await prisma.$queryRaw`SELECT * FROM fdo_citizen_notes LIMIT 5`;
+    console.log('🔍 Query diretta - note nel DB:', allNotesRaw.length);
+    if (allNotesRaw.length > 0) {
+      console.log('🔍 Prima nota RAW:', JSON.stringify(allNotesRaw[0], null, 2));
+    }
+    
+    // Ora cerchiamo le note per questo cittadino
+    const notesForCitizen: any = await prisma.$queryRaw`
+      SELECT * FROM fdo_citizen_notes WHERE citizenId = ${citizenId}
+    `;
+    console.log('🔍 Note per citizenId', citizenId, ':', notesForCitizen.length);
+    
+    // Usa Prisma con casting
+    const notes = await (prisma as any).citizenNote.findMany({
       where: {
         citizenId: citizenId,
       },
@@ -48,7 +64,7 @@ export async function GET(
       },
     });
 
-    console.log('✅ Note trovate:', notes.length);
+    console.log('✅ Note trovate con Prisma per citizenId', citizenId, ':', notes.length);
     console.log('📝 Note:', JSON.stringify(notes, null, 2));
 
     return NextResponse.json({ notes });
@@ -110,7 +126,7 @@ export async function POST(
     }
 
     // Crea la nuova nota
-    const note = await prisma.citizenNote.create({
+    const note = await (prisma as any).citizenNote.create({
       data: {
         content: content.trim(),
         citizenId: citizenId,
