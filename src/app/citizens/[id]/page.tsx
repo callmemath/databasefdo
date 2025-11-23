@@ -98,6 +98,28 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
     });
   }, [citizen]);
 
+  // Funzione per caricare le note - definita prima per essere usata nell'useEffect
+  const fetchNotes = React.useCallback(async () => {
+    console.log('🔍 fetchNotes chiamata per citizenId:', id);
+    try {
+      setNotesLoading(true);
+      const response = await fetch(`/api/citizens/${id}/notes`);
+      console.log('📡 Risposta fetch note:', response.status, response.ok);
+      
+      if (!response.ok) {
+        throw new Error('Errore nel caricamento delle note');
+      }
+      
+      const data = await response.json();
+      console.log('📝 Note ricevute:', data.notes);
+      setNotes(data.notes || []);
+    } catch (err) {
+      console.error('Errore durante il caricamento delle note:', err);
+    } finally {
+      setNotesLoading(false);
+    }
+  }, [id]);
+
   useEffect(() => {
     const fetchCitizen = async () => {
       try {
@@ -123,29 +145,9 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
     };
     
     fetchCitizen();
-  }, [id]);
-
-  // Funzione per caricare le note
-  const fetchNotes = React.useCallback(async () => {
-    console.log('🔍 fetchNotes chiamata per citizenId:', id);
-    try {
-      setNotesLoading(true);
-      const response = await fetch(`/api/citizens/${id}/notes`);
-      console.log('📡 Risposta fetch note:', response.status, response.ok);
-      
-      if (!response.ok) {
-        throw new Error('Errore nel caricamento delle note');
-      }
-      
-      const data = await response.json();
-      console.log('📝 Note ricevute:', data.notes);
-      setNotes(data.notes || []);
-    } catch (err) {
-      console.error('Errore durante il caricamento delle note:', err);
-    } finally {
-      setNotesLoading(false);
-    }
-  }, [id]);
+    // Carica anche le note per mostrare il counter
+    fetchNotes();
+  }, [id, fetchNotes]);
 
   // Carica le note quando si seleziona il tab notes
   useEffect(() => {
