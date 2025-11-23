@@ -10,7 +10,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Consenti le API di autenticazione senza controllo
+  // Consenti SOLO le API di autenticazione NextAuth senza controllo
+  // /api/discord deve usare il suo token speciale nell'env
   if (pathname.startsWith('/api/auth')) {
     return NextResponse.next();
   }

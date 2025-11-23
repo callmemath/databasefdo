@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client';
+
+// Usa PrismaClient diretto per accedere al modello CitizenNote
+const prisma = new PrismaClient();
 
 // GET: Recupera tutte le note di un cittadino
 export async function GET(
@@ -24,7 +27,7 @@ export async function GET(
 
     // Recupera tutte le note del cittadino, ordinate per data (più recenti prima)
     console.log('📡 Cerco note per citizenId:', citizenId);
-    const notes = await (prisma as any).citizenNote.findMany({
+    const notes = await prisma.citizenNote.findMany({
       where: {
         citizenId: citizenId,
       },
@@ -107,7 +110,7 @@ export async function POST(
     }
 
     // Crea la nuova nota
-    const note = await (prisma as any).citizenNote.create({
+    const note = await prisma.citizenNote.create({
       data: {
         content: content.trim(),
         citizenId: citizenId,
