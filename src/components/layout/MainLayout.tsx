@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { Inter } from 'next/font/google';
@@ -8,7 +8,25 @@ interface MainLayoutProps {
 }
 
 const MainLayout = ({ children }: MainLayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Inizializza sidebarOpen in base alla dimensione dello schermo
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    // Funzione per controllare se siamo su desktop
+    const checkScreenSize = () => {
+      const isDesktop = window.innerWidth >= 1024; // lg breakpoint di Tailwind
+      setSidebarOpen(isDesktop);
+    };
+
+    // Controlla all'avvio
+    checkScreenSize();
+
+    // Aggiungi listener per il resize
+    window.addEventListener('resize', checkScreenSize);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
