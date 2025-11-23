@@ -122,6 +122,13 @@ export async function POST(
       );
     }
 
+    // Debug: verifica se l'utente esiste
+    console.log('🔍 Verifico se officerId esiste:', session.user.id);
+    const userExists = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    });
+    console.log('👤 Utente trovato in fdo_users:', userExists ? 'SI' : 'NO', userExists);
+
     // Crea la nuova nota (l'utente è già validato da NextAuth)
     const note = await (prisma as any).citizenNote.create({
       data: {
@@ -142,6 +149,8 @@ export async function POST(
         },
       },
     });
+
+    console.log('📝 Nota creata, officer popolato:', note.officer ? 'SI' : 'NO', note.officer);
 
     // Converti BigInt in stringa per JSON
     const serializedNote = {
