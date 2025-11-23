@@ -36,16 +36,16 @@ export async function GET(
       console.log('🔍 Prima nota RAW:', JSON.stringify(allNotesRaw[0], null, 2));
     }
     
-    // Ora cerchiamo le note per questo cittadino
+    // Ora cerchiamo le note per questo cittadino - usa BigInt
     const notesForCitizen: any = await prisma.$queryRaw`
-      SELECT * FROM fdo_citizen_notes WHERE citizenId = ${citizenId}
+      SELECT * FROM fdo_citizen_notes WHERE citizenId = ${BigInt(citizenId)}
     `;
-    console.log('🔍 Note per citizenId', citizenId, ':', notesForCitizen.length);
+    console.log('🔍 Note per citizenId', citizenId, '(come BigInt):', notesForCitizen.length);
     
-    // Usa Prisma con casting
+    // Usa Prisma con casting - converte a BigInt
     const notes = await (prisma as any).citizenNote.findMany({
       where: {
-        citizenId: citizenId,
+        citizenId: BigInt(citizenId),
       },
       include: {
         officer: {
@@ -65,9 +65,14 @@ export async function GET(
     });
 
     console.log('✅ Note trovate con Prisma per citizenId', citizenId, ':', notes.length);
-    console.log('📝 Note:', JSON.stringify(notes, null, 2));
+    
+    // Converti BigInt in stringhe per JSON
+    const serializedNotes = notes.map((note: any) => ({
+      ...note,
+      citizenId: note.citizenId.toString(),
+    }));
 
-    return NextResponse.json({ notes });
+    return NextResponse.json({ notes: serializedNotes });
   } catch (error) {
     console.error('❌ Errore nel recupero delle note:', error);
     return NextResponse.json(
@@ -129,7 +134,7 @@ export async function POST(
     const note = await (prisma as any).citizenNote.create({
       data: {
         content: content.trim(),
-        citizenId: citizenId,
+        citizenId: BigInt(citizenId),
         officerId: session.user.id,
       },
       include: {
@@ -146,7 +151,13 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({ note }, { status: 201 });
+    // Converti BigInt in stringa per JSON
+    const serializedNote = {
+      ...note,
+      citizenId: note.citizenId.toString(),
+    };
+
+    return NextResponse.json({ note: serializedNote }, { status: 201 });
   } catch (error) {
     console.error('Errore nella creazione della nota:', error);
     return NextResponse.json(
