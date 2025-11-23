@@ -15,39 +15,13 @@ export async function GET(
     const resolvedParams = await params;
     const citizenId = parseInt(resolvedParams.id);
 
-    console.log('🔍 GET /api/citizens/[id]/notes - citizenId:', citizenId);
-
     if (isNaN(citizenId)) {
-      console.log('❌ ID cittadino non valido:', resolvedParams.id);
       return NextResponse.json(
         { error: 'ID cittadino non valido' },
         { status: 400 }
       );
     }
-
-    // Recupera tutte le note del cittadino, ordinate per data (più recenti prima)
-    console.log('📡 Cerco note per citizenId:', citizenId);
-    console.log('📡 Tipo di citizenId:', typeof citizenId);
     
-    // Query diretta per debug - converte BigInt a string per il log
-    const allNotesRaw: any = await prisma.$queryRaw`SELECT * FROM fdo_citizen_notes LIMIT 5`;
-    console.log('🔍 Query diretta - note nel DB:', allNotesRaw.length);
-    if (allNotesRaw.length > 0) {
-      // Converti BigInt per il log
-      const firstNoteForLog = {
-        ...allNotesRaw[0],
-        citizenId: allNotesRaw[0].citizenId.toString()
-      };
-      console.log('🔍 Prima nota RAW:', JSON.stringify(firstNoteForLog, null, 2));
-    }
-    
-    // Ora cerchiamo le note per questo cittadino - usa BigInt
-    const notesForCitizen: any = await prisma.$queryRaw`
-      SELECT * FROM fdo_citizen_notes WHERE citizenId = ${BigInt(citizenId)}
-    `;
-    console.log('🔍 Note per citizenId', citizenId, '(come BigInt):', notesForCitizen.length);
-    
-    // Usa Prisma con casting - converte a BigInt
     const notes = await (prisma as any).citizenNote.findMany({
       where: {
         citizenId: BigInt(citizenId),
@@ -68,10 +42,7 @@ export async function GET(
         createdAt: 'desc',
       },
     });
-
-    console.log('✅ Note trovate con Prisma per citizenId', citizenId, ':', notes.length);
     
-    // Converti BigInt in stringhe per JSON
     const serializedNotes = notes.map((note: any) => ({
       ...note,
       citizenId: note.citizenId.toString(),
@@ -79,7 +50,6 @@ export async function GET(
 
     return NextResponse.json({ notes: serializedNotes });
   } catch (error) {
-    console.error('❌ Errore nel recupero delle note:', error);
     return NextResponse.json(
       { error: 'Errore nel recupero delle note' },
       { status: 500 }
@@ -122,14 +92,6 @@ export async function POST(
       );
     }
 
-    // Debug: verifica se l'utente esiste
-    console.log('🔍 Verifico se officerId esiste:', session.user.id);
-    const userExists = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    });
-    console.log('👤 Utente trovato in fdo_users:', userExists ? 'SI' : 'NO', userExists);
-
-    // Crea la nuova nota (l'utente è già validato da NextAuth)
     const note = await (prisma as any).citizenNote.create({
       data: {
         content: content.trim(),
@@ -150,8 +112,6 @@ export async function POST(
       },
     });
 
-    console.log('📝 Nota creata, officer popolato:', note.officer ? 'SI' : 'NO', note.officer);
-
     // Converti BigInt in stringa per JSON
     const serializedNote = {
       ...note,
@@ -160,7 +120,6 @@ export async function POST(
 
     return NextResponse.json({ note: serializedNote }, { status: 201 });
   } catch (error) {
-    console.error('Errore nella creazione della nota:', error);
     return NextResponse.json(
       { error: 'Errore nella creazione della nota' },
       { status: 500 }

@@ -1178,18 +1178,10 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                               <Shield className="h-4 w-4 text-police-blue" />
                               <div>
                                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                  {note.officer ? (
-                                    `${note.officer.rank} ${note.officer.name} ${note.officer.surname}`
-                                  ) : (
-                                    <span className="text-gray-500 dark:text-gray-400 italic">Operatore Sconosciuto</span>
-                                  )}
+                                  {note.officer.rank} {note.officer.name} {note.officer.surname}
                                 </p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {note.officer ? (
-                                    `${note.officer.department} - Badge ${note.officer.badge}`
-                                  ) : (
-                                    'N/A'
-                                  )}
+                                  {note.officer.department} - Badge {note.officer.badge}
                                 </p>
                               </div>
                             </div>
