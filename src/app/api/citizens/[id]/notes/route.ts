@@ -122,20 +122,7 @@ export async function POST(
       );
     }
 
-    // Verifica che l'utente esista nel database
-    const officer = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    });
-
-    if (!officer) {
-      console.error('Utente non trovato nel database:', session.user.id);
-      return NextResponse.json(
-        { error: 'Utente non trovato nel database' },
-        { status: 404 }
-      );
-    }
-
-    // Crea la nuova nota
+    // Crea la nuova nota (l'utente è già validato da NextAuth)
     const note = await (prisma as any).citizenNote.create({
       data: {
         content: content.trim(),
