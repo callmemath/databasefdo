@@ -7,12 +7,22 @@ import { hash } from "bcryptjs";
 function verifyDiscordBotToken(req: NextRequest): boolean {
   const authHeader = req.headers.get('authorization');
   
+  console.log("=== DEBUG AUTH ===");
+  console.log("Auth Header ricevuto:", authHeader);
+  
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log("Header Authorization mancante o formato errato");
     return false;
   }
   
   const token = authHeader.substring(7);
   const expectedToken = process.env.DISCORD_BOT_API_TOKEN;
+  
+  console.log("Token ricevuto:", token);
+  console.log("Token atteso:", expectedToken);
+  console.log("Token atteso length:", expectedToken?.length);
+  console.log("Token ricevuto length:", token?.length);
+  console.log("Match:", token === expectedToken);
   
   // Verifica che il token sia stato impostato nell'ambiente
   if (!expectedToken) {
