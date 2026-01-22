@@ -15,6 +15,16 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/api/auth')) {
     return NextResponse.next();
   }
+
+  // Consenti le API Discord (usano il proprio sistema di autenticazione con Bearer token)
+  if (pathname.startsWith('/api/discord')) {
+    return NextResponse.next();
+  }
+
+  // Consenti l'endpoint di test
+  if (pathname.startsWith('/api/test-env')) {
+    return NextResponse.next();
+  }
   
   const token = await getToken({ 
     req: request,
