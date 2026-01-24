@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
 
   // Registra il client
   clients.set(clientId, writer);
-  console.log(`[SSE] Client connesso: ${clientId}. Totale client: ${clients.size}`);
+  // Log rimosso per ridurre output
 
   // Invia un messaggio di connessione
   writer.write(encoder.encode(`event: connected\ndata: ${JSON.stringify({ clientId, timestamp: Date.now() })}\n\n`));
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
   req.signal.addEventListener('abort', () => {
     clearInterval(heartbeat);
     clients.delete(clientId);
-    console.log(`[SSE] Client disconnesso: ${clientId}. Totale client: ${clients.size}`);
+    // Log rimosso per ridurre output
     try {
       writer.close();
     } catch (e) {

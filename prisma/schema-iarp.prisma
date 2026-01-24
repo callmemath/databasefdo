@@ -39,10 +39,10 @@ model GameUser {
   
   // Aspetto
   skin          String?   @db.LongText     // JSON complesso con model, components, props, faceFeatures, etc
-  tattoos       String?   @db.LongText     // JSON array dei tatuaggi
+  // tattoos       String?   @db.LongText  // Colonna non presente nel DB VPS
   
   // Dati aggiuntivi
-  immProfilo    String?   @db.Text         // URL immagine profilo Discord
+  // immProfilo    String?   @db.Text      // Colonna non presente nel DB VPS
   // bankingData   String?   @db.Text      // Colonna non presente nel DB VPS
   badge         String?   @db.VarChar(255) // Può essere null
   jail          Int?                       // Tempo in prigione (numero, es: 0)
