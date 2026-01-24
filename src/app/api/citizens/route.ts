@@ -172,10 +172,15 @@ export async function GET(req: NextRequest) {
     }
     
     return NextResponse.json(results);
-  } catch (error) {
-    console.error("Errore durante la ricerca dei cittadini:", error);
+  } catch (error: any) {
+    console.error("========== ERRORE CITIZENS API ==========");
+    console.error("Messaggio:", error?.message || "Nessun messaggio");
+    console.error("Codice:", error?.code || "Nessun codice");
+    console.error("Stack:", error?.stack || "Nessuno stack");
+    console.error("Errore completo:", JSON.stringify(error, null, 2));
+    console.error("==========================================");
     return NextResponse.json(
-      { error: "Errore durante la ricerca dei cittadini" },
+      { error: "Errore durante la ricerca dei cittadini", details: error?.message },
       { status: 500 }
     );
   }
