@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useRealtimeRefresh } from '@/hooks/useRealtime';
 import MainLayout from '../../components/layout/MainLayout';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -77,17 +78,6 @@ export default function Arrests() {
     'Polizia Locale'
   ];
   
-  // Carica gli arresti all'avvio e inizializza i reati filtrati e il dipartimento dell'utente
-  useEffect(() => {
-    fetchArrests();
-    setFilteredCrimes(availableCrimes);
-    
-    // Imposta il dipartimento dell'utente corrente
-    if (session?.user?.department) {
-      setCurrentUserDepartment(session.user.department);
-    }
-  }, [session]);
-
   // Recupera l'elenco degli arresti
   const fetchArrests = async () => {
     setIsLoading(true);
@@ -111,6 +101,20 @@ export default function Arrests() {
       setIsLoading(false);
     }
   };
+
+  // Carica gli arresti all'avvio e inizializza i reati filtrati e il dipartimento dell'utente
+  useEffect(() => {
+    fetchArrests();
+    setFilteredCrimes(availableCrimes);
+    
+    // Imposta il dipartimento dell'utente corrente
+    if (session?.user?.department) {
+      setCurrentUserDepartment(session.user.department);
+    }
+  }, [session]);
+
+  // 🔴 Real-time: aggiorna automaticamente quando viene creato/modificato un arresto
+  useRealtimeRefresh(['arrest_created', 'arrest_updated'], fetchArrests);
   
   // Removed months and fine calculations as per request #6
   const calculateTotals = () => {

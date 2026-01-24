@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRealtimeRefresh } from '@/hooks/useRealtime';
 import MainLayout from '../../components/layout/MainLayout';
 import Card from '../../components/ui/Card';
 import SearchInput from '../../components/ui/SearchInput';
@@ -43,41 +44,45 @@ export default function Wanted() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Carica i dati dei ricercati dall'API
-  useEffect(() => {
-    const fetchWantedPersons = async () => {
-      try {
-        setLoading(true);
-        // Costruisci la query string con i parametri di filtro
-        const queryParams = new URLSearchParams();
-        
-        if (searchQuery) {
-          queryParams.append('search', searchQuery);
-        }
-        
-        if (dangerFilter !== 'all') {
-          queryParams.append('dangerLevel', dangerFilter);
-        }
-
-        const response = await fetch(`/api/wanted?${queryParams.toString()}`);
-        
-        if (!response.ok) {
-          throw new Error('Errore nel caricamento dei ricercati');
-        }
-        
-        const data = await response.json();
-        setWantedPersons(data);
-        setError(null);
-      } catch (err) {
-        setError('Errore nel caricamento dei dati. Riprova più tardi.');
-        console.error('Errore nel caricamento dei ricercati:', err);
-      } finally {
-        setLoading(false);
+  // Funzione per caricare i ricercati
+  const fetchWantedPersons = useCallback(async () => {
+    try {
+      setLoading(true);
+      // Costruisci la query string con i parametri di filtro
+      const queryParams = new URLSearchParams();
+      
+      if (searchQuery) {
+        queryParams.append('search', searchQuery);
       }
-    };
+      
+      if (dangerFilter !== 'all') {
+        queryParams.append('dangerLevel', dangerFilter);
+      }
 
-    fetchWantedPersons();
+      const response = await fetch(`/api/wanted?${queryParams.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error('Errore nel caricamento dei ricercati');
+      }
+      
+      const data = await response.json();
+      setWantedPersons(data);
+      setError(null);
+    } catch (err) {
+      setError('Errore nel caricamento dei dati. Riprova più tardi.');
+      console.error('Errore nel caricamento dei ricercati:', err);
+    } finally {
+      setLoading(false);
+    }
   }, [searchQuery, dangerFilter]);
+
+  // Carica i dati dei ricercati
+  useEffect(() => {
+    fetchWantedPersons();
+  }, [fetchWantedPersons]);
+
+  // 🔴 Real-time: aggiorna automaticamente quando viene creato/modificato un ricercato
+  useRealtimeRefresh(['wanted_created', 'wanted_updated'], fetchWantedPersons);
   
   const dangerLevels = [
     { id: 'all', name: 'Tutti i livelli' },

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRealtimeRefresh } from '@/hooks/useRealtime';
 import MainLayout from '@/components/layout/MainLayout';
 import Card from '@/components/ui/Card';
 import Table from '@/components/ui/Table';
@@ -61,11 +62,7 @@ export default function WeaponLicensesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
 
-  useEffect(() => {
-    fetchLicenses();
-  }, [searchQuery, statusFilter, typeFilter]);
-
-  const fetchLicenses = async () => {
+  const fetchLicenses = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -87,7 +84,15 @@ export default function WeaponLicensesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchQuery, statusFilter, typeFilter]);
+
+  // Carica i dati all'avvio e quando cambiano i filtri
+  useEffect(() => {
+    fetchLicenses();
+  }, [fetchLicenses]);
+
+  // 🔴 Real-time: aggiorna automaticamente quando viene creato/modificato un porto d'armi
+  useRealtimeRefresh(['weapon_license_created', 'weapon_license_updated'], fetchLicenses);
 
   const getStatusBadge = (status: string) => {
     const statusInfo = statusLabels[status] || { label: status, color: 'gray', icon: Clock };

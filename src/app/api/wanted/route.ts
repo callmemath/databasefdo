@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { discordWebhook } from '@/lib/discord-webhook';
+import { notifyWantedCreated } from '@/lib/realtime';
 
 // GET /api/wanted - Recupera tutti i ricercati
 export async function GET(request: Request) {
@@ -183,6 +184,13 @@ export async function POST(request: Request) {
     } catch (webhookError) {
       // Non bloccare la creazione del ricercato se il webhook fallisce
       console.error('Errore durante l\'invio della notifica Discord:', webhookError);
+    }
+
+    // 🔴 Notifica real-time a tutti i client connessi
+    try {
+      notifyWantedCreated(enrichedWanted);
+    } catch (realtimeError) {
+      console.error('Errore notifica realtime:', realtimeError);
     }
 
     return NextResponse.json(enrichedWanted, { status: 201 });

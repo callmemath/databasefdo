@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useRealtimeRefresh } from '@/hooks/useRealtime';
 import MainLayout from '../../components/layout/MainLayout';
 import Card from '../../components/ui/Card';
 import Table from '../../components/ui/Table';
@@ -20,29 +21,33 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Carica i report dall'API
-  useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/reports');
-        
-        if (!response.ok) {
-          throw new Error('Errore durante il recupero delle denunce');
-        }
-        
-        const data = await response.json();
-        setReports(data.reports || []);
-      } catch (err) {
-        console.error('Errore nel caricamento delle denunce:', err);
-        setError('Impossibile caricare le denunce');
-      } finally {
-        setLoading(false);
+  // Funzione per caricare i report
+  const fetchReports = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/reports');
+      
+      if (!response.ok) {
+        throw new Error('Errore durante il recupero delle denunce');
       }
-    };
-    
-    fetchReports();
+      
+      const data = await response.json();
+      setReports(data.reports || []);
+    } catch (err) {
+      console.error('Errore nel caricamento delle denunce:', err);
+      setError('Impossibile caricare le denunce');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // Carica i report all'avvio
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
+
+  // 🔴 Real-time: aggiorna automaticamente quando viene creato/modificato un report
+  useRealtimeRefresh(['report_created', 'report_updated'], fetchReports);
   
   // Opzioni per i tipi di report
   const typeOptions = [
