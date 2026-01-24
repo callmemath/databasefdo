@@ -157,8 +157,8 @@ const findGameUserByIdQuery = async (
       status: true,
       skin: true,
       // bankingData: true,  // Colonna non presente nel DB VPS
-      immProfilo: true,
-      tattoos: true,
+      // immProfilo: true,   // Colonna non presente nel DB VPS
+      // tattoos: true,      // Colonna non presente nel DB VPS
     }
   });
   
