@@ -11,11 +11,17 @@ const CACHE_TTL = 60000; // 60 secondi di validità della cache
 
 // Endpoint per cercare cittadini
 export async function GET(req: NextRequest) {
+  console.log("========== CITIZENS API CHIAMATA ==========");
+  console.log("URL:", req.url);
+  console.log("Timestamp:", new Date().toISOString());
+  
   try {
     // Verifica autenticazione tramite sessione
     const session = await getServerSession(authOptions);
+    console.log("Sessione:", session ? "Presente" : "Assente");
     
     if (!session || !session.user) {
+      console.log("ERRORE: Non autorizzato - sessione mancante");
       return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
     }
 

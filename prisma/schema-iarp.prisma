@@ -21,7 +21,7 @@ model GameUser {
   sex           String?   @db.VarChar(1)   // 'm' o 'f'
   height        String?   @db.VarChar(255) // Può essere null
   nationality   String?   @db.VarChar(255) // Es: "Italy"
-  phone_number  String?   @db.VarChar(255)
+  // phone_number  String?   @db.VarChar(255) // Commentato - non esiste nel DB reale
   
   // Dati di gioco (JSON)
   accounts      String?   @db.Text         // JSON: {"bank": 23345, "black_money": 0, "money": 8700}

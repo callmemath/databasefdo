@@ -111,7 +111,6 @@ class ExtendedPrismaClient extends PrismaClient {
           dateofbirth: true,
           sex: true,
           nationality: true,
-          phone_number: true,
           height: true,
         }
       })
@@ -136,7 +135,6 @@ class ExtendedPrismaClient extends PrismaClient {
         dateofbirth: true,
         sex: true,
         nationality: true,
-        phone_number: true,
         height: true,
         accounts: true,
         group: true,
