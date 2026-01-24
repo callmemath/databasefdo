@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { discordWebhook } from "@/lib/discord-webhook";
+import { notifyArrestCreated } from "@/lib/realtime";
 
 // Endpoint per creare un nuovo arresto
 export async function POST(req: NextRequest) {
@@ -246,6 +247,13 @@ export async function POST(req: NextRequest) {
     } catch (webhookError) {
       // Non bloccare la creazione dell'arresto se il webhook fallisce
       console.error('Errore durante l\'invio della notifica Discord:', webhookError);
+    }
+
+    // 🔴 Notifica real-time a tutti i client connessi
+    try {
+      notifyArrestCreated(arrestWithCitizen);
+    } catch (realtimeError) {
+      console.error('Errore notifica realtime:', realtimeError);
     }
 
     return NextResponse.json({

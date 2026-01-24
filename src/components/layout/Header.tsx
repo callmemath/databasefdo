@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Menu, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSession, signOut } from 'next-auth/react';
+import RealtimeIndicator from '@/components/ui/RealtimeIndicator';
 
 type HeaderProps = {
   toggleSidebar: () => void;
@@ -37,6 +38,11 @@ const Header = ({ toggleSidebar }: HeaderProps) => {
           </div>
           
           <div className="flex items-center">
+            
+            {/* Real-time indicator */}
+            <div className="mr-4">
+              <RealtimeIndicator />
+            </div>
             
             {/* Profile */}
             <div className="ml-4 relative flex-shrink-0">

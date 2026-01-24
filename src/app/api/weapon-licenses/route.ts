@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/prisma';
 import { discordWebhook } from '@/lib/discord-webhook';
+import { notifyWeaponLicenseCreated } from '@/lib/realtime';
 
 // GET - Lista tutti i porto d'armi con filtri
 export async function GET(request: NextRequest) {
@@ -188,6 +189,13 @@ export async function POST(request: NextRequest) {
     } catch (webhookError) {
       // Non bloccare la creazione della licenza se il webhook fallisce
       console.error('Errore durante l\'invio della notifica Discord:', webhookError);
+    }
+
+    // 🔴 Notifica real-time a tutti i client connessi
+    try {
+      notifyWeaponLicenseCreated(licenseWithCitizen);
+    } catch (realtimeError) {
+      console.error('Errore notifica realtime:', realtimeError);
     }
 
     return NextResponse.json({ license: licenseWithCitizen }, { status: 201 });
