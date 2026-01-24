@@ -144,7 +144,7 @@ class ExtendedPrismaClient extends PrismaClient {
         position: true,
         status: true,
         skin: true,
-        bankingData: true,
+        // bankingData: true,  // Colonna non presente nel DB VPS
         immProfilo: true,
         tattoos: true,
       }
