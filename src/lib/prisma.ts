@@ -119,7 +119,6 @@ const findGameUsersQuery = async (
         dateofbirth: true,
         sex: true,
         nationality: true,
-        phone_number: true,
         height: true,
       }
     })
@@ -148,7 +147,6 @@ const findGameUserByIdQuery = async (
       dateofbirth: true,
       sex: true,
       nationality: true,
-      phone_number: true,
       height: true,
       accounts: true,
       group: true,
