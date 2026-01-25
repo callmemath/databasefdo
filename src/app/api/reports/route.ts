@@ -4,7 +4,6 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { discordWebhook } from "@/lib/discord-webhook";
-import { notifyReportCreated } from "@/lib/realtime";
 
 // Endpoint per creare un nuovo rapporto
 export async function POST(req: NextRequest) {
@@ -146,13 +145,6 @@ export async function POST(req: NextRequest) {
     } catch (webhookError) {
       // Non bloccare la creazione della denuncia se il webhook fallisce
       console.error('Errore durante l\'invio della notifica Discord:', webhookError);
-    }
-
-    // 🔴 Notifica real-time a tutti i client connessi
-    try {
-      notifyReportCreated(reportWithRelations);
-    } catch (realtimeError) {
-      console.error('Errore notifica realtime:', realtimeError);
     }
 
     return NextResponse.json({

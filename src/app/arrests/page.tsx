@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useRealtimeRefresh } from '@/hooks/useRealtime';
 import MainLayout from '../../components/layout/MainLayout';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -113,9 +112,6 @@ export default function Arrests() {
     }
   }, [session]);
 
-  // 🔴 Real-time: aggiorna automaticamente quando viene creato/modificato un arresto
-  useRealtimeRefresh(['arrest_created', 'arrest_updated'], fetchArrests);
-  
   // Removed months and fine calculations as per request #6
   const calculateTotals = () => {
     // Calculate crime totals with sanctions

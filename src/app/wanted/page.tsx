@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useRealtimeRefresh } from '@/hooks/useRealtime';
 import MainLayout from '../../components/layout/MainLayout';
 import Card from '../../components/ui/Card';
 import SearchInput from '../../components/ui/SearchInput';
@@ -81,9 +80,6 @@ export default function Wanted() {
     fetchWantedPersons();
   }, [fetchWantedPersons]);
 
-  // 🔴 Real-time: aggiorna automaticamente quando viene creato/modificato un ricercato
-  useRealtimeRefresh(['wanted_created', 'wanted_updated'], fetchWantedPersons);
-  
   const dangerLevels = [
     { id: 'all', name: 'Tutti i livelli' },
     { id: 'low', name: 'Basso rischio' },

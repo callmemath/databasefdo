@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useRealtimeRefresh } from '@/hooks/useRealtime';
 import MainLayout from '@/components/layout/MainLayout';
 import Card from '@/components/ui/Card';
 import Table from '@/components/ui/Table';
@@ -90,9 +89,6 @@ export default function WeaponLicensesPage() {
   useEffect(() => {
     fetchLicenses();
   }, [fetchLicenses]);
-
-  // 🔴 Real-time: aggiorna automaticamente quando viene creato/modificato un porto d'armi
-  useRealtimeRefresh(['weapon_license_created', 'weapon_license_updated'], fetchLicenses);
 
   const getStatusBadge = (status: string) => {
     const statusInfo = statusLabels[status] || { label: status, color: 'gray', icon: Clock };
