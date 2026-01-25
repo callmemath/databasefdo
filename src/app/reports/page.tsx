@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useRealtimeRefresh } from '@/hooks/useRealtime';
 import MainLayout from '../../components/layout/MainLayout';
 import Card from '../../components/ui/Card';
 import Table from '../../components/ui/Table';
@@ -46,9 +45,6 @@ export default function Reports() {
     fetchReports();
   }, [fetchReports]);
 
-  // 🔴 Real-time: aggiorna automaticamente quando viene creato/modificato un report
-  useRealtimeRefresh(['report_created', 'report_updated'], fetchReports);
-  
   // Opzioni per i tipi di report
   const typeOptions = [
     { id: 'all', name: 'Tutti i tipi' },
