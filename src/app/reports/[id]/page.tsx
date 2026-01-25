@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import MainLayout from '../../../components/layout/MainLayout';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
@@ -20,10 +20,11 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
   const { id } = resolvedParams;
   
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(searchParams.get('edit') === 'true');
   
   // Form data per le modifiche
   const [formData, setFormData] = useState({
