@@ -70,7 +70,13 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({ note });
+    // Converti BigInt in string per la serializzazione JSON
+    const serializedNote = {
+      ...note,
+      citizenId: note.citizenId?.toString(),
+    };
+
+    return NextResponse.json({ note: serializedNote });
   } catch (error) {
     console.error('Errore nella modifica della nota:', error);
     return NextResponse.json(
