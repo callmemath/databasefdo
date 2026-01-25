@@ -56,11 +56,7 @@ export async function GET(
       accused: accusedData
     };
 
-    if (!report) {
-      return NextResponse.json({ error: "Report non trovato" }, { status: 404 });
-    }
-
-    return NextResponse.json(reportWithRelations);
+    return NextResponse.json({ report: reportWithRelations });
   } catch (error) {
     console.error("Errore durante il recupero del report:", error);
     return NextResponse.json(
