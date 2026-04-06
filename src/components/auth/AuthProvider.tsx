@@ -41,6 +41,15 @@ function InactivitySessionGuard() {
   const pathname = usePathname();
   const timerRef = useRef<number | null>(null);
   const logoutTriggeredRef = useRef(false);
+  const prevStatusRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Reset activity cookie when session just became authenticated
+    if (status === 'authenticated' && prevStatusRef.current !== 'authenticated') {
+      setLastActivityCookie(Date.now());
+    }
+    prevStatusRef.current = status;
+  }, [status]);
 
   useEffect(() => {
     if (pathname === '/login' || status !== 'authenticated') {
@@ -185,7 +194,6 @@ function JwtExpiryGuard() {
 export default function AuthProvider({ children }: AuthProviderProps) {
   return (
     <SessionProvider>
-      <JwtExpiryGuard />
       <InactivitySessionGuard />
       {children}
     </SessionProvider>
