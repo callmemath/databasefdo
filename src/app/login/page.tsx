@@ -10,7 +10,6 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-  const reason = searchParams.get('reason');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -61,12 +60,6 @@ function LoginContent() {
             ⚠️ Sistema per uso videoludico/roleplay - Dati fittizi
           </p>
         </div>
-
-        {reason === 'idle' && (
-          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md text-amber-800 dark:text-amber-200 text-sm">
-            Sessione scaduta per inattività. Devi accedere di nuovo.
-          </div>
-        )}
         
         {error && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
