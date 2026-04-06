@@ -39,7 +39,7 @@ function clearLastActivityCookie() {
 function InactivitySessionGuard() {
   const { status } = useSession();
   const pathname = usePathname();
-  const timerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const timerRef = useRef<number | null>(null);
   const logoutTriggeredRef = useRef(false);
 
   useEffect(() => {
@@ -137,7 +137,7 @@ function InactivitySessionGuard() {
 
 function JwtExpiryGuard() {
   const { data: session, status } = useSession();
-  const timerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const timerRef = useRef<number | null>(null);
   const logoutTriggeredRef = useRef(false);
 
   useEffect(() => {
