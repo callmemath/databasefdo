@@ -70,7 +70,7 @@ function LoginContent() {
 
         {reason === 'expired' && (
           <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md text-amber-800 dark:text-amber-200 text-sm">
-            Il token di sessione è scaduto. Devi accedere di nuovo.
+            La sessione precedente è scaduta. Puoi accedere di nuovo subito.
           </div>
         )}
         

@@ -137,11 +137,12 @@ function InactivitySessionGuard() {
 
 function JwtExpiryGuard() {
   const { data: session, status } = useSession();
+  const pathname = usePathname();
   const timerRef = useRef<number | null>(null);
   const logoutTriggeredRef = useRef(false);
 
   useEffect(() => {
-    if (status !== 'authenticated' || !session?.tokenExpiresAt) {
+    if (pathname === '/login' || status !== 'authenticated' || !session?.tokenExpiresAt) {
       if (timerRef.current) {
         window.clearTimeout(timerRef.current);
         timerRef.current = null;
@@ -176,7 +177,7 @@ function JwtExpiryGuard() {
         timerRef.current = null;
       }
     };
-  }, [session?.tokenExpiresAt, status]);
+  }, [pathname, session?.tokenExpiresAt, status]);
 
   return null;
 }
