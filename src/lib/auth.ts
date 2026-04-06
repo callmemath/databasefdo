@@ -70,6 +70,7 @@ export const authOptions: NextAuthOptions = {
         session.user.badge = token.badge as string;
         session.user.department = token.department as string;
         session.user.rank = token.rank as string;
+        session.tokenExpiresAt = token.exp ? token.exp * 1000 : null;
       }
       return session;
     },
@@ -102,6 +103,7 @@ declare module "next-auth" {
       department: string;
       rank: string;
     } & DefaultSession["user"];
+    tokenExpiresAt: number | null;
   }
 }
 
@@ -111,5 +113,6 @@ declare module "next-auth/jwt" {
     badge: string;
     department: string;
     rank: string;
+    exp?: number;
   }
 }

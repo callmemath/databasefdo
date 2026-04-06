@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000;
+const LAST_ACTIVITY_COOKIE = 'fdo_last_activity';
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
@@ -30,6 +33,19 @@ export async function middleware(request: NextRequest) {
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
   });
+
+  const lastActivityCookie = request.cookies.get(LAST_ACTIVITY_COOKIE)?.value;
+  const lastActivity = lastActivityCookie ? Number(lastActivityCookie) : null;
+  const isInactiveSession =
+    lastActivity !== null &&
+    Number.isFinite(lastActivity) &&
+    Date.now() - lastActivity >= INACTIVITY_TIMEOUT_MS;
+
+  if (token && isInactiveSession) {
+    const url = new URL('/login', request.url);
+    url.searchParams.set('reason', 'idle');
+    return NextResponse.redirect(url);
+  }
   
   // Per le API (escluse quelle di auth), restituisci 401 se non autenticato
   if (pathname.startsWith('/api/')) {
