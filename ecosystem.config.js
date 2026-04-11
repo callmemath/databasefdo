@@ -5,7 +5,7 @@ module.exports = {
     name: 'databasefdo',
     script: 'npm',
     args: 'start',
-    cwd: '/IARP/databasefdo',
+    cwd: __dirname,
     instances: 1,
     autorestart: true,
     watch: false,

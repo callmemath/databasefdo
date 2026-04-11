@@ -21,11 +21,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Consenti l'endpoint di test
-  if (pathname.startsWith('/api/test-env')) {
-    return NextResponse.next();
-  }
-  
   const token = await getToken({ 
     req: request,
     secret: process.env.NEXTAUTH_SECRET,

@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { randomBytes } from "crypto";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 // Funzione per generare un token casuale
 function generateToken(length: number = 64): string {
@@ -11,9 +13,16 @@ function generateToken(length: number = 64): string {
 // POST /api/token/discord - Genera un nuovo token per il bot Discord
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Non autorizzato" },
+        { status: 401 }
+      );
+    }
+
     // Ottieni il primo utente disponibile per associare il token
-    // In un'implementazione reale, potresti voler richiedere l'autenticazione
-    // o usare un sistema più sofisticato per gestire l'autorizzazione
     const firstUser = await prisma.user.findFirst();
     
     if (!firstUser) {

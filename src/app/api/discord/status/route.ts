@@ -1,7 +1,18 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Non autorizzato' },
+        { status: 401 }
+      );
+    }
+
     const webhookStatus = {
       general: !!process.env.DISCORD_WEBHOOK_URL,
       arrests: !!process.env.DISCORD_WEBHOOK_ARRESTS,
