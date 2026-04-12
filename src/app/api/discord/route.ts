@@ -100,10 +100,44 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
+
+      return NextResponse.json(
+        {
+          error: "Errore durante la creazione dell'utente",
+          debug: {
+            type: "PrismaClientKnownRequestError",
+            code: error.code,
+            meta: error.meta,
+            message: error.message,
+          },
+        },
+        { status: 500 }
+      );
     }
 
+    if (error instanceof Prisma.PrismaClientValidationError) {
+      return NextResponse.json(
+        {
+          error: "Errore durante la creazione dell'utente",
+          debug: {
+            type: "PrismaClientValidationError",
+            message: error.message,
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    const fallbackMessage = error instanceof Error ? error.message : String(error);
+
     return NextResponse.json(
-      { error: "Errore durante la creazione dell'utente" },
+      {
+        error: "Errore durante la creazione dell'utente",
+        debug: {
+          type: "UnknownError",
+          message: fallbackMessage,
+        },
+      },
       { status: 500 }
     );
   }
