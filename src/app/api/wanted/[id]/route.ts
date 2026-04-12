@@ -42,14 +42,15 @@ export async function GET(
 
     return NextResponse.json({
       ...wanted,
-      citizen_firstname: citizen?.firstname || 'Sconosciuto',
-      citizen_lastname: citizen?.lastname || '',
-      citizen_dateofbirth: citizen?.dateofbirth || null,
-      citizen_gender: citizen?.sex || null,
-      citizen_height: citizen?.height || null,
-      officer_name: wanted.officer?.name,
-      officer_surname: wanted.officer?.surname,
-      officer_badge: wanted.officer?.badge,
+      citizen: citizen ? {
+        id: citizen.id,
+        firstname: citizen.firstname || null,
+        lastname: citizen.lastname || null,
+        dateofbirth: citizen.dateofbirth || null,
+        sex: citizen.sex || null,
+        height: citizen.height || null,
+        phone_number: citizen.phone_number || null,
+      } : null,
     });
   } catch (error) {
     console.error('Errore durante il recupero del ricercato:', error);
