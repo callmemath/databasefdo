@@ -104,7 +104,7 @@ model Arrest {
   description         String
   charges             String
   sentence            String?  // Pena detentiva (es: "2 anni")
-  fine                Int?     // Multa da pagare in dollari/euro
+  fine                Int?     // Multa da pagare in euro
   citizenId           Int      // ID del cittadino (riferimento a database IARP)
   officerId           String   // ID dell'ufficiale (utente del sistema)
   incidentDescription String?  // Descrizione dettagliata degli accaduti
