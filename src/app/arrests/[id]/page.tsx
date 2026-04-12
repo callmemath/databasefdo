@@ -9,7 +9,7 @@ import Button from '../../../components/ui/Button';
 import { formatDate } from '@/lib/utils';
 import { 
   ArrowLeft, User, Calendar, Clock, AlertCircle, FileText, 
-  Shield, DollarSign, Printer, Edit, Camera, MapPin, Plus, Loader,
+  Shield, Euro, Printer, Edit, Camera, MapPin, Plus, Loader,
   Trash2, Save, X
 } from 'lucide-react';
 import Link from 'next/link';
@@ -386,7 +386,7 @@ export default function ArrestDetails() {
           {/* Sentenza e Multa */}
           <Card>
             <h2 className="text-lg font-semibold text-police-blue-dark dark:text-police-text-light mb-4 flex items-center">
-              <DollarSign className="h-5 w-5 mr-2 text-police-blue dark:text-blue-400" />
+              <Euro className="h-5 w-5 mr-2 text-police-blue dark:text-blue-400" />
               Sentenza e Multa
             </h2>
             

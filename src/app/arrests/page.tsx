@@ -14,7 +14,7 @@ import {
   User, Search, AlertCircle, Clock, Calendar, ArrowRight, Check, Plus,
   FileText, MapPin, Info, X, Shield, FileInput, Users, BookOpen,
   Fingerprint, UserRound, Building2, FileSpreadsheet, Landmark, BadgeAlert,
-  DollarSign
+  Euro
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -1029,7 +1029,7 @@ export default function Arrests() {
                                   {crime?.sentence || '-'}
                                 </div>
                                 <div className="text-police-accent-red dark:text-red-400 flex items-center">
-                                  <DollarSign className="h-3.5 w-3.5 mr-1" />
+                                  <Euro className="h-3.5 w-3.5 mr-1" />
                                   {crime?.fine ? `€ ${crime.fine.toLocaleString()}` : '-'}
                                 </div>
                               </div>
@@ -1171,7 +1171,7 @@ export default function Arrests() {
                             )}
                             {arrest.fine && (
                               <span className="flex items-center text-police-accent-red dark:text-red-400">
-                                <DollarSign className="h-3.5 w-3.5 mr-1" /> € {arrest.fine}
+                                <Euro className="h-3.5 w-3.5 mr-1" /> € {arrest.fine}
                               </span>
                             )}
                             {!arrest.sentence && !arrest.fine && (
