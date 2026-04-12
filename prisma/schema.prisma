@@ -31,6 +31,7 @@ model User {
   wantedAsOfficer    Wanted[]      @relation("OfficerWanted")
   weaponLicensesAsOfficer WeaponLicense[] @relation("OfficerWeaponLicenses")
   citizenNotes       CitizenNote[] @relation("OfficerCitizenNotes")
+  tabletLinks        TabletUserLink[]
   apiTokens          ApiToken[]
   sessions           Session[]
   Account            Account[]
@@ -192,7 +193,26 @@ model WeaponLicense {
   @@index([citizenId])
   @@index([licenseNumber])
   @@index([status])
+  @@index([officerId])
   @@map("fdo_weapon_licenses")
+}
+
+// Link persistente tra identificatori FiveM e utente FDO
+model TabletUserLink {
+  id                String   @id
+  userId            String   @unique
+  license           String?  @unique
+  discord           String?  @unique
+  steam             String?  @unique
+  fivem             String?  @unique
+  firstLinkedAt     DateTime @default(now())
+  lastLoginAt       DateTime @default(now())
+  lastCharacterName String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId])
+  @@map("fdo_tablet_user_links")
 }
 
 // Modello per le note sui cittadini

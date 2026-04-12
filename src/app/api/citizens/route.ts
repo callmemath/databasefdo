@@ -8,6 +8,14 @@ import { getApiAuthContext } from "@/lib/api-auth";
 const searchCache = new Map<string, { results: any, timestamp: number }>();
 const CACHE_TTL = 60000; // 60 secondi di validità della cache
 
+function isMissingTableOrColumnError(error: unknown): boolean {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return error.code === "P2021" || error.code === "P2022";
+  }
+
+  return false;
+}
+
 // Endpoint per cercare cittadini
 export async function GET(req: NextRequest) {
   console.log("========== CITIZENS API CHIAMATA ==========");
@@ -87,58 +95,81 @@ export async function GET(req: NextRequest) {
       take: limit
     });
     
-    // Per ogni utente, ottieni gli arresti e i rapporti associati
+    // Per ogni utente, ottieni gli arresti e i rapporti associati.
+    // Se le tabelle FDO non sono ancora state create, manteniamo la pagina utilizzabile
+    // restituendo array vuoti invece di un errore 500.
     const citizensWithDetails = await Promise.all(
       users.map(async (user: any) => {
-        const arrests = await prisma.arrest.findMany({
-          where: { citizenId: user.id },
-          select: {
-            id: true,
-            date: true,
-            charges: true,
-            officer: {
-              select: {
-                id: true,
-                name: true,
-                surname: true,
-                badge: true,
+        let arrests: any[] = [];
+        let reports: any[] = [];
+        let weaponLicenses: any[] = [];
+
+        try {
+          arrests = await prisma.arrest.findMany({
+            where: { citizenId: user.id },
+            select: {
+              id: true,
+              date: true,
+              charges: true,
+              officer: {
+                select: {
+                  id: true,
+                  name: true,
+                  surname: true,
+                  badge: true,
+                }
               }
             }
+          });
+        } catch (queryError) {
+          if (!isMissingTableOrColumnError(queryError)) {
+            throw queryError;
           }
-        });
-        
-        const reports = await prisma.report.findMany({
-          where: { citizenId: user.id },
-          select: {
-            id: true,
-            title: true,
-            date: true,
-            description: true,
-            type: true,
-            location: true,
-            isAnonymous: true,
-            officer: {
-              select: {
-                id: true,
-                name: true,
-                surname: true,
-                badge: true,
+        }
+
+        try {
+          reports = await prisma.report.findMany({
+            where: { citizenId: user.id },
+            select: {
+              id: true,
+              title: true,
+              date: true,
+              description: true,
+              type: true,
+              location: true,
+              isAnonymous: true,
+              officer: {
+                select: {
+                  id: true,
+                  name: true,
+                  surname: true,
+                  badge: true,
+                }
               }
             }
+          });
+        } catch (queryError) {
+          if (!isMissingTableOrColumnError(queryError)) {
+            throw queryError;
           }
-        });
-        
-        // Ottieni i porto d'armi attivi
-        const weaponLicenses = await prisma.weaponLicense.findMany({
-          where: { citizenId: user.id },
-          select: {
-            id: true,
-            licenseNumber: true,
-            licenseType: true,
-            status: true,
-            expiryDate: true,
+        }
+
+        try {
+          weaponLicenses = await prisma.weaponLicense.findMany({
+            where: { citizenId: user.id },
+            select: {
+              id: true,
+              licenseNumber: true,
+              licenseType: true,
+              status: true,
+              expiryDate: true,
+            }
+          });
+        } catch (queryError) {
+          if (!isMissingTableOrColumnError(queryError)) {
+            throw queryError;
           }
-        });
+        }
         
         return {
           ...user,
