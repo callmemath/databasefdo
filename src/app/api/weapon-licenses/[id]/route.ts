@@ -87,7 +87,7 @@ export async function PATCH(
     } = body;
 
     const updateData: any = {
-      officerId: session.user.id,
+      officerId: auth.officerId,
     };
 
     if (status) updateData.status = status;
