@@ -1,8 +1,7 @@
 // File: /src/app/api/citizens/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getApiAuthContext } from "@/lib/api-auth";
 
 // GET /api/citizens/[id] - Ottieni i dettagli di un cittadino specifico
 export async function GET(
@@ -10,10 +9,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verifica autenticazione tramite sessione
-    const session = await getServerSession(authOptions);
+    // Verifica autenticazione tramite sessione o token tablet
+    const auth = await getApiAuthContext(req);
     
-    if (!session || !session.user) {
+    if (!auth.isAuthorized) {
       return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
     }
 

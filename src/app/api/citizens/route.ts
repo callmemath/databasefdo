@@ -1,9 +1,8 @@
 // File: /src/app/api/citizens/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { Prisma } from "@prisma/client";
+import { getApiAuthContext } from "@/lib/api-auth";
 
 // Cache per memorizzare i risultati delle ricerche recenti
 const searchCache = new Map<string, { results: any, timestamp: number }>();
@@ -16,11 +15,11 @@ export async function GET(req: NextRequest) {
   console.log("Timestamp:", new Date().toISOString());
   
   try {
-    // Verifica autenticazione tramite sessione
-    const session = await getServerSession(authOptions);
-    console.log("Sessione:", session ? "Presente" : "Assente");
+    // Verifica autenticazione tramite sessione o token tablet
+    const auth = await getApiAuthContext(req);
+    console.log("Sessione:", auth.session ? "Presente" : "Assente");
     
-    if (!session || !session.user) {
+    if (!auth.isAuthorized) {
       console.log("ERRORE: Non autorizzato - sessione mancante");
       return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
     }

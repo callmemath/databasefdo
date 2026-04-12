@@ -1,18 +1,24 @@
 // File: /src/app/api/arrests/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { discordWebhook } from "@/lib/discord-webhook";
+import { getApiAuthContext } from "@/lib/api-auth";
 
 // Endpoint per creare un nuovo arresto
 export async function POST(req: NextRequest) {
   try {
-    // Verifica autenticazione tramite sessione
-    const session = await getServerSession(authOptions);
-    
-    if (!session || !session.user) {
+    // Verifica autenticazione tramite sessione o token tablet
+    const auth = await getApiAuthContext(req);
+
+    if (!auth.isAuthorized) {
       return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
+    }
+
+    if (!auth.officerId) {
+      return NextResponse.json(
+        { error: "Configurazione mancante: imposta FDO_TABLET_OFFICER_ID per richieste con token API" },
+        { status: 500 }
+      );
     }
 
     const data = await req.json();
@@ -56,8 +62,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Ottieni l'ID dell'ufficiale dalla sessione
-    const officerId = session.user.id;
+    // Ottieni l'ID dell'ufficiale dalla sessione o da configurazione tablet
+    const officerId = auth.officerId;
 
     // Estrai i nuovi campi dai dati ricevuti
     const { 
@@ -69,7 +75,7 @@ export async function POST(req: NextRequest) {
     } = data;
 
     // Usa il dipartimento dell'utente o un valore predefinito
-    const deptValue = department || (session.user.department as string) || 'Non specificato';
+    const deptValue = department || ((auth.session?.user as { department?: string } | undefined)?.department) || 'Non specificato';
     
     // Crea il nuovo arresto utilizzando le API standard di Prisma per i campi base
     const arrest = await prisma.arrest.create({
@@ -272,10 +278,10 @@ export async function POST(req: NextRequest) {
 // Endpoint per ottenere tutti gli arresti
 export async function GET(req: NextRequest) {
   try {
-    // Verifica autenticazione tramite sessione
-    const session = await getServerSession(authOptions);
+    // Verifica autenticazione tramite sessione o token tablet
+    const auth = await getApiAuthContext(req);
     
-    if (!session || !session.user) {
+    if (!auth.isAuthorized) {
       return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
     }
 

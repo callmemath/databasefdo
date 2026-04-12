@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { discordWebhook } from '@/lib/discord-webhook';
+import { getApiAuthContext } from '@/lib/api-auth';
 
 // GET - Lista tutti i porto d'armi con filtri
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const auth = await getApiAuthContext(request);
     
-    if (!session) {
+    if (!auth.isAuthorized) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
     }
 
@@ -95,10 +94,17 @@ export async function GET(request: NextRequest) {
 // POST - Crea un nuovo porto d'armi
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const auth = await getApiAuthContext(request);
     
-    if (!session || !session.user?.id) {
+    if (!auth.isAuthorized) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+    }
+
+    if (!auth.officerId) {
+      return NextResponse.json(
+        { error: 'Configurazione mancante: imposta FDO_TABLET_OFFICER_ID per richieste con token API' },
+        { status: 500 }
+      );
     }
 
     const body = await request.json();
@@ -156,7 +162,7 @@ export async function POST(request: NextRequest) {
         authorizedWeapons,
         notes,
         status: 'active',
-        officerId: session.user.id,
+        officerId: auth.officerId,
       },
       include: {
         officer: {

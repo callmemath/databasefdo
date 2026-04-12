@@ -1,18 +1,24 @@
 // File: /src/app/api/reports/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { discordWebhook } from "@/lib/discord-webhook";
+import { getApiAuthContext } from "@/lib/api-auth";
 
 // Endpoint per creare un nuovo rapporto
 export async function POST(req: NextRequest) {
   try {
-    // Verifica autenticazione tramite sessione
-    const session = await getServerSession(authOptions);
+    // Verifica autenticazione tramite sessione o token tablet
+    const auth = await getApiAuthContext(req);
     
-    if (!session || !session.user) {
+    if (!auth.isAuthorized) {
       return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
+    }
+
+    if (!auth.officerId) {
+      return NextResponse.json(
+        { error: "Configurazione mancante: imposta FDO_TABLET_OFFICER_ID per richieste con token API" },
+        { status: 500 }
+      );
     }
 
     const data = await req.json();
@@ -58,8 +64,8 @@ export async function POST(req: NextRequest) {
       validatedAccusedId = accusedIdNumber;
     }
 
-    // Ottieni l'ID dell'ufficiale dalla sessione
-    const officerId = session.user.id;
+    // Ottieni l'ID dell'ufficiale dalla sessione o da configurazione tablet
+    const officerId = auth.officerId;
 
     // Crea il nuovo rapporto
     // Usiamo prisma.$queryRaw per aggirare i problemi con il tipo
@@ -163,10 +169,10 @@ export async function POST(req: NextRequest) {
 // Endpoint per ottenere tutti i rapporti
 export async function GET(req: NextRequest) {
   try {
-    // Verifica autenticazione tramite sessione
-    const session = await getServerSession(authOptions);
+    // Verifica autenticazione tramite sessione o token tablet
+    const auth = await getApiAuthContext(req);
     
-    if (!session || !session.user) {
+    if (!auth.isAuthorized) {
       return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
     }
 
