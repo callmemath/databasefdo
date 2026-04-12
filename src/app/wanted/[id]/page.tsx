@@ -259,8 +259,8 @@ export default function WantedDetails() {
                     Sesso:
                   </span>
                   <span className="text-sm text-police-blue-dark dark:text-police-text-light">
-                    {wantedPerson.citizen?.sex === 'M' ? 'Maschio' : 
-                      wantedPerson.citizen?.sex === 'F' ? 'Femmina' : 'Non specificato'}
+                    {wantedPerson.citizen?.sex?.toUpperCase() === 'M' ? 'Maschio' : 
+                      wantedPerson.citizen?.sex?.toUpperCase() === 'F' ? 'Femmina' : 'Non specificato'}
                   </span>
                 </div>
                 

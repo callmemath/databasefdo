@@ -25,9 +25,12 @@ export async function GET(
       include: {
         officer: {
           select: {
+            id: true,
             name: true,
             surname: true,
             badge: true,
+            rank: true,
+            department: true,
           }
         }
       }
