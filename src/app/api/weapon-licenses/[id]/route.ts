@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getApiAuthContext } from '@/lib/api-auth';
 import prisma from '@/lib/prisma';
 
 // GET - Dettagli porto d'armi specifico
@@ -68,9 +69,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const auth = await getApiAuthContext(request);
     
-    if (!session || !session.user?.id) {
+    if (!auth.isAuthorized) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
     }
 

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getApiAuthContext } from "@/lib/api-auth";
 
 // GET /api/arrests/[id] - Ottieni un arresto specifico
 export async function GET(

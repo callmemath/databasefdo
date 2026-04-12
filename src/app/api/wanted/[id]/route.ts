@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getApiAuthContext } from '@/lib/api-auth';
 import { PrismaClient } from '@prisma/client';
 
 // Istanza del client Prisma
@@ -59,10 +60,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const auth = await getApiAuthContext(request);
 
     // Verifica se l'utente è autenticato
-    if (!session) {
+    if (!auth.isAuthorized) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
     }
 

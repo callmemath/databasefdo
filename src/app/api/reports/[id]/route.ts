@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getApiAuthContext } from "@/lib/api-auth";
 
 // GET /api/reports/[id] - Ottieni un report specifico
 export async function GET(
