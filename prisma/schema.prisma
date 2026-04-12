@@ -101,14 +101,14 @@ model Arrest {
   id                  String   @id @default(cuid())
   date                DateTime @default(now())
   location            String
-  description         String
-  charges             String
-  sentence            String?  // Pena detentiva (es: "2 anni")
+  description         String   @db.Text
+  charges             String   @db.Text
+  sentence            String?  @db.Text // Pena detentiva cumulativa (es: "3 anni 6 mesi")
   fine                Int?     // Multa da pagare in euro
   citizenId           Int      // ID del cittadino (riferimento a database IARP)
   officerId           String   // ID dell'ufficiale (utente del sistema)
-  incidentDescription String?  // Descrizione dettagliata degli accaduti
-  seizedItems         String?  // Oggetti sequestrati
+  incidentDescription String?  @db.Text // Descrizione dettagliata degli accaduti
+  seizedItems         String?  @db.Text // Oggetti sequestrati
   department          String   // Dipartimento che ha effettuato l'arresto
   signingOfficers     Json?    // Array di ufficiali firmatari [{ id, name, badge }]
   accomplices         Json?    // Array di complici [{ id, name, birthDate }]
