@@ -2,27 +2,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
+import { Prisma } from "@prisma/client";
 
 // Verifica il token del bot Discord
 function verifyDiscordBotToken(req: NextRequest): boolean {
   const authHeader = req.headers.get('authorization');
-  
-  console.log("=== DEBUG AUTH ===");
-  console.log("Auth Header ricevuto:", authHeader);
-  
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.log("Header Authorization mancante o formato errato");
     return false;
   }
   
   const token = authHeader.substring(7);
   const expectedToken = process.env.DISCORD_BOT_API_TOKEN;
-  
-  console.log("Token ricevuto:", token);
-  console.log("Token atteso:", expectedToken);
-  console.log("Token atteso length:", expectedToken?.length);
-  console.log("Token ricevuto length:", token?.length);
-  console.log("Match:", token === expectedToken);
   
   // Verifica che il token sia stato impostato nell'ambiente
   if (!expectedToken) {
@@ -43,7 +34,13 @@ export async function POST(req: NextRequest) {
 
   try {
     const data = await req.json();
-    const { name, surname, email, password, badge, department, rank } = data;
+    const name = (data?.name || "").toString().trim();
+    const surname = (data?.surname || "").toString().trim();
+    const email = (data?.email || "").toString().trim().toLowerCase();
+    const password = (data?.password || "").toString();
+    const badge = (data?.badge || "").toString().trim();
+    const department = (data?.department || "").toString().trim();
+    const rank = (data?.rank || "").toString().trim();
 
     // Validazione dei dati
     if (!name || !surname || !email || !password || !badge || !department || !rank) {
@@ -95,6 +92,16 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
   } catch (error) {
     console.error("Errore durante la creazione dell'utente:", error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        return NextResponse.json(
+          { error: "Email o Badge gia' in uso" },
+          { status: 400 }
+        );
+      }
+    }
+
     return NextResponse.json(
       { error: "Errore durante la creazione dell'utente" },
       { status: 500 }
