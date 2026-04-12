@@ -73,10 +73,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verifica autenticazione tramite sessione
-    const session = await getServerSession(authOptions);
+    // Verifica autenticazione tramite sessione o token tablet
+    const auth = await getApiAuthContext(req);
     
-    if (!session || !session.user) {
+    if (!auth.isAuthorized) {
       return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
     }
 
