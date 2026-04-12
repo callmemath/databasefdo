@@ -1171,7 +1171,7 @@ export default function Arrests() {
                             )}
                             {arrest.fine && (
                               <span className="flex items-center text-police-accent-red dark:text-red-400">
-                                <Euro className="h-3.5 w-3.5 mr-1" /> € {arrest.fine}
+                                <Euro className="h-3.5 w-3.5 mr-1" /> {arrest.fine}
                               </span>
                             )}
                             {!arrest.sentence && !arrest.fine && (
