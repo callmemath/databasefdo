@@ -2,21 +2,6 @@ import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-function hasValidTabletApiToken(request: NextRequest): boolean {
-  const expectedToken = process.env.FDO_TABLET_API_TOKEN || process.env.TABLET_API_TOKEN;
-  if (!expectedToken) {
-    return false;
-  }
-
-  const authorization = request.headers.get('authorization');
-  const bearerToken = authorization?.toLowerCase().startsWith('bearer ')
-    ? authorization.slice(7).trim()
-    : null;
-  const xApiToken = request.headers.get('x-api-token')?.trim() || null;
-
-  return bearerToken === expectedToken || xApiToken === expectedToken;
-}
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
@@ -43,10 +28,6 @@ export async function middleware(request: NextRequest) {
   
   // Per le API (escluse quelle di auth), restituisci 401 se non autenticato
   if (pathname.startsWith('/api/')) {
-    if (hasValidTabletApiToken(request)) {
-      return NextResponse.next();
-    }
-
     if (!token) {
       return NextResponse.json(
         { error: 'Non autorizzato' },
