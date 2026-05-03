@@ -51,6 +51,12 @@ export async function GET(
         rank: true,
         rankId: true,
         image: true,
+        createdAt: true,
+        updatedAt: true,
+      }
+    });
+
+    if (!user) {
       return NextResponse.json({ error: "Utente non trovato" }, { status: 404 });
     }
 
