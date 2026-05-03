@@ -170,7 +170,7 @@ export default function Reports() {
             <select 
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="form-input text-sm border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-md"
+              className="form-input text-sm border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-lg"
             >
               {typeOptions.map((option) => (
                 <option key={option.id} value={option.id}>{option.name}</option>

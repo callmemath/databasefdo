@@ -40,7 +40,9 @@ export async function POST(req: NextRequest) {
     const password = (data?.password || "").toString();
     const badge = (data?.badge || "").toString().trim();
     const department = (data?.department || "").toString().trim();
+    const deptId = data?.deptId != null ? Number(data.deptId) : null;
     const rank = (data?.rank || "").toString().trim();
+    const rankId = data?.rankId != null ? Number(data.rankId) : null;
 
     // Validazione dei dati
     if (!name || !surname || !email || !password || !badge || !department || !rank) {
@@ -79,16 +81,14 @@ export async function POST(req: NextRequest) {
         password: hashedPassword,
         badge,
         department,
+        deptId,
         rank,
+        rankId,
       },
     });
 
-    // Rimuovi la password dalla risposta
-    const { password: _, ...userWithoutPassword } = user;
-
     return NextResponse.json({
-      user: userWithoutPassword,
-      message: "Utente creato con successo"
+      user: { id: user.id }
     }, { status: 201 });
   } catch (error) {
     console.error("Errore durante la creazione dell'utente:", error);

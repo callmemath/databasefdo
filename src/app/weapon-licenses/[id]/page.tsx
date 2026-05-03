@@ -415,7 +415,7 @@ export default function WeaponLicenseDetailPage({
                 rows={4}
                 value={suspensionReason}
                 onChange={(e) => setSuspensionReason(e.target.value)}
-                className="w-full px-4 py-2 border border-police-gray dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-4"
+                className="w-full px-4 py-2 border border-police-gray dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-4"
                 placeholder="Motivo della sospensione..."
               />
               <div className="flex justify-end gap-3">

@@ -20,7 +20,9 @@ model User {
   password   String // Sarà hashed
   badge      String   @unique // Numero di matricola
   department String // Dipartimento (Polizia, Carabinieri, ecc.)
+  deptId     Int?   // ID numerico del dipartimento (1=PdS, 2=CC, 3=GdF, 4=Procura)
   rank       String // Grado
+  rankId     Int?   // ID numerico del grado all'interno del dipartimento
   image      String? // URL immagine profilo
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

@@ -37,6 +37,7 @@ lerna-debug.log*
 # ==================== ENV FILES (IMPORTANTE!) ====================
 # NON committare file con credenziali sensibili
 .env
+.env.example
 .env*.local
 .env.local
 .env.development.local

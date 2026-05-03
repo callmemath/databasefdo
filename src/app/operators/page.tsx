@@ -252,7 +252,7 @@ export default function Operators() {
             <select 
               value={departmentFilter}
               onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="form-input text-sm border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-md"
+              className="form-input text-sm border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-lg"
             >
               {departments.map(dept => (
                 <option key={dept.id} value={dept.id}>{dept.name}</option>

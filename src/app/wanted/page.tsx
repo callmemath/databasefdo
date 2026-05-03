@@ -170,7 +170,7 @@ export default function Wanted() {
             <select 
               value={dangerFilter}
               onChange={(e) => setDangerFilter(e.target.value)}
-              className="form-input text-sm border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-md"
+              className="form-input text-sm border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-lg"
             >
               {dangerLevels.map(level => (
                 <option key={level.id} value={level.id}>{level.name}</option>

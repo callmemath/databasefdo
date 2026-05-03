@@ -337,7 +337,7 @@ export default function AddWanted() {
                 name="dangerLevel"
                 value={formData.dangerLevel}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-police-gray dark:border-gray-600 rounded-md focus:outline-none focus:border-police-blue dark:focus:border-police-blue-light dark:bg-gray-700 dark:text-police-text-light"
+                className="w-full px-3 py-2 border border-police-gray dark:border-gray-600 rounded-lg focus:outline-none focus:border-police-blue dark:focus:border-police-blue-light dark:bg-gray-700 dark:text-police-text-light"
                 required
               >
                 {dangerLevels.map(level => (

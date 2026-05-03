@@ -47,14 +47,10 @@ export async function GET(
         email: true,
         badge: true,
         department: true,
+        deptId: true,
         rank: true,
+        rankId: true,
         image: true,
-        createdAt: true,
-        updatedAt: true,
-      }
-    });
-
-    if (!user) {
       return NextResponse.json({ error: "Utente non trovato" }, { status: 404 });
     }
 
@@ -100,7 +96,9 @@ export async function PUT(
     if (data.email) updateData.email = data.email;
     if (data.badge) updateData.badge = data.badge;
     if (data.department) updateData.department = data.department;
+    if (data.deptId != null) updateData.deptId = Number(data.deptId);
     if (data.rank) updateData.rank = data.rank;
+    if (data.rankId != null) updateData.rankId = Number(data.rankId);
     if (data.image) updateData.image = data.image;
     
     // Se è fornita una nuova password, hashala
@@ -119,7 +117,9 @@ export async function PUT(
         email: true,
         badge: true,
         department: true,
+        deptId: true,
         rank: true,
+        rankId: true,
         image: true,
         createdAt: true,
         updatedAt: true,
@@ -134,6 +134,51 @@ export async function PUT(
     console.error("Errore durante l'aggiornamento dell'utente:", error);
     return NextResponse.json(
       { error: "Errore durante l'aggiornamento dell'utente" },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH /api/discord/user/[id] - Aggiorna grado e dipartimento (chiamato dal bot quando cambia ruolo)
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  if (!verifyDiscordBotToken(req)) {
+    return NextResponse.json({ error: "Token non valido o non autorizzato" }, { status: 401 });
+  }
+
+  try {
+    const { id: userId } = await params;
+    const data = await req.json();
+
+    const department = (data?.department || "").toString().trim();
+    const deptId = data?.deptId != null ? Number(data.deptId) : undefined;
+    const rank = (data?.rank || "").toString().trim();
+    const rankId = data?.rankId != null ? Number(data.rankId) : undefined;
+
+    if (!department || !rank || deptId === undefined || rankId === undefined) {
+      return NextResponse.json(
+        { error: "Campi obbligatori: department, deptId, rank, rankId" },
+        { status: 400 }
+      );
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!existingUser) {
+      return NextResponse.json({ error: "Utente non trovato" }, { status: 404 });
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { department, deptId, rank, rankId },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Errore durante l'aggiornamento del ruolo:", error);
+    return NextResponse.json(
+      { error: "Errore durante l'aggiornamento del ruolo" },
       { status: 500 }
     );
   }

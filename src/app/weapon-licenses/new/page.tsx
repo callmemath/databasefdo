@@ -203,7 +203,7 @@ export default function NewWeaponLicensePage() {
                   required
                   value={formData.licenseType}
                   onChange={(e) => handleLicenseTypeChange(e.target.value)}
-                  className="w-full px-4 py-2 border border-police-gray dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-2 border border-police-gray dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="sport_target">Tiro Sportivo (TS)</option>
                   <option value="hunting">Caccia (CA)</option>

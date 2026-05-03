@@ -261,7 +261,7 @@ export default function ReportForm() {
                     name="type"
                     value={formData.type}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-md focus:outline-none focus:ring-2 focus:ring-police-blue"
+                    className="w-full px-3 py-2 border border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-lg focus:outline-none focus:ring-2 focus:ring-police-blue"
                     required
                   >
                     <option value="">Seleziona tipo</option>
