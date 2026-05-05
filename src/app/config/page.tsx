@@ -71,7 +71,7 @@ export default function ConfigPage() {
 
   
   // Categorie selezionate attualmente
-  const [activeTab, setActiveTab] = useState<'reports' | 'departments' | 'permissions' | 'roles'>('reports');
+  const [activeTab, setActiveTab] = useState<'reports' | 'permissions' | 'roles'>('reports');
   
   // Stato per i permessi di accesso alle sezioni
   const { rules: contextRules, reload: reloadPermissions } = usePermissions();
@@ -100,6 +100,9 @@ export default function ConfigPage() {
   const [rolesLoading, setRolesLoading] = useState(false);
   const [rolesSaving, setRolesSaving] = useState(false);
   const [rolesSaved, setRolesSaved] = useState(false);
+  const [editingDeptNames, setEditingDeptNames] = useState<Record<string, string>>({});
+  const [newRankPerDept, setNewRankPerDept] = useState<Record<string, { rank_name: string; role_id: number }>>({});
+  const [newDept, setNewDept] = useState({ name: '', deptId: '' });
   
   // Stato per la modifica
   const [isEditing, setIsEditing] = useState(false);
@@ -139,8 +142,6 @@ export default function ConfigPage() {
     
     if (activeTab === 'reports') {
       setReportCategories([...reportCategories, item]);
-    } else if (activeTab === 'departments') {
-      setDepartments([...departments, item]);
     }
     
     // Resetta il form
@@ -156,8 +157,6 @@ export default function ConfigPage() {
   const handleDeleteItem = (id: string) => {
     if (activeTab === 'reports') {
       setReportCategories(reportCategories.filter(item => item.id !== id));
-    } else if (activeTab === 'departments') {
-      setDepartments(departments.filter(item => item.id !== id));
     }
   };
   
@@ -185,24 +184,6 @@ export default function ConfigPage() {
     
     if (activeTab === 'reports') {
       setReportCategories(reportCategories.map(item => 
-        item.id === editItem.id ? updatedItem : item
-      ));
-    } else if (activeTab === 'departments') {
-      // Gestione speciale per i dipartimenti: traccia la mappatura quando cambia il nome
-      const oldName = editItem.name;
-      const newName = updatedItem.name;
-      
-      if (oldName !== newName) {
-        // Salva la mappatura dal vecchio nome all'ID del reparto
-        const departmentMappings = JSON.parse(localStorage.getItem('fdo_department_mappings') || '{}');
-        departmentMappings[oldName] = updatedItem.id;
-        localStorage.setItem('fdo_department_mappings', JSON.stringify(departmentMappings));
-        
-        // Visualizza una notifica all'utente
-        alert(`Il nome del reparto è stato modificato da "${oldName}" a "${newName}". Gli utenti associati al reparto "${oldName}" saranno ora associati al reparto "${newName}".`);
-      }
-      
-      setDepartments(departments.map(item => 
         item.id === editItem.id ? updatedItem : item
       ));
     }
@@ -318,35 +299,74 @@ export default function ConfigPage() {
     }
   };
 
+  const handleDeptNameEdit = (oldName: string, value: string) => {
+    setEditingDeptNames((prev) => ({ ...prev, [oldName]: value }));
+  };
+  const handleDeptNameBlur = (oldName: string) => {
+    const newName = (editingDeptNames[oldName] ?? oldName).trim();
+    setEditingDeptNames((prev) => { const r = { ...prev }; delete r[oldName]; return r; });
+    if (!newName || newName === oldName) return;
+    setRolesConfig((prev) => {
+      const { [oldName]: data, ...rest } = prev;
+      return { ...rest, [newName]: data };
+    });
+  };
+  const handleDeptIdChange = (deptName: string, value: string) => {
+    setRolesConfig((prev) => ({ ...prev, [deptName]: { ...prev[deptName], dept_id: Number(value) } }));
+  };
+  const handleDeleteDept = (deptName: string) => {
+    setRolesConfig((prev) => { const { [deptName]: _, ...rest } = prev; return rest; });
+  };
+  const handleAddDept = () => {
+    const name = newDept.name.trim();
+    if (!name) return;
+    const id = newDept.deptId ? Number(newDept.deptId) : Object.keys(rolesConfig).length + 1;
+    setRolesConfig((prev) => ({ ...prev, [name]: { dept_id: id, ranks: [] } }));
+    setNewDept({ name: '', deptId: '' });
+  };
+  const handleDeleteRank = (deptName: string, rankId: number) => {
+    setRolesConfig((prev) => ({
+      ...prev,
+      [deptName]: {
+        ...prev[deptName],
+        ranks: prev[deptName].ranks.filter((r: RankConfig) => r.rank_id !== rankId),
+      },
+    }));
+  };
+  const handleAddRank = (deptName: string) => {
+    const newRankData = newRankPerDept[deptName];
+    if (!newRankData?.rank_name.trim()) return;
+    const ranks = rolesConfig[deptName]?.ranks ?? [];
+    const maxId = ranks.reduce((m: number, r: RankConfig) => Math.max(m, r.rank_id), 0);
+    setRolesConfig((prev) => ({
+      ...prev,
+      [deptName]: {
+        ...prev[deptName],
+        ranks: [...ranks, { rank_id: maxId + 1, rank_name: newRankData.rank_name.trim(), role_id: newRankData.role_id ?? 0 }],
+      },
+    }));
+    setNewRankPerDept((prev) => ({ ...prev, [deptName]: { rank_name: '', role_id: 0 } }));
+  };
+
   // Salvataggio delle configurazioni in localStorage
   useEffect(() => {
     const saveConfig = () => {
       localStorage.setItem('fdo_report_categories', JSON.stringify(reportCategories));
-      localStorage.setItem('fdo_departments', JSON.stringify(departments));
     };
     
     saveConfig();
-  }, [reportCategories, departments]);
+  }, [reportCategories]);
   
   // Caricamento delle configurazioni da localStorage all'avvio
   useEffect(() => {
     const loadConfig = () => {
       const savedReportCategories = localStorage.getItem('fdo_report_categories');
-      const savedDepartments = localStorage.getItem('fdo_departments');
       
       if (savedReportCategories) {
         try {
           setReportCategories(JSON.parse(savedReportCategories));
         } catch (e) {
           console.error('Errore nel parsing delle categorie dei report:', e);
-        }
-      }
-      
-      if (savedDepartments) {
-        try {
-          setDepartments(JSON.parse(savedDepartments));
-        } catch (e) {
-          console.error('Errore nel parsing dei dipartimenti:', e);
         }
       }
     };
@@ -451,19 +471,6 @@ export default function ConfigPage() {
               
               <button 
                 className={`py-3 px-4 border-b-2 font-medium text-sm focus:outline-none whitespace-nowrap
-                  ${activeTab === 'departments' 
-                    ? 'border-police-blue text-police-blue-dark dark:text-police-blue-light' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                onClick={() => setActiveTab('departments')}
-              >
-                <div className="flex items-center">
-                  <Shield className="h-4 w-4 mr-2" />
-                  Dipartimenti
-                </div>
-              </button>
-
-              <button 
-                className={`py-3 px-4 border-b-2 font-medium text-sm focus:outline-none whitespace-nowrap
                   ${activeTab === 'permissions' 
                     ? 'border-police-blue text-police-blue-dark dark:text-police-blue-light' 
                     : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
@@ -483,15 +490,15 @@ export default function ConfigPage() {
                 onClick={() => setActiveTab('roles')}
               >
                 <div className="flex items-center">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Ruoli Discord
+                  <Shield className="h-4 w-4 mr-2" />
+                  Dipartimenti
                 </div>
               </button>
             </div>
           </div>
           
           {/* Contenuto basato sulla tab attiva */}
-          {activeTab !== 'permissions' && activeTab !== 'roles' && (
+          {activeTab === 'reports' && (
             <div className="space-y-6">
               {/* Intestazione della tabella */}
               <div className="grid grid-cols-5 gap-4 mb-2 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-md font-medium text-sm text-police-gray-dark dark:text-police-text-muted">
@@ -735,62 +742,157 @@ export default function ConfigPage() {
             </div>
           )}
 
-          {/* Tab Ruoli Discord */}
+          {/* Tab Dipartimenti */}
           {activeTab === 'roles' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <p className="text-sm text-police-gray-dark dark:text-police-text-muted">
-                Associa ogni grado al relativo ID ruolo Discord. Il bot leggerà questa configurazione all'avvio.
-                I valori <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">0</code> indicano gradi non ancora configurati.
+                Gestisci i dipartimenti e i relativi gradi. Associa ogni grado al proprio ID ruolo Discord (0 = non configurato).
               </p>
 
               {rolesLoading ? (
                 <div className="text-center py-8 text-gray-400">Caricamento...</div>
               ) : (
-                Object.entries(rolesConfig).map(([deptName, deptData]) => (
-                  <div key={deptName} className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
-                    <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
-                      <h3 className="font-semibold text-police-blue-dark dark:text-police-text-light">
-                        {deptName}
-                      </h3>
-                      <Badge variant="blue">dept_id: {deptData.dept_id}</Badge>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                            <th className="text-left px-4 py-2 text-police-gray-dark dark:text-police-text-muted font-medium w-16">ID</th>
-                            <th className="text-left px-4 py-2 text-police-gray-dark dark:text-police-text-muted font-medium">Nome grado</th>
-                            <th className="text-left px-4 py-2 text-police-gray-dark dark:text-police-text-muted font-medium w-52">Role ID Discord</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                          {deptData.ranks.map((rank: RankConfig) => (
-                            <tr key={rank.rank_id} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750">
-                              <td className="px-4 py-2 text-gray-400 font-mono text-xs">{rank.rank_id}</td>
+                <>
+                  {Object.entries(rolesConfig).map(([deptName, deptData]) => (
+                    <div key={deptName} className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+                      {/* Header dipartimento */}
+                      <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 flex items-center gap-3">
+                        <input
+                          type="text"
+                          value={editingDeptNames[deptName] ?? deptName}
+                          onChange={(e) => handleDeptNameEdit(deptName, e.target.value)}
+                          onBlur={() => handleDeptNameBlur(deptName)}
+                          className="font-semibold text-police-blue-dark dark:text-police-text-light bg-transparent border-b border-transparent hover:border-gray-400 focus:border-police-blue focus:outline-none flex-1"
+                        />
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs text-gray-400">dept_id:</span>
+                          <input
+                            type="number"
+                            value={deptData.dept_id}
+                            onChange={(e) => handleDeptIdChange(deptName, e.target.value)}
+                            className="w-14 text-xs font-mono text-center bg-transparent border border-gray-300 dark:border-gray-600 dark:text-police-text-light rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                          />
+                          <button
+                            onClick={() => handleDeleteDept(deptName)}
+                            className="p-1 text-gray-400 hover:text-red-500 rounded"
+                            title="Elimina dipartimento"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      {/* Tabella gradi */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                              <th className="text-left px-4 py-2 text-police-gray-dark dark:text-police-text-muted font-medium w-14">ID</th>
+                              <th className="text-left px-4 py-2 text-police-gray-dark dark:text-police-text-muted font-medium">Nome grado</th>
+                              <th className="text-left px-4 py-2 text-police-gray-dark dark:text-police-text-muted font-medium w-48">Role ID Discord</th>
+                              <th className="w-10 px-2 py-2"></th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {deptData.ranks.map((rank: RankConfig) => (
+                              <tr key={rank.rank_id} className="bg-white dark:bg-gray-800">
+                                <td className="px-4 py-2 text-gray-400 font-mono text-xs">{rank.rank_id}</td>
+                                <td className="px-4 py-2">
+                                  <input
+                                    type="text"
+                                    value={rank.rank_name}
+                                    onChange={(e) => handleRankFieldChange(deptName, rank.rank_id, 'rank_name', e.target.value)}
+                                    className="w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-police-blue dark:text-police-text-light focus:outline-none py-0.5"
+                                  />
+                                </td>
+                                <td className="px-4 py-2">
+                                  <input
+                                    type="number"
+                                    value={rank.role_id}
+                                    onChange={(e) => handleRankFieldChange(deptName, rank.rank_id, 'role_id', e.target.value)}
+                                    className="w-full font-mono text-xs bg-transparent border border-gray-200 dark:border-gray-600 dark:text-police-text-light rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                                    min={0}
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <button
+                                    onClick={() => handleDeleteRank(deptName, rank.rank_id)}
+                                    className="p-1 text-gray-400 hover:text-red-500 rounded"
+                                    title="Elimina grado"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                            {/* Riga aggiungi grado */}
+                            <tr className="bg-gray-50 dark:bg-gray-800/50">
+                              <td className="px-4 py-2 text-gray-300 font-mono text-xs">+</td>
                               <td className="px-4 py-2">
                                 <input
                                   type="text"
-                                  value={rank.rank_name}
-                                  onChange={(e) => handleRankFieldChange(deptName, rank.rank_id, 'rank_name', e.target.value)}
-                                  className="w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-police-blue dark:text-police-text-light focus:outline-none py-0.5"
+                                  placeholder="Nome grado..."
+                                  value={newRankPerDept[deptName]?.rank_name ?? ''}
+                                  onChange={(e) => setNewRankPerDept((prev) => ({ ...prev, [deptName]: { ...prev[deptName] ?? { role_id: 0 }, rank_name: e.target.value } }))}
+                                  onKeyDown={(e) => e.key === 'Enter' && handleAddRank(deptName)}
+                                  className="w-full bg-transparent border-b border-dashed border-gray-300 dark:border-gray-500 focus:border-police-blue dark:text-police-text-light focus:outline-none py-0.5 text-sm placeholder-gray-400"
                                 />
                               </td>
                               <td className="px-4 py-2">
                                 <input
                                   type="number"
-                                  value={rank.role_id}
-                                  onChange={(e) => handleRankFieldChange(deptName, rank.rank_id, 'role_id', e.target.value)}
-                                  className="w-full font-mono text-xs bg-transparent border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                                  placeholder="0"
+                                  value={newRankPerDept[deptName]?.role_id ?? 0}
+                                  onChange={(e) => setNewRankPerDept((prev) => ({ ...prev, [deptName]: { ...prev[deptName] ?? { rank_name: '' }, role_id: Number(e.target.value) } }))}
+                                  className="w-full font-mono text-xs bg-transparent border border-dashed border-gray-300 dark:border-gray-500 dark:text-police-text-light rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-police-blue"
                                   min={0}
                                 />
                               </td>
+                              <td className="px-2 py-2">
+                                <button
+                                  onClick={() => handleAddRank(deptName)}
+                                  className="p-1 text-gray-400 hover:text-green-500 rounded"
+                                  title="Aggiungi grado"
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </button>
+                              </td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
+                  ))}
+
+                  {/* Aggiungi dipartimento */}
+                  <div className="border border-dashed border-gray-300 dark:border-gray-600 rounded-md p-4 flex flex-wrap items-center gap-3">
+                    <input
+                      type="text"
+                      placeholder="Nome dipartimento..."
+                      value={newDept.name}
+                      onChange={(e) => setNewDept((prev) => ({ ...prev, name: e.target.value }))}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddDept()}
+                      className="flex-1 min-w-40 bg-transparent border-b border-gray-300 dark:border-gray-500 focus:border-police-blue dark:text-police-text-light focus:outline-none py-0.5 text-sm placeholder-gray-400"
+                    />
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-xs text-gray-400">dept_id:</span>
+                      <input
+                        type="number"
+                        placeholder="auto"
+                        value={newDept.deptId}
+                        onChange={(e) => setNewDept((prev) => ({ ...prev, deptId: e.target.value }))}
+                        className="w-16 font-mono text-xs bg-transparent border border-gray-300 dark:border-gray-500 dark:text-police-text-light rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                        min={1}
+                      />
+                    </div>
+                    <button
+                      onClick={handleAddDept}
+                      className="flex items-center gap-1 text-sm text-police-blue hover:text-police-blue-dark font-medium px-3 py-1.5 border border-police-blue rounded-md hover:bg-police-blue/10 transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Aggiungi dipartimento
+                    </button>
                   </div>
-                ))
+                </>
               )}
 
               <div className="flex justify-end">
@@ -800,7 +902,7 @@ export default function ConfigPage() {
                   disabled={rolesSaving || rolesLoading}
                   leftIcon={<Save className="h-4 w-4" />}
                 >
-                  {rolesSaved ? 'Salvato!' : rolesSaving ? 'Salvataggio...' : 'Salva configurazione ruoli'}
+                  {rolesSaved ? 'Salvato!' : rolesSaving ? 'Salvataggio...' : 'Salva configurazione'}
                 </Button>
               </div>
             </div>
@@ -839,19 +941,6 @@ export default function ConfigPage() {
                   {reportCategories.map((category) => (
                     <Badge key={category.id} variant={category.color as any}>
                       {category.name}
-                    </Badge>
-                  ))}
-                </div>
-              </>
-            ) : activeTab === 'departments' ? (
-              <>
-                <h3 className="text-md font-medium text-police-gray-dark dark:text-police-text-muted">
-                  Dipartimenti disponibili:
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {departments.map((department) => (
-                    <Badge key={department.id} variant={department.color as any}>
-                      {department.name}
                     </Badge>
                   ))}
                 </div>

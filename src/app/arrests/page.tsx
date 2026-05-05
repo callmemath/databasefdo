@@ -68,14 +68,6 @@ export default function Arrests() {
     { id: 15, name: 'Estorsione', sentence: '6 anni', fine: 8000 },
   ];
   
-  // Dipartimenti disponibili
-  const availableDepartments = [
-    'Polizia di Stato',
-    'Carabinieri',
-    'Guardia di Finanza',
-    'Polizia Penitenziaria',
-    'Polizia Locale'
-  ];
   
   // Recupera l'elenco degli arresti
   const fetchArrests = async () => {

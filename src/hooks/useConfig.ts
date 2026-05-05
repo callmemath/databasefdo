@@ -51,65 +51,25 @@ export function useReportCategories() {
 }
 
 export function useDepartments() {
-  const [departments, setDepartments] = useState<ConfigCategory[]>([
-    { id: 'polizia', name: 'Polizia', description: 'Polizia di Stato', color: 'blue' },
-    { id: 'carabinieri', name: 'Carabinieri', description: 'Arma dei Carabinieri', color: 'blue' },
-    { id: 'administration', name: 'Administration', description: 'Amministrazione', color: 'gray' },
-    { id: 'lspd', name: 'LSPD', description: 'Los Santos Police Department', color: 'blue' },
-  ]);
-  
-  // State per la mappatura dei nomi di dipartimento agli ID
-  const [departmentMappings, setDepartmentMappings] = useState<{[key: string]: string}>({});
-  
+  const [departments, setDepartments] = useState<ConfigCategory[]>([]);
+
   useEffect(() => {
-    const loadDepartments = () => {
-      const savedDepartments = localStorage.getItem('fdo_departments');
-      const savedMappings = localStorage.getItem('fdo_department_mappings');
-      
-      if (savedDepartments) {
-        try {
-          setDepartments(JSON.parse(savedDepartments));
-        } catch (e) {
-          console.error('Errore nel parsing dei dipartimenti:', e);
-        }
-      }
-      
-      if (savedMappings) {
-        try {
-          setDepartmentMappings(JSON.parse(savedMappings));
-        } catch (e) {
-          console.error('Errore nel parsing delle mappature dei dipartimenti:', e);
-        }
-      }
-    };
-    
-    loadDepartments();
-    
-    // Aggiunge un listener per gli aggiornamenti del localStorage da altre schede
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'fdo_departments' && e.newValue) {
-        try {
-          setDepartments(JSON.parse(e.newValue));
-        } catch (e) {
-          console.error('Errore nel parsing dei dipartimenti:', e);
-        }
-      }
-      
-      if (e.key === 'fdo_department_mappings' && e.newValue) {
-        try {
-          setDepartmentMappings(JSON.parse(e.newValue));
-        } catch (e) {
-          console.error('Errore nel parsing delle mappature dei dipartimenti:', e);
-        }
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    fetch('/api/config/roles')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        const depts: ConfigCategory[] = Object.entries(data).map(([name, config]: [string, any]) => ({
+          id: String(config.dept_id),
+          name,
+          description: name,
+          color: 'blue',
+        }));
+        setDepartments(depts);
+      })
+      .catch(() => {});
   }, []);
-  
-  // Restituisce sia i dipartimenti che le mappature
-  return { departments, departmentMappings };
+
+  return { departments, departmentMappings: {} as Record<string, string> };
 }
 
 export function useFdoCategories() {
