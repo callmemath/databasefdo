@@ -770,7 +770,7 @@ export default function ConfigPage() {
                             type="number"
                             value={deptData.dept_id}
                             onChange={(e) => handleDeptIdChange(deptName, e.target.value)}
-                            className="w-14 text-xs font-mono text-center bg-transparent border border-gray-300 dark:border-gray-600 dark:text-police-text-light rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                            className="w-14 text-xs font-mono text-center bg-transparent border border-gray-300 dark:border-gray-600 dark:text-police-text-light rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-police-blue [appearance:textfield]"
                           />
                           <button
                             onClick={() => handleDeleteDept(deptName)}
@@ -801,7 +801,7 @@ export default function ConfigPage() {
                                     type="text"
                                     value={rank.rank_name}
                                     onChange={(e) => handleRankFieldChange(deptName, rank.rank_id, 'rank_name', e.target.value)}
-                                    className="w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-police-blue dark:text-police-text-light focus:outline-none py-0.5"
+                                    className="w-full bg-transparent border border-transparent hover:border-gray-300 focus:border-police-blue dark:text-police-text-light focus:outline-none rounded px-2 py-0.5"
                                   />
                                 </td>
                                 <td className="px-4 py-2">
@@ -809,7 +809,7 @@ export default function ConfigPage() {
                                     type="number"
                                     value={rank.role_id}
                                     onChange={(e) => handleRankFieldChange(deptName, rank.rank_id, 'role_id', e.target.value)}
-                                    className="w-full font-mono text-xs bg-transparent border border-gray-200 dark:border-gray-600 dark:text-police-text-light rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                                    className="w-full font-mono text-xs bg-transparent border border-gray-200 dark:border-gray-600 dark:text-police-text-light rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-police-blue [appearance:textfield]"
                                     min={0}
                                   />
                                 </td>
@@ -834,7 +834,7 @@ export default function ConfigPage() {
                                   value={newRankPerDept[deptName]?.rank_name ?? ''}
                                   onChange={(e) => setNewRankPerDept((prev) => ({ ...prev, [deptName]: { ...prev[deptName] ?? { role_id: 0 }, rank_name: e.target.value } }))}
                                   onKeyDown={(e) => e.key === 'Enter' && handleAddRank(deptName)}
-                                  className="w-full bg-transparent border-b border-dashed border-gray-300 dark:border-gray-500 focus:border-police-blue dark:text-police-text-light focus:outline-none py-0.5 text-sm placeholder-gray-400"
+                                  className="w-full bg-transparent border border-dashed border-gray-300 dark:border-gray-500 focus:border-police-blue dark:text-police-text-light focus:outline-none rounded px-2 py-0.5 text-sm placeholder-gray-400"
                                 />
                               </td>
                               <td className="px-4 py-2">
@@ -843,7 +843,7 @@ export default function ConfigPage() {
                                   placeholder="0"
                                   value={newRankPerDept[deptName]?.role_id ?? 0}
                                   onChange={(e) => setNewRankPerDept((prev) => ({ ...prev, [deptName]: { ...prev[deptName] ?? { rank_name: '' }, role_id: Number(e.target.value) } }))}
-                                  className="w-full font-mono text-xs bg-transparent border border-dashed border-gray-300 dark:border-gray-500 dark:text-police-text-light rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                                  className="w-full font-mono text-xs bg-transparent border border-dashed border-gray-300 dark:border-gray-500 dark:text-police-text-light rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-police-blue [appearance:textfield]"
                                   min={0}
                                 />
                               </td>
@@ -880,7 +880,7 @@ export default function ConfigPage() {
                         placeholder="auto"
                         value={newDept.deptId}
                         onChange={(e) => setNewDept((prev) => ({ ...prev, deptId: e.target.value }))}
-                        className="w-16 font-mono text-xs bg-transparent border border-gray-300 dark:border-gray-500 dark:text-police-text-light rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                        className="w-16 font-mono text-xs bg-transparent border border-gray-300 dark:border-gray-500 dark:text-police-text-light rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-police-blue [appearance:textfield]"
                         min={1}
                       />
                     </div>
