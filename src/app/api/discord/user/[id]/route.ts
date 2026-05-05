@@ -145,7 +145,7 @@ export async function PUT(
   }
 }
 
-// PATCH /api/discord/user/[id] - Aggiorna grado e dipartimento (chiamato dal bot quando cambia ruolo)
+// PATCH /api/discord/user/[id] - Aggiorna grado, dipartimento, badge ed email (trasferimento)
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -158,14 +158,13 @@ export async function PATCH(
     const { id: userId } = await params;
     const data = await req.json();
 
-    const department = (data?.department || "").toString().trim();
-    const deptId = data?.deptId != null ? Number(data.deptId) : undefined;
-    const rank = (data?.rank || "").toString().trim();
-    const rankId = data?.rankId != null ? Number(data.rankId) : undefined;
-
-    if (!department || !rank || deptId === undefined || rankId === undefined) {
+    // Almeno un campo deve essere presente
+    const hasFields = ["department", "deptId", "rank", "rankId", "badge", "email"].some(
+      (k) => data[k] != null && data[k] !== ""
+    );
+    if (!hasFields) {
       return NextResponse.json(
-        { error: "Campi obbligatori: department, deptId, rank, rankId" },
+        { error: "Nessun campo da aggiornare fornito" },
         { status: 400 }
       );
     }
@@ -175,9 +174,29 @@ export async function PATCH(
       return NextResponse.json({ error: "Utente non trovato" }, { status: 404 });
     }
 
+    const updateData: Record<string, unknown> = {};
+
+    if (data.department) updateData.department = data.department.toString().trim();
+    if (data.deptId != null) updateData.deptId = Number(data.deptId);
+    if (data.rank) updateData.rank = data.rank.toString().trim();
+    if (data.rankId != null) updateData.rankId = Number(data.rankId);
+    if (data.badge) updateData.badge = data.badge.toString().trim();
+
+    if (data.email) {
+      const newEmail = data.email.toString().trim().toLowerCase();
+      // Controlla che la nuova email non sia già usata da un altro utente
+      const emailConflict = await prisma.user.findFirst({
+        where: { email: newEmail, NOT: { id: userId } },
+      });
+      if (emailConflict) {
+        return NextResponse.json({ error: "Email già in uso" }, { status: 409 });
+      }
+      updateData.email = newEmail;
+    }
+
     await prisma.user.update({
       where: { id: userId },
-      data: { department, deptId, rank, rankId },
+      data: updateData,
     });
 
     return NextResponse.json({ ok: true });

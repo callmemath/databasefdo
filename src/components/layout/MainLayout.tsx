@@ -1,15 +1,48 @@
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { usePathname, useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import { Inter } from 'next/font/google';
+import { usePermissions, findRouteRules } from '@/contexts/PermissionsContext';
+import { hasPermission } from '@/lib/permissions';
+
+// Sezioni sempre accessibili indipendentemente dalle regole configurate
+const UNRESTRICTED_PREFIXES = ['/dashboard', '/config', '/admin', '/login'];
 
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
 const MainLayout = ({ children }: MainLayoutProps) => {
+  const { data: session, status } = useSession();
+  const pathname = usePathname();
+  const router = useRouter();
+  const { rules, loading: permLoading } = usePermissions();
+
   // Inizializza sidebarOpen in base alla dimensione dello schermo
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Controlla i permessi quando sessione e regole sono disponibili
+  useEffect(() => {
+    if (status !== 'authenticated' || permLoading) return;
+
+    const isUnrestricted = UNRESTRICTED_PREFIXES.some(
+      (p) => pathname === p || pathname.startsWith(p + '/')
+    );
+    if (isUnrestricted) return;
+
+    const routeRules = findRouteRules(pathname, rules);
+    if (!routeRules || routeRules.length === 0) return; // nessuna restrizione configurata
+
+    const allowed = hasPermission(
+      { deptId: session.user.deptId ?? null, rankId: session.user.rankId ?? null },
+      routeRules
+    );
+
+    if (!allowed) {
+      router.replace('/dashboard?error=unauthorized');
+    }
+  }, [status, permLoading, pathname, rules, session, router]);
 
   useEffect(() => {
     // Funzione per controllare se siamo su desktop

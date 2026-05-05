@@ -47,7 +47,9 @@ export const authOptions: NextAuthOptions = {
           image: user.image,
           badge: user.badge,
           department: user.department,
-          rank: user.rank
+          deptId: user.deptId ?? null,
+          rank: user.rank,
+          rankId: user.rankId ?? null,
         };
       },
     }),
@@ -59,7 +61,9 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.badge = user.badge;
         token.department = user.department;
+        token.deptId = user.deptId;
         token.rank = user.rank;
+        token.rankId = user.rankId;
       }
       return token;
     },
@@ -69,7 +73,9 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.badge = token.badge as string;
         session.user.department = token.department as string;
+        session.user.deptId = (token.deptId ?? null) as number | null;
         session.user.rank = token.rank as string;
+        session.user.rankId = (token.rankId ?? null) as number | null;
       }
       return session;
     },
@@ -92,7 +98,9 @@ declare module "next-auth" {
     id: string;
     badge: string;
     department: string;
+    deptId: number | null;
     rank: string;
+    rankId: number | null;
   }
 
   interface Session {
@@ -100,7 +108,9 @@ declare module "next-auth" {
       id: string;
       badge: string;
       department: string;
+      deptId: number | null;
       rank: string;
+      rankId: number | null;
     } & DefaultSession["user"];
   }
 }
@@ -110,6 +120,8 @@ declare module "next-auth/jwt" {
     id: string;
     badge: string;
     department: string;
+    deptId: number | null;
     rank: string;
+    rankId: number | null;
   }
 }

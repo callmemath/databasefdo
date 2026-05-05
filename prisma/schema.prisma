@@ -98,6 +98,15 @@ model VerificationToken {
   @@map("fdo_verification_tokens")
 }
 
+// Modello per le impostazioni di sistema (chiave-valore)
+model Setting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("fdo_settings")
+}
+
 // Modello per gli arresti
 model Arrest {
   id                  String   @id @default(cuid())
