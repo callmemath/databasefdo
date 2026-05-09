@@ -10,6 +10,7 @@ function normalizeRoleIds(config: RolesConfig): RolesConfig {
     result[deptName] = {
       ...deptData,
       dept_id: String(deptData.dept_id),
+      dept_role_id: String(deptData.dept_role_id ?? "0"),
       ranks: deptData.ranks.map((r: RankConfig) => ({
         ...r,
         role_id: String(r.role_id),

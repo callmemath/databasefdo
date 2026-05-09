@@ -141,7 +141,8 @@ export interface RankConfig {
 }
 
 export interface DeptRolesConfig {
-  dept_id: string; // Stringificato per evitare perdita di precisione su ID Discord a 64-bit
+  dept_id: string;      // Stringificato per evitare perdita di precisione su ID Discord a 64-bit
+  dept_role_id: string; // ID ruolo Discord del dipartimento ("0" = non configurato)
   ranks: RankConfig[];
 }
 
@@ -155,6 +156,7 @@ export function buildDefaultRolesConfig(): RolesConfig {
     const ranks = RANKS[deptId] ?? {};
     config[deptName] = {
       dept_id: String(deptId),
+      dept_role_id: "0",
       ranks: Object.entries(ranks).map(([rankIdStr, rankName]) => ({
         rank_id: Number(rankIdStr),
         rank_name: rankName,

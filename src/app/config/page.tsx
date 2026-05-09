@@ -321,7 +321,7 @@ export default function ConfigPage() {
     const name = newDept.name.trim();
     if (!name) return;
     const id = newDept.deptId.trim() || String(Object.keys(rolesConfig).length + 1);
-    setRolesConfig((prev) => ({ ...prev, [name]: { dept_id: id, ranks: [] } }));
+    setRolesConfig((prev) => ({ ...prev, [name]: { dept_id: id, dept_role_id: '0', ranks: [] } }));
     setNewDept({ name: '', deptId: '' });
   };
   const handleDeleteRank = (deptName: string, rankId: number) => {
@@ -771,6 +771,15 @@ export default function ConfigPage() {
                             inputMode="numeric"
                             value={deptData.dept_id}
                             onChange={(e) => handleDeptIdChange(deptName, e.target.value)}
+                            className="w-28 text-xs font-mono text-center bg-transparent border border-gray-300 dark:border-gray-600 dark:text-police-text-light rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                          />
+                          <span className="text-xs text-gray-400">role dept:</span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="0"
+                            value={deptData.dept_role_id ?? '0'}
+                            onChange={(e) => setRolesConfig((prev) => ({ ...prev, [deptName]: { ...prev[deptName], dept_role_id: e.target.value } }))}
                             className="w-28 text-xs font-mono text-center bg-transparent border border-gray-300 dark:border-gray-600 dark:text-police-text-light rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-police-blue"
                           />
                           <button
