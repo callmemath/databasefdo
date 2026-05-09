@@ -1,9 +1,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { 
   Home, Users, BookOpen, Shield, FileText, Search, AlertCircle, Target
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { usePermissions, findRouteRules } from '@/contexts/PermissionsContext';
+import { hasPermission } from '@/lib/permissions';
+
+const UNRESTRICTED_PREFIXES = ['/dashboard', '/config', '/admin'];
 
 const sidebarItems = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -18,6 +23,22 @@ const sidebarItems = [
 
 const Sidebar = () => {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const { rules, loading: permLoading } = usePermissions();
+
+  const isVisible = (href: string) => {
+    // Sempre visibile se non ci sono regole caricate o sezione non ristretta
+    if (permLoading) return true;
+    if (UNRESTRICTED_PREFIXES.some((p) => href === p || href.startsWith(p + '/'))) return true;
+
+    const routeRules = findRouteRules(href, rules);
+    if (!routeRules || routeRules.length === 0) return true; // nessuna restrizione configurata
+
+    return hasPermission(
+      { deptId: session?.user?.deptId ?? null, rankId: session?.user?.rankId ?? null },
+      routeRules
+    );
+  };
 
   return (
     <motion.div 
@@ -40,7 +61,7 @@ const Sidebar = () => {
         </motion.div>
         
         <nav className="space-y-1">
-          {sidebarItems.map((item) => {
+          {sidebarItems.filter((item) => isVisible(item.href)).map((item) => {
             const isActive = pathname === item.href;
             
             return (
