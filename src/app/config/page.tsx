@@ -268,8 +268,7 @@ export default function ConfigPage() {
     if (selectedDeptName || Object.keys(rolesConfig).length === 0) return;
     const firstName = Object.keys(rolesConfig)[0];
     setSelectedDeptName(firstName);
-    const found = Object.entries(DEPARTMENTS).find(([, n]) => n === firstName);
-    if (found) setNewRuleDeptId(Number(found[0]));
+    setNewRuleDeptId(Number(rolesConfig[firstName]?.dept_id ?? 1));
   }, [rolesConfig]);
 
   // Aggiorna un campo di un grado nella configurazione ruoli
@@ -725,8 +724,7 @@ export default function ConfigPage() {
                       onChange={(e) => {
                         const name = e.target.value;
                         setSelectedDeptName(name);
-                        const found = Object.entries(DEPARTMENTS).find(([, n]) => n === name);
-                        setNewRuleDeptId(found ? Number(found[0]) : Object.keys(rolesConfig).indexOf(name) + 1);
+                        setNewRuleDeptId(Number(rolesConfig[name]?.dept_id ?? 1));
                         setNewRuleMinRankId(1);
                       }}
                       className="form-input block w-full sm:text-sm border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-md"
