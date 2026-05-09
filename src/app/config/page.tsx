@@ -92,6 +92,7 @@ export default function ConfigPage() {
 
   // Stato per la nuova regola da aggiungere
   const [selectedSection, setSelectedSection] = useState<string>('/arrests');
+  const [selectedDeptName, setSelectedDeptName] = useState<string>('');
   const [newRuleDeptId, setNewRuleDeptId] = useState<number>(1);
   const [newRuleMinRankId, setNewRuleMinRankId] = useState<number>(1);
 
@@ -252,7 +253,7 @@ export default function ConfigPage() {
     setPermRules({ ...permRules, [section]: updated });
   };
 
-  // Carica la configurazione ruoli al mount (serve anche per il tab Permessi)
+  // Carica la configurazione ruoli all'avvio (serve anche per i dropdown permessi)
   useEffect(() => {
     setRolesLoading(true);
     fetch('/api/config/roles')
@@ -262,30 +263,14 @@ export default function ConfigPage() {
       .finally(() => setRolesLoading(false));
   }, []);
 
-  // Ricarica la configurazione ruoli quando si apre il tab
+  // Inizializza il dipartimento selezionato nel form permessi quando la config è caricata
   useEffect(() => {
-    if (activeTab !== 'roles') return;
-    setRolesLoading(true);
-    fetch('/api/config/roles')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (data) setRolesConfig(data); })
-      .catch(() => {})
-      .finally(() => setRolesLoading(false));
-  }, [activeTab]);
-
-  // Restituisce i gradi di un dipartimento da rolesConfig (cercando per dept_id numerico)
-  const getRanksForDept = (deptId: number) => {
-    const entry = Object.entries(rolesConfig).find(
-      ([, d]) => Number(d.dept_id) === deptId
-    );
-    return entry ? entry[1].ranks : [];
-  };
-
-  // Restituisce il nome di un grado da rolesConfig
-  const getRankName = (deptId: number, rankId: number): string => {
-    const rank = getRanksForDept(deptId).find((r: RankConfig) => r.rank_id === rankId);
-    return rank?.rank_name ?? RANKS[deptId]?.[rankId] ?? String(rankId);
-  };
+    if (selectedDeptName || Object.keys(rolesConfig).length === 0) return;
+    const firstName = Object.keys(rolesConfig)[0];
+    setSelectedDeptName(firstName);
+    const found = Object.entries(DEPARTMENTS).find(([, n]) => n === firstName);
+    if (found) setNewRuleDeptId(Number(found[0]));
+  }, [rolesConfig]);
 
   // Aggiorna un campo di un grado nella configurazione ruoli
   const handleRankFieldChange = (
@@ -321,6 +306,20 @@ export default function ConfigPage() {
     } finally {
       setRolesSaving(false);
     }
+  };
+
+  // Helper: nome dipartimento da deptId (prova prima DEPARTMENTS, poi rolesConfig per indice)
+  const getDeptDisplayName = (deptId: number): string => {
+    if (DEPARTMENTS[deptId]) return DEPARTMENTS[deptId];
+    return Object.keys(rolesConfig)[deptId - 1] ?? `Dept ${deptId}`;
+  };
+
+  // Helper: nome grado da deptId+rankId — prova prima rolesConfig, poi RANKS statico
+  const getRankDisplayName = (deptId: number, rankId: number): string => {
+    const deptName = getDeptDisplayName(deptId);
+    const fromConfig = rolesConfig[deptName]?.ranks?.find((r: RankConfig) => r.rank_id === rankId)?.rank_name;
+    if (fromConfig) return fromConfig;
+    return RANKS[deptId]?.[rankId] ?? String(rankId);
   };
 
   const handleDeptNameEdit = (oldName: string, value: string) => {
@@ -681,11 +680,11 @@ export default function ConfigPage() {
                         {sectionRules.map((rule, idx) => (
                           <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded px-3 py-2 text-sm">
                             <span>
-                              <span className="font-medium">{DEPARTMENTS[rule.deptId] ?? `Dept ${rule.deptId}`}</span>
+                              <span className="font-medium">{getDeptDisplayName(rule.deptId)}</span>
                               {' — '}
                               grado min.{' '}
                               <span className="font-medium">
-                                {getRankName(rule.deptId, rule.minRankId)}
+                                {getRankDisplayName(rule.deptId, rule.minRankId)}
                               </span>
                               <span className="text-gray-400 ml-1">(rankId {rule.minRankId})</span>
                             </span>
@@ -722,12 +721,18 @@ export default function ConfigPage() {
                   <div>
                     <label className="block text-sm font-medium text-police-gray-dark dark:text-police-text-muted mb-1">Dipartimento</label>
                     <select
-                      value={newRuleDeptId}
-                      onChange={(e) => { setNewRuleDeptId(Number(e.target.value)); setNewRuleMinRankId(1); }}
+                      value={selectedDeptName}
+                      onChange={(e) => {
+                        const name = e.target.value;
+                        setSelectedDeptName(name);
+                        const found = Object.entries(DEPARTMENTS).find(([, n]) => n === name);
+                        setNewRuleDeptId(found ? Number(found[0]) : Object.keys(rolesConfig).indexOf(name) + 1);
+                        setNewRuleMinRankId(1);
+                      }}
                       className="form-input block w-full sm:text-sm border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-md"
                     >
-                      {Object.entries(DEPARTMENTS).map(([id, name]) => (
-                        <option key={id} value={id}>{name}</option>
+                      {Object.keys(rolesConfig).map((name) => (
+                        <option key={name} value={name}>{name}</option>
                       ))}
                     </select>
                   </div>
@@ -738,15 +743,9 @@ export default function ConfigPage() {
                       onChange={(e) => setNewRuleMinRankId(Number(e.target.value))}
                       className="form-input block w-full sm:text-sm border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-md"
                     >
-                      {getRanksForDept(newRuleDeptId).map((r: RankConfig) => (
-                        <option key={r.rank_id} value={r.rank_id}>{r.rank_name} (rankId {r.rank_id})</option>
+                      {(rolesConfig[selectedDeptName]?.ranks ?? []).map((rank: RankConfig) => (
+                        <option key={rank.rank_id} value={rank.rank_id}>{rank.rank_name} (rankId {rank.rank_id})</option>
                       ))}
-                      {/* Fallback ai gradi statici se rolesConfig non ha questo dept */}
-                      {getRanksForDept(newRuleDeptId).length === 0 &&
-                        Object.entries(RANKS[newRuleDeptId] ?? {}).map(([id, name]) => (
-                          <option key={id} value={id}>{name} (rankId {id})</option>
-                        ))
-                      }
                     </select>
                   </div>
                 </div>
