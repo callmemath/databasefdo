@@ -13,11 +13,15 @@ export interface UserIdentity {
 
 /**
  * Restituisce true se l'utente soddisfa almeno una delle regole fornite.
+ * Usa coercizione numerica esplicita per resistere a type mismatch da JSON/JWT
+ * (es. deptId può arrivare come stringa "1" invece di number 1).
  */
 export function hasPermission(user: UserIdentity, rules: PermissionRule[]): boolean {
-  const { deptId, rankId } = user;
-  if (deptId == null || rankId == null) return false;
-  return rules.some((rule) => deptId === rule.deptId && rankId >= rule.minRankId);
+  if (user.deptId == null || user.rankId == null) return false;
+  const deptId = Number(user.deptId);
+  const rankId = Number(user.rankId);
+  if (isNaN(deptId) || isNaN(rankId)) return false;
+  return rules.some((rule) => deptId === Number(rule.deptId) && rankId >= Number(rule.minRankId));
 }
 
 // ────────────────────────────────────────────────

@@ -27,7 +27,17 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     fetch('/api/config/permissions')
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (data) setRules(data.rules ?? {});
+        if (!data?.rules) return;
+        // Coerce deptId/minRankId a numeri: JSON.parse li preserva, ma salvataggi
+        // precedenti potrebbero aver introdotto stringhe.
+        const coerced: RouteRulesMap = {};
+        for (const [route, arr] of Object.entries(data.rules as RouteRulesMap)) {
+          coerced[route] = (arr as PermissionRule[]).map((r) => ({
+            deptId: Number(r.deptId),
+            minRankId: Number(r.minRankId),
+          }));
+        }
+        setRules(coerced);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
