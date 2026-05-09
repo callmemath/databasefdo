@@ -56,7 +56,7 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // Quando l'utente fa il login, aggiungi i dati aggiuntivi al token
+      // Al login scrivi i dati base nel token
       if (user) {
         token.id = user.id;
         token.badge = user.badge;
@@ -64,6 +64,21 @@ export const authOptions: NextAuthOptions = {
         token.deptId = user.deptId;
         token.rank = user.rank;
         token.rankId = user.rankId;
+      }
+      // Ad ogni refresh del token (ogni updateAge minuti) rileggi deptId/rankId dal DB
+      // Questo garantisce che i cambiamenti ai ruoli si propaghino senza re-login
+      if (token.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { deptId: true, rankId: true, badge: true, department: true, rank: true },
+        });
+        if (dbUser) {
+          token.deptId = dbUser.deptId;
+          token.rankId = dbUser.rankId;
+          token.badge = dbUser.badge;
+          token.department = dbUser.department;
+          token.rank = dbUser.rank;
+        }
       }
       return token;
     },
