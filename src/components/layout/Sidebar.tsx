@@ -8,7 +8,8 @@ import { motion } from 'framer-motion';
 import { usePermissions, findRouteRules } from '@/contexts/PermissionsContext';
 import { hasPermission } from '@/lib/permissions';
 
-const UNRESTRICTED_PREFIXES = ['/dashboard', '/config', '/admin'];
+// Voci sempre visibili indipendentemente dai permessi configurati
+const ALWAYS_VISIBLE = ['/dashboard'];
 
 const sidebarItems = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -18,22 +19,27 @@ const sidebarItems = [
   { name: 'Sistema Arresti', href: '/arrests', icon: AlertCircle },
   { name: 'Denunce', href: '/reports', icon: FileText },
   { name: 'Ricercati', href: '/wanted', icon: Search },
-  { name: 'Porto d\'Armi', href: '/weapon-licenses', icon: Target },
+  { name: "Porto d'Armi", href: '/weapon-licenses', icon: Target },
 ];
 
 const Sidebar = () => {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const { rules, loading: permLoading } = usePermissions();
 
-  const isVisible = (href: string) => {
-    // Sempre visibile se non ci sono regole caricate o sezione non ristretta
-    if (permLoading) return true;
-    if (UNRESTRICTED_PREFIXES.some((p) => href === p || href.startsWith(p + '/'))) return true;
+  // Aspetta che ENTRAMBI siano pronti prima di filtrare, altrimenti si ottiene
+  // un ciclo flash: mostra tutto → nasconde (permessi ok, sessione nulla) → rif
+  const isLoading = permLoading || sessionStatus === 'loading';
 
+  const isVisible = (href: string): boolean => {
+    // Route sempre visibili
+    if (ALWAYS_VISIBLE.some((r) => href === r || href.startsWith(r + '/'))) return true;
+    // Durante il caricamento nasconde le voci ristrette per evitare flash
+    if (isLoading) return false;
+    // Nessuna regola configurata → accessibile a tutti
     const routeRules = findRouteRules(href, rules);
-    if (!routeRules || routeRules.length === 0) return true; // nessuna restrizione configurata
-
+    if (!routeRules || routeRules.length === 0) return true;
+    // Verifica permessi utente
     return hasPermission(
       { deptId: session?.user?.deptId ?? null, rankId: session?.user?.rankId ?? null },
       routeRules
@@ -62,28 +68,29 @@ const Sidebar = () => {
         
         <nav className="space-y-1">
           {sidebarItems.filter((item) => isVisible(item.href)).map((item) => {
-            const isActive = pathname === item.href;
+            // Attivo anche sulle sotto-route (es. /arrests/123 → evidenzia "Sistema Arresti")
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center px-4 py-3 rounded-md transition-colors duration-200 ${
+                className={`relative flex items-center px-4 py-3 rounded-md transition-colors duration-200 ${
                   isActive 
                   ? 'bg-white/10 font-medium' 
                   : 'hover:bg-white/5'
                 }`}
               >
-                <item.icon className={`h-5 w-5 mr-3 ${isActive ? 'text-white' : 'text-white/70'}`} />
-                <span className={isActive ? 'text-white' : 'text-white/70'}>
-                  {item.name}
-                </span>
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-indicator"
                     className="absolute left-0 w-1 h-8 bg-white rounded-r-full"
                   />
                 )}
+                <item.icon className={`h-5 w-5 mr-3 ${isActive ? 'text-white' : 'text-white/70'}`} />
+                <span className={isActive ? 'text-white' : 'text-white/70'}>
+                  {item.name}
+                </span>
               </Link>
             );
           })}
