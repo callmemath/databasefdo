@@ -312,7 +312,7 @@ export default function ConfigPage() {
     });
   };
   const handleDeptIdChange = (deptName: string, value: string) => {
-    setRolesConfig((prev) => ({ ...prev, [deptName]: { ...prev[deptName], dept_id: Number(value) } }));
+    setRolesConfig((prev) => ({ ...prev, [deptName]: { ...prev[deptName], dept_id: value } }));
   };
   const handleDeleteDept = (deptName: string) => {
     setRolesConfig((prev) => { const { [deptName]: _, ...rest } = prev; return rest; });
@@ -320,7 +320,7 @@ export default function ConfigPage() {
   const handleAddDept = () => {
     const name = newDept.name.trim();
     if (!name) return;
-    const id = newDept.deptId ? Number(newDept.deptId) : Object.keys(rolesConfig).length + 1;
+    const id = newDept.deptId.trim() || String(Object.keys(rolesConfig).length + 1);
     setRolesConfig((prev) => ({ ...prev, [name]: { dept_id: id, ranks: [] } }));
     setNewDept({ name: '', deptId: '' });
   };
@@ -767,10 +767,11 @@ export default function ConfigPage() {
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="text-xs text-gray-400">dept_id:</span>
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
                             value={deptData.dept_id}
                             onChange={(e) => handleDeptIdChange(deptName, e.target.value)}
-                            className="w-14 text-xs font-mono text-center bg-transparent border border-gray-300 dark:border-gray-600 dark:text-police-text-light rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-police-blue [appearance:textfield]"
+                            className="w-28 text-xs font-mono text-center bg-transparent border border-gray-300 dark:border-gray-600 dark:text-police-text-light rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-police-blue"
                           />
                           <button
                             onClick={() => handleDeleteDept(deptName)}

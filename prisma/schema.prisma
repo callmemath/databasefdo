@@ -241,3 +241,24 @@ model CitizenNote {
   @@index([officerId])
   @@map("fdo_citizen_notes")
 }
+
+model FdoDepartment {
+  id            Int       @id @default(autoincrement())
+  name          String    @db.VarChar(100)
+  discordRoleId String    @default("0") @db.VarChar(25)
+  ranks         FdoRank[]
+
+  @@map("fdo_departments")
+}
+
+model FdoRank {
+  id            Int           @id @default(autoincrement())
+  deptId        Int
+  rankOrder     Int
+  name          String        @db.VarChar(200)
+  discordRoleId String        @default("0") @db.VarChar(25)
+  department    FdoDepartment @relation(fields: [deptId], references: [id], onDelete: Cascade)
+
+  @@unique([deptId, rankOrder])
+  @@map("fdo_ranks")
+}

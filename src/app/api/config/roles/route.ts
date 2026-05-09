@@ -10,6 +10,7 @@ function normalizeRoleIds(config: RolesConfig): RolesConfig {
   for (const [deptName, deptData] of Object.entries(config)) {
     result[deptName] = {
       ...deptData,
+      dept_id: String(deptData.dept_id),
       ranks: deptData.ranks.map((r: RankConfig) => ({
         ...r,
         role_id: String(r.role_id),
@@ -17,6 +18,12 @@ function normalizeRoleIds(config: RolesConfig): RolesConfig {
     };
   }
   return result;
+}
+
+/** Converte i numeri interi grandi (snowflake Discord) in stringhe prima che JSON.parse li tronchi. */
+function parseSafeJson(raw: string): RolesConfig {
+  const safe = raw.replace(/:[ \t]*(\d{15,})([,}\]])/g, ': "$1"$2');
+  return JSON.parse(safe);
 }
 
 // GET /api/config/roles — Restituisce la config attuale (per la UI admin)
@@ -31,7 +38,7 @@ export async function GET() {
       where: { key: "fdo_roles_config" },
     });
     const config: RolesConfig = setting
-      ? JSON.parse(setting.value)
+      ? parseSafeJson(setting.value)
       : buildDefaultRolesConfig();
     return NextResponse.json(normalizeRoleIds(config));
   } catch (error) {
