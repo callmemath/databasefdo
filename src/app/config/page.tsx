@@ -17,40 +17,51 @@ interface ConfigCategory {
   color: string;
 }
 
-// Password per accedere alla pagina di configurazione
-const CONFIG_PASSWORD = 'admin123'; // In produzione, questa dovrebbe essere una variabile d'ambiente
-
 export default function ConfigPage() {
   // Stato per la protezione con password
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  
-  // Funzione per verificare la password
-  const verifyPassword = () => {
-    if (password === CONFIG_PASSWORD) {
-      setIsAuthenticated(true);
-      setPasswordError('');
-      // Salva un token nel localStorage per mantenere l'accesso
-      localStorage.setItem('config_auth_token', Date.now().toString());
-    } else {
-      setPasswordError('Password non valida');
+  const [verifying, setVerifying] = useState(false);
+
+  // Controlla se la sessione di configurazione è già attiva (cookie httpOnly)
+  useEffect(() => {
+    fetch('/api/config/auth')
+      .then((r) => { if (r.ok) setIsAuthenticated(true); })
+      .catch(() => {})
+      .finally(() => setAuthLoading(false));
+  }, []);
+
+  // Funzione per verificare la password server-side
+  const verifyPassword = async () => {
+    if (!password) return;
+    setVerifying(true);
+    setPasswordError('');
+    try {
+      const res = await fetch('/api/config/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      if (res.ok) {
+        setIsAuthenticated(true);
+        setPassword('');
+      } else {
+        const data = await res.json();
+        setPasswordError(data.error ?? 'Password non valida');
+      }
+    } catch {
+      setPasswordError('Errore di rete. Riprova.');
+    } finally {
+      setVerifying(false);
     }
   };
-  
-  // Controlla se l'utente è già autenticato dal localStorage
-  useEffect(() => {
-    const authToken = localStorage.getItem('config_auth_token');
-    if (authToken) {
-      // Si potrebbe aggiungere una verifica di scadenza qui
-      setIsAuthenticated(true);
-    }
-  }, []);
-  
+
   // Funzione per disconnettersi
-  const logout = () => {
+  const logout = async () => {
+    await fetch('/api/config/auth', { method: 'DELETE' });
     setIsAuthenticated(false);
-    localStorage.removeItem('config_auth_token');
   };
   // Categorie per i report
   const [reportCategories, setReportCategories] = useState<ConfigCategory[]>([
@@ -374,6 +385,17 @@ export default function ConfigPage() {
     loadConfig();
   }, []);
   
+  // Mostra spinner mentre si verifica la sessione esistente
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center min-h-screen -mt-16">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-police-blue"></div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   // Se l'utente non è autenticato, mostra il form di login
   if (!isAuthenticated) {
     return (
@@ -418,9 +440,10 @@ export default function ConfigPage() {
                 variant="primary"
                 fullWidth
                 onClick={verifyPassword}
+                disabled={verifying || !password}
                 leftIcon={<Lock className="h-4 w-4" />}
               >
-                Accedi
+                {verifying ? 'Verifica...' : 'Accedi'}
               </Button>
             </div>
           </Card>
