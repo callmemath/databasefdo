@@ -3,7 +3,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { buildDefaultRolesConfig, RolesConfig } from "@/lib/permissions";
+import { buildDefaultRolesConfig, RolesConfig, RankConfig } from "@/lib/permissions";
+
+function normalizeRoleIds(config: RolesConfig): RolesConfig {
+  const result: RolesConfig = {};
+  for (const [deptName, deptData] of Object.entries(config)) {
+    result[deptName] = {
+      ...deptData,
+      ranks: deptData.ranks.map((r: RankConfig) => ({
+        ...r,
+        role_id: String(r.role_id),
+      })),
+    };
+  }
+  return result;
+}
 
 // GET /api/config/roles — Restituisce la config attuale (per la UI admin)
 export async function GET() {
@@ -19,7 +33,7 @@ export async function GET() {
     const config: RolesConfig = setting
       ? JSON.parse(setting.value)
       : buildDefaultRolesConfig();
-    return NextResponse.json(config);
+    return NextResponse.json(normalizeRoleIds(config));
   } catch (error) {
     console.error("Errore durante il recupero della configurazione ruoli:", error);
     return NextResponse.json(

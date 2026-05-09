@@ -137,7 +137,7 @@ export function getRankName(deptId: number, rankId: number): string {
 export interface RankConfig {
   rank_id: number;
   rank_name: string;
-  role_id: number; // ID ruolo Discord (0 = non configurato)
+  role_id: string; // ID ruolo Discord come stringa (evita perdita di precisione su 64-bit); "0" = non configurato
 }
 
 export interface DeptRolesConfig {
@@ -158,7 +158,7 @@ export function buildDefaultRolesConfig(): RolesConfig {
       ranks: Object.entries(ranks).map(([rankIdStr, rankName]) => ({
         rank_id: Number(rankIdStr),
         rank_name: rankName,
-        role_id: 0,
+        role_id: "0",
       })),
     };
   }

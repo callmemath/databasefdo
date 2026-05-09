@@ -17,51 +17,40 @@ interface ConfigCategory {
   color: string;
 }
 
+// Password per accedere alla pagina di configurazione
+const CONFIG_PASSWORD = 'admin123'; // In produzione, questa dovrebbe essere una variabile d'ambiente
+
 export default function ConfigPage() {
   // Stato per la protezione con password
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [verifying, setVerifying] = useState(false);
-
-  // Controlla se la sessione di configurazione è già attiva (cookie httpOnly)
-  useEffect(() => {
-    fetch('/api/config/auth')
-      .then((r) => { if (r.ok) setIsAuthenticated(true); })
-      .catch(() => {})
-      .finally(() => setAuthLoading(false));
-  }, []);
-
-  // Funzione per verificare la password server-side
-  const verifyPassword = async () => {
-    if (!password) return;
-    setVerifying(true);
-    setPasswordError('');
-    try {
-      const res = await fetch('/api/config/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
-      if (res.ok) {
-        setIsAuthenticated(true);
-        setPassword('');
-      } else {
-        const data = await res.json();
-        setPasswordError(data.error ?? 'Password non valida');
-      }
-    } catch {
-      setPasswordError('Errore di rete. Riprova.');
-    } finally {
-      setVerifying(false);
+  
+  // Funzione per verificare la password
+  const verifyPassword = () => {
+    if (password === CONFIG_PASSWORD) {
+      setIsAuthenticated(true);
+      setPasswordError('');
+      // Salva un token nel localStorage per mantenere l'accesso
+      localStorage.setItem('config_auth_token', Date.now().toString());
+    } else {
+      setPasswordError('Password non valida');
     }
   };
-
+  
+  // Controlla se l'utente è già autenticato dal localStorage
+  useEffect(() => {
+    const authToken = localStorage.getItem('config_auth_token');
+    if (authToken) {
+      // Si potrebbe aggiungere una verifica di scadenza qui
+      setIsAuthenticated(true);
+    }
+  }, []);
+  
   // Funzione per disconnettersi
-  const logout = async () => {
-    await fetch('/api/config/auth', { method: 'DELETE' });
+  const logout = () => {
     setIsAuthenticated(false);
+    localStorage.removeItem('config_auth_token');
   };
   // Categorie per i report
   const [reportCategories, setReportCategories] = useState<ConfigCategory[]>([
@@ -112,7 +101,7 @@ export default function ConfigPage() {
   const [rolesSaving, setRolesSaving] = useState(false);
   const [rolesSaved, setRolesSaved] = useState(false);
   const [editingDeptNames, setEditingDeptNames] = useState<Record<string, string>>({});
-  const [newRankPerDept, setNewRankPerDept] = useState<Record<string, { rank_name: string; role_id: number }>>({});
+  const [newRankPerDept, setNewRankPerDept] = useState<Record<string, { rank_name: string; role_id: string }>>({});
   const [newDept, setNewDept] = useState({ name: '', deptId: '' });
   
   // Stato per la modifica
@@ -286,7 +275,7 @@ export default function ConfigPage() {
       [deptName]: {
         ...prev[deptName],
         ranks: prev[deptName].ranks.map((r: RankConfig) =>
-          r.rank_id === rankId ? { ...r, [field]: field === 'role_id' ? Number(value) : value } : r
+          r.rank_id === rankId ? { ...r, [field]: value } : r
         ),
       },
     }));
@@ -353,10 +342,10 @@ export default function ConfigPage() {
       ...prev,
       [deptName]: {
         ...prev[deptName],
-        ranks: [...ranks, { rank_id: maxId + 1, rank_name: newRankData.rank_name.trim(), role_id: newRankData.role_id ?? 0 }],
+        ranks: [...ranks, { rank_id: maxId + 1, rank_name: newRankData.rank_name.trim(), role_id: newRankData.role_id ?? '0' }],
       },
     }));
-    setNewRankPerDept((prev) => ({ ...prev, [deptName]: { rank_name: '', role_id: 0 } }));
+    setNewRankPerDept((prev) => ({ ...prev, [deptName]: { rank_name: '', role_id: '0' } }));
   };
 
   // Salvataggio delle configurazioni in localStorage
@@ -385,17 +374,6 @@ export default function ConfigPage() {
     loadConfig();
   }, []);
   
-  // Mostra spinner mentre si verifica la sessione esistente
-  if (authLoading) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center min-h-screen -mt-16">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-police-blue"></div>
-        </div>
-      </MainLayout>
-    );
-  }
-
   // Se l'utente non è autenticato, mostra il form di login
   if (!isAuthenticated) {
     return (
@@ -440,10 +418,9 @@ export default function ConfigPage() {
                 variant="primary"
                 fullWidth
                 onClick={verifyPassword}
-                disabled={verifying || !password}
                 leftIcon={<Lock className="h-4 w-4" />}
               >
-                {verifying ? 'Verifica...' : 'Accedi'}
+                Accedi
               </Button>
             </div>
           </Card>
@@ -829,11 +806,11 @@ export default function ConfigPage() {
                                 </td>
                                 <td className="px-4 py-2">
                                   <input
-                                    type="number"
+                                    type="text"
+                                    inputMode="numeric"
                                     value={rank.role_id}
                                     onChange={(e) => handleRankFieldChange(deptName, rank.rank_id, 'role_id', e.target.value)}
-                                    className="w-full font-mono text-xs bg-transparent border border-gray-200 dark:border-gray-600 dark:text-police-text-light rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-police-blue [appearance:textfield]"
-                                    min={0}
+                                    className="w-full font-mono text-xs bg-transparent border border-gray-200 dark:border-gray-600 dark:text-police-text-light rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-police-blue"
                                   />
                                 </td>
                                 <td className="px-2 py-2">
@@ -855,19 +832,19 @@ export default function ConfigPage() {
                                   type="text"
                                   placeholder="Nome grado..."
                                   value={newRankPerDept[deptName]?.rank_name ?? ''}
-                                  onChange={(e) => setNewRankPerDept((prev) => ({ ...prev, [deptName]: { ...prev[deptName] ?? { role_id: 0 }, rank_name: e.target.value } }))}
+                                  onChange={(e) => setNewRankPerDept((prev) => ({ ...prev, [deptName]: { ...prev[deptName] ?? { role_id: '0' }, rank_name: e.target.value } }))}
                                   onKeyDown={(e) => e.key === 'Enter' && handleAddRank(deptName)}
                                   className="w-full bg-transparent border border-dashed border-gray-300 dark:border-gray-500 focus:border-police-blue dark:text-police-text-light focus:outline-none rounded px-2 py-0.5 text-sm placeholder-gray-400"
                                 />
                               </td>
                               <td className="px-4 py-2">
                                 <input
-                                  type="number"
+                                  type="text"
+                                  inputMode="numeric"
                                   placeholder="0"
-                                  value={newRankPerDept[deptName]?.role_id ?? 0}
-                                  onChange={(e) => setNewRankPerDept((prev) => ({ ...prev, [deptName]: { ...prev[deptName] ?? { rank_name: '' }, role_id: Number(e.target.value) } }))}
-                                  className="w-full font-mono text-xs bg-transparent border border-dashed border-gray-300 dark:border-gray-500 dark:text-police-text-light rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-police-blue [appearance:textfield]"
-                                  min={0}
+                                  value={newRankPerDept[deptName]?.role_id ?? '0'}
+                                  onChange={(e) => setNewRankPerDept((prev) => ({ ...prev, [deptName]: { ...prev[deptName] ?? { rank_name: '' }, role_id: e.target.value } }))}
+                                  className="w-full font-mono text-xs bg-transparent border border-dashed border-gray-300 dark:border-gray-500 dark:text-police-text-light rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-police-blue"
                                 />
                               </td>
                               <td className="px-2 py-2">

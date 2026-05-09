@@ -2,7 +2,21 @@
 // Endpoint chiamato dal bot per scaricare la configurazione gradi/ruoli Discord
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { buildDefaultRolesConfig } from "@/lib/permissions";
+import { buildDefaultRolesConfig, RolesConfig, RankConfig } from "@/lib/permissions";
+
+function normalizeRoleIds(config: RolesConfig): RolesConfig {
+  const result: RolesConfig = {};
+  for (const [deptName, deptData] of Object.entries(config)) {
+    result[deptName] = {
+      ...deptData,
+      ranks: deptData.ranks.map((r: RankConfig) => ({
+        ...r,
+        role_id: String(r.role_id),
+      })),
+    };
+  }
+  return result;
+}
 
 function verifyDiscordBotToken(req: NextRequest): boolean {
   const authHeader = req.headers.get("authorization");
@@ -28,7 +42,7 @@ export async function GET(req: NextRequest) {
     });
 
     const config = setting ? JSON.parse(setting.value) : buildDefaultRolesConfig();
-    return NextResponse.json(config);
+    return NextResponse.json(normalizeRoleIds(config));
   } catch (error) {
     console.error("Errore durante il recupero della configurazione ruoli:", error);
     return NextResponse.json(
