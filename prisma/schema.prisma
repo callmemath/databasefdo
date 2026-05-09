@@ -23,6 +23,7 @@ model User {
   deptId     Int?   // ID numerico del dipartimento (1=PdS, 2=CC, 3=GdF, 4=Procura)
   rank       String // Grado
   rankId     Int?   // ID numerico del grado all'interno del dipartimento
+  discordId  String? @unique @db.VarChar(25) // Discord Snowflake ID (stringa per evitare perdita di precisione)
   image      String? // URL immagine profilo
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

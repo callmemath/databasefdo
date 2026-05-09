@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
     const deptId = data?.deptId != null ? Number(data.deptId) : null;
     const rank = (data?.rank || "").toString().trim();
     const rankId = data?.rankId != null ? Number(data.rankId) : null;
+    const discordId = data?.discordId ? String(data.discordId).trim() : null;
 
     // Validazione dei dati
     if (!name || !surname || !email || !password || !badge || !department || !rank) {
@@ -52,19 +53,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verifica se l'email o il badge sono già utilizzati
+    // Verifica se l'email, il badge o il discordId sono già utilizzati
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
           { email },
-          { badge }
+          { badge },
+          ...(discordId ? [{ discordId }] : []),
         ]
       }
     });
 
     if (existingUser) {
       return NextResponse.json(
-        { error: "Email o Badge già in uso" },
+        { error: "Email, Badge o Discord ID già in uso" },
         { status: 400 }
       );
     }
@@ -84,6 +86,7 @@ export async function POST(req: NextRequest) {
         deptId,
         rank,
         rankId,
+        discordId,
       },
     });
 
