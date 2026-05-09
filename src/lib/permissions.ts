@@ -12,27 +12,12 @@ export interface UserIdentity {
 }
 
 /**
- * Restituisce true se l'utente ha accesso in base alle regole fornite.
- *
- * Logica: le regole sono per-dipartimento.
- * - Se il dipartimento dell'utente NON compare in nessuna regola → accesso libero.
- * - Se il dipartimento dell'utente compare in almeno una regola → l'utente deve
- *   soddisfare il rango minimo di almeno una di quelle regole.
- *
- * Questo garantisce che una regola sui Carabinieri non influenzi la Polizia di Stato.
+ * Restituisce true se l'utente soddisfa almeno una delle regole fornite.
  */
 export function hasPermission(user: UserIdentity, rules: PermissionRule[]): boolean {
   const { deptId, rankId } = user;
   if (deptId == null || rankId == null) return false;
-
-  // Regole che riguardano specificamente il dipartimento dell'utente
-  const deptRules = rules.filter((r) => r.deptId === deptId);
-
-  // Nessuna regola per questo dipartimento → accesso consentito
-  if (deptRules.length === 0) return true;
-
-  // Deve soddisfare almeno una regola del suo dipartimento
-  return deptRules.some((rule) => rankId >= rule.minRankId);
+  return rules.some((rule) => deptId === rule.deptId && rankId >= rule.minRankId);
 }
 
 // ────────────────────────────────────────────────
