@@ -252,7 +252,17 @@ export default function ConfigPage() {
     setPermRules({ ...permRules, [section]: updated });
   };
 
-  // Carica la configurazione ruoli quando si apre il tab
+  // Carica la configurazione ruoli al mount (serve anche per il tab Permessi)
+  useEffect(() => {
+    setRolesLoading(true);
+    fetch('/api/config/roles')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data) setRolesConfig(data); })
+      .catch(() => {})
+      .finally(() => setRolesLoading(false));
+  }, []);
+
+  // Ricarica la configurazione ruoli quando si apre il tab
   useEffect(() => {
     if (activeTab !== 'roles') return;
     setRolesLoading(true);
@@ -262,6 +272,20 @@ export default function ConfigPage() {
       .catch(() => {})
       .finally(() => setRolesLoading(false));
   }, [activeTab]);
+
+  // Restituisce i gradi di un dipartimento da rolesConfig (cercando per dept_id numerico)
+  const getRanksForDept = (deptId: number) => {
+    const entry = Object.entries(rolesConfig).find(
+      ([, d]) => Number(d.dept_id) === deptId
+    );
+    return entry ? entry[1].ranks : [];
+  };
+
+  // Restituisce il nome di un grado da rolesConfig
+  const getRankName = (deptId: number, rankId: number): string => {
+    const rank = getRanksForDept(deptId).find((r: RankConfig) => r.rank_id === rankId);
+    return rank?.rank_name ?? RANKS[deptId]?.[rankId] ?? String(rankId);
+  };
 
   // Aggiorna un campo di un grado nella configurazione ruoli
   const handleRankFieldChange = (
@@ -661,7 +685,7 @@ export default function ConfigPage() {
                               {' — '}
                               grado min.{' '}
                               <span className="font-medium">
-                                {RANKS[rule.deptId]?.[rule.minRankId] ?? rule.minRankId}
+                                {getRankName(rule.deptId, rule.minRankId)}
                               </span>
                               <span className="text-gray-400 ml-1">(rankId {rule.minRankId})</span>
                             </span>
@@ -714,9 +738,15 @@ export default function ConfigPage() {
                       onChange={(e) => setNewRuleMinRankId(Number(e.target.value))}
                       className="form-input block w-full sm:text-sm border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-md"
                     >
-                      {Object.entries(RANKS[newRuleDeptId] ?? {}).map(([id, name]) => (
-                        <option key={id} value={id}>{name} (rankId {id})</option>
+                      {getRanksForDept(newRuleDeptId).map((r: RankConfig) => (
+                        <option key={r.rank_id} value={r.rank_id}>{r.rank_name} (rankId {r.rank_id})</option>
                       ))}
+                      {/* Fallback ai gradi statici se rolesConfig non ha questo dept */}
+                      {getRanksForDept(newRuleDeptId).length === 0 &&
+                        Object.entries(RANKS[newRuleDeptId] ?? {}).map(([id, name]) => (
+                          <option key={id} value={id}>{name} (rankId {id})</option>
+                        ))
+                      }
                     </select>
                   </div>
                 </div>
