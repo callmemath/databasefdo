@@ -90,8 +90,21 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const u = user as any;
     return NextResponse.json({
-      user: { id: user.id }
+      user: {
+        id: u.id,
+        name: u.name,
+        surname: u.surname,
+        email: u.email,
+        badge: u.badge,
+        department: u.department,
+        deptId: u.deptId ?? null,
+        rank: u.rank,
+        rankId: u.rankId ?? null,
+        discordId: u.discordId ?? null,
+      }
     }, { status: 201 });
   } catch (error) {
     console.error("Errore durante la creazione dell'utente:", error);
@@ -162,7 +175,10 @@ export async function GET(req: NextRequest) {
         email: true,
         badge: true,
         department: true,
+        deptId: true,
         rank: true,
+        rankId: true,
+        discordId: true,
         image: true,
         createdAt: true,
         updatedAt: true,

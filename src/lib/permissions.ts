@@ -145,8 +145,9 @@ export interface RankConfig {
 }
 
 export interface DeptRolesConfig {
-  dept_id: string;      // Stringificato per evitare perdita di precisione su ID Discord a 64-bit
-  dept_role_id: string; // ID ruolo Discord del dipartimento ("0" = non configurato)
+  dept_id: string;           // Stringificato per evitare perdita di precisione su ID Discord a 64-bit
+  dept_role_id: string;      // ID ruolo Discord del dipartimento ("0" = non configurato)
+  transfer_forum_id: string | null; // Channel ID Discord forum trasferimenti (null = usa fallback bot)
   ranks: RankConfig[];
 }
 
@@ -161,6 +162,7 @@ export function buildDefaultRolesConfig(): RolesConfig {
     config[deptName] = {
       dept_id: String(deptId),
       dept_role_id: "0",
+      transfer_forum_id: null,
       ranks: Object.entries(ranks).map(([rankIdStr, rankName]) => ({
         rank_id: Number(rankIdStr),
         rank_name: rankName,

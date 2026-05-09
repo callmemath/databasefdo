@@ -11,6 +11,7 @@ function normalizeRoleIds(config: RolesConfig): RolesConfig {
       ...deptData,
       dept_id: String(deptData.dept_id),
       dept_role_id: String(deptData.dept_role_id ?? "0"),
+      transfer_forum_id: deptData.transfer_forum_id ? String(deptData.transfer_forum_id) : null,
       ranks: deptData.ranks.map((r: RankConfig) => ({
         ...r,
         role_id: String(r.role_id),
