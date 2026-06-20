@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Shield, User, Lock, AlertCircle } from 'lucide-react';
 import Button from '../../components/ui/Button';
+import { buildSiteAccessCookie } from '@/lib/auth-access';
 
 function LoginContent() {
   const router = useRouter();
@@ -12,6 +13,7 @@ function LoginContent() {
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -38,6 +40,7 @@ function LoginContent() {
         setError('Credenziali non valide');
         setIsLoading(false);
       } else if (result?.url) {
+        document.cookie = buildSiteAccessCookie(rememberMe);
         router.push(result.url);
         router.refresh();
       }
@@ -114,6 +117,16 @@ function LoginContent() {
               />
             </div>
           </div>
+
+          <label className="flex items-center gap-3 text-sm text-police-gray-dark dark:text-gray-300 select-none">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 rounded border-police-gray text-police-blue focus:ring-police-blue"
+            />
+            <span>Ricordami per 15 giorni</span>
+          </label>
           
           <Button
             type="submit"

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { SITE_ACCESS_COOKIE } from '@/lib/auth-access';
 
 const PUBLIC_PAGES = new Set(['/login']);
 
@@ -9,6 +10,7 @@ export async function middleware(request: NextRequest) {
   const isPublicPage = PUBLIC_PAGES.has(pathname);
   const isAuthApi = pathname.startsWith('/api/auth');
   const isDiscordApi = pathname.startsWith('/api/discord');
+  const hasSiteAccessCookie = Boolean(request.cookies.get(SITE_ACCESS_COOKIE)?.value);
   
   // Consenti l'accesso alle pagine pubbliche
   if (isPublicPage) {
@@ -30,26 +32,27 @@ export async function middleware(request: NextRequest) {
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
   });
-  
-  // Per le API (escluse quelle di auth), restituisci 401 se non autenticato
-  if (pathname.startsWith('/api/')) {
-    if (!token) {
+
+  if (!hasSiteAccessCookie || !token) {
+    if (pathname.startsWith('/api/')) {
       return NextResponse.json(
         { error: 'Non autorizzato' },
         { status: 401 }
       );
     }
-    // Se autenticato, consenti l'accesso all'API
-    return NextResponse.next();
-  }
-  
-  // Per le pagine normali, reindirizza al login se non autenticato
-  if (!token) {
+
     const url = new URL('/login', request.url);
     url.searchParams.set('callbackUrl', encodeURI(request.url));
     return NextResponse.redirect(url);
   }
   
+  // Per le API (escluse quelle di auth), restituisci 401 se non autenticato
+  if (pathname.startsWith('/api/')) {
+    // Se autenticato, consenti l'accesso all'API
+    return NextResponse.next();
+  }
+  
+  // Per le pagine normali, reindirizza al login se non autenticato
   // Se l'utente è autenticato e sta cercando di accedere alla root, reindirizza alla dashboard
   if (pathname === '/') {
     return NextResponse.redirect(new URL('/dashboard', request.url));

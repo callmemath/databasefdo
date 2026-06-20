@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Menu, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSession, signOut } from 'next-auth/react';
+import { clearSiteAccessCookie } from '@/lib/auth-access';
 
 type HeaderProps = {
   toggleSidebar: () => void;
@@ -69,7 +70,10 @@ const Header = ({ toggleSidebar }: HeaderProps) => {
                   >
                     <div className="py-1">
                       <button 
-                        onClick={() => signOut({ callbackUrl: '/login' })}
+                        onClick={() => {
+                          document.cookie = clearSiteAccessCookie();
+                          signOut({ callbackUrl: '/login' });
+                        }}
                         className="w-full text-left block px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-police-gray-light dark:hover:bg-gray-700"
                       >
                         <div className="flex items-center">

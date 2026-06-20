@@ -1,10 +1,9 @@
 'use client';
 
-"use client";
-
 import { SessionProvider, useSession } from "next-auth/react";
 import { ReactNode, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { SITE_ACCESS_COOKIE } from "@/lib/auth-access";
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -17,12 +16,22 @@ function AuthGate({ children }: { children: ReactNode }) {
 
   const isLoginPage = pathname === '/login';
 
+  const hasSiteAccessCookie = () => {
+    if (typeof document === 'undefined') {
+      return false;
+    }
+
+    return document.cookie.split('; ').some((cookie) => cookie.startsWith(`${SITE_ACCESS_COOKIE}=`));
+  };
+
   useEffect(() => {
     if (status === 'loading') {
       return;
     }
 
-    if (status === 'unauthenticated' && !isLoginPage) {
+    const hasAccess = hasSiteAccessCookie();
+
+    if ((!hasAccess || status === 'unauthenticated') && !isLoginPage) {
       const currentPath = typeof window !== 'undefined'
         ? `${window.location.pathname}${window.location.search}`
         : pathname;
@@ -30,7 +39,7 @@ function AuthGate({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (status === 'authenticated' && isLoginPage) {
+    if (hasAccess && status === 'authenticated' && isLoginPage) {
       router.replace('/dashboard');
     }
   }, [isLoginPage, pathname, router, status]);

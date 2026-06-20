@@ -12,9 +12,11 @@ function extractNumericId(identifier: string): number {
   const hashPart = parts.length > 1 ? parts[1] : identifier;
   
   // Converti i primi 8 caratteri esadecimali in un numero
-  // Questo genera un ID univoco ma consistente per ogni identifier
-  const numericPart = hashPart.substring(0, 8);
-  return parseInt(numericPart, 16);
+  // Manteniamo il valore deterministico ma dentro il range di un INT firmato
+  const numericPart = hashPart.substring(0, 8).padEnd(8, '0');
+  const rawValue = BigInt(`0x${numericPart}`);
+  const maxInt = BigInt(2147483647);
+  return Number((rawValue % maxInt) + BigInt(1));
 }
 
 // Definizione delle interfacce per i metodi estesi
