@@ -1,6 +1,7 @@
 // GET /api/discord/by-discord/:discordId — cerca un utente tramite Discord ID
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 function verifyDiscordBotToken(req: NextRequest): boolean {
   const authHeader = req.headers.get("authorization");
@@ -57,6 +58,62 @@ export async function GET(
     console.error("Errore durante la ricerca per discordId:", error);
     return NextResponse.json(
       { error: "Errore durante la ricerca dell'utente" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/discord/by-discord/:discordId — elimina un utente tramite Discord ID
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ discordId: string }> }
+) {
+  if (!verifyDiscordBotToken(req)) {
+    return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
+  }
+
+  const { discordId } = await params;
+
+  if (!discordId) {
+    return NextResponse.json({ error: "discordId mancante" }, { status: 400 });
+  }
+
+  try {
+    console.info("[discord-delete-by-discord] richiesta delete utente", { discordId });
+
+    const deleteResult = await prisma.user.deleteMany({
+      where: { discordId },
+    });
+
+    if (deleteResult.count === 0) {
+      console.info("[discord-delete-by-discord] utente già assente, operazione idempotente", { discordId });
+      return new NextResponse(null, { status: 204 });
+    }
+
+    console.info("[discord-delete-by-discord] utente eliminato", {
+      discordId,
+      deleted: deleteResult.count,
+    });
+
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    console.error("[discord-delete-by-discord] errore durante l'eliminazione dell'utente", {
+      discordId,
+      error,
+    });
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return NextResponse.json(
+        {
+          error: "Errore durante l'eliminazione dell'utente",
+          details: error.code,
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Errore durante l'eliminazione dell'utente" },
       { status: 500 }
     );
   }

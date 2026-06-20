@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hash } from "bcryptjs";
+import { Prisma } from "@prisma/client";
 
 // Verifica il token del bot Discord
 function verifyDiscordBotToken(req: NextRequest): boolean {
@@ -221,28 +222,40 @@ export async function DELETE(
 
   try {
     const { id: userId } = await params;
-    
-    // Verifica se l'utente esiste
-    const existingUser = await prisma.user.findUnique({
+
+    console.info("[discord-delete] richiesta delete utente", { userId });
+
+    const deleteResult = await prisma.user.deleteMany({
       where: { id: userId }
     });
-    
-    if (!existingUser) {
-      return NextResponse.json({ error: "Utente non trovato" }, { status: 404 });
+
+    if (deleteResult.count === 0) {
+      console.info("[discord-delete] utente già assente, operazione idempotente", { userId });
+      return new NextResponse(null, { status: 204 });
     }
-    
-    // Elimina l'utente
-    await prisma.user.delete({
-      where: { id: userId }
-    });
-    
-    return NextResponse.json({
-      message: "Utente eliminato con successo"
-    });
+
+    console.info("[discord-delete] utente eliminato", { userId, deleted: deleteResult.count });
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error("Errore durante l'eliminazione dell'utente:", error);
+    console.error("[discord-delete] errore durante l'eliminazione dell'utente", {
+      userId: (await params).id,
+      error,
+    });
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return NextResponse.json(
+        {
+          error: "Errore durante l'eliminazione dell'utente",
+          details: error.code,
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
-      { error: "Errore durante l'eliminazione dell'utente" },
+      {
+        error: "Errore durante l'eliminazione dell'utente",
+      },
       { status: 500 }
     );
   }
