@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-import { SITE_ACCESS_COOKIE } from '@/lib/auth-access';
+import { SITE_ACCESS_COOKIE, clearSiteAccessCookie } from '@/lib/auth-access';
 
 const PUBLIC_PAGES = new Set(['/login']);
 
@@ -44,6 +44,29 @@ export async function middleware(request: NextRequest) {
     const url = new URL('/login', request.url);
     url.searchParams.set('callbackUrl', encodeURI(request.url));
     return NextResponse.redirect(url);
+  }
+
+  const validationResponse = await fetch(new URL('/api/auth/validate', request.url), {
+    headers: {
+      cookie: request.headers.get('cookie') ?? '',
+    },
+  });
+
+  if (!validationResponse.ok) {
+    if (pathname.startsWith('/api/')) {
+      const response = NextResponse.json(
+        { error: 'Sessione scaduta o revocata' },
+        { status: 401 }
+      );
+      response.headers.append('Set-Cookie', clearSiteAccessCookie());
+      return response;
+    }
+
+    const url = new URL('/login', request.url);
+    url.searchParams.set('callbackUrl', encodeURI(request.url));
+    const response = NextResponse.redirect(url);
+    response.headers.append('Set-Cookie', clearSiteAccessCookie());
+    return response;
   }
   
   // Per le API (escluse quelle di auth), restituisci 401 se non autenticato
