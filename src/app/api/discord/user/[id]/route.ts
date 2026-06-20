@@ -225,16 +225,39 @@ export async function DELETE(
 
     console.info("[discord-delete] richiesta delete utente", { userId });
 
-    const deleteResult = await prisma.user.deleteMany({
-      where: { id: userId }
+    const deleteResult = await prisma.$transaction(async (tx) => {
+      const [arrests, reports, wanted, weaponLicenses, user] = await Promise.all([
+        tx.arrest.deleteMany({ where: { officerId: userId } }),
+        tx.report.deleteMany({ where: { officerId: userId } }),
+        tx.wanted.deleteMany({ where: { officerId: userId } }),
+        tx.weaponLicense.deleteMany({ where: { officerId: userId } }),
+        tx.user.deleteMany({ where: { id: userId } }),
+      ]);
+
+      return {
+        arrests: arrests.count,
+        reports: reports.count,
+        wanted: wanted.count,
+        weaponLicenses: weaponLicenses.count,
+        user: user.count,
+      };
     });
 
-    if (deleteResult.count === 0) {
+    if (deleteResult.user === 0) {
       console.info("[discord-delete] utente già assente, operazione idempotente", { userId });
       return new NextResponse(null, { status: 204 });
     }
 
-    console.info("[discord-delete] utente eliminato", { userId, deleted: deleteResult.count });
+    console.info("[discord-delete] utente eliminato", {
+      userId,
+      deleted: deleteResult.user,
+      relatedDeleted: {
+        arrests: deleteResult.arrests,
+        reports: deleteResult.reports,
+        wanted: deleteResult.wanted,
+        weaponLicenses: deleteResult.weaponLicenses,
+      },
+    });
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error("[discord-delete] errore durante l'eliminazione dell'utente", {

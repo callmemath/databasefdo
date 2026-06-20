@@ -128,7 +128,7 @@ model Arrest {
   updatedAt           DateTime @updatedAt
 
   // Relazioni (solo con tabelle nello stesso database)
-  officer User     @relation("OfficerArrests", fields: [officerId], references: [id])
+  officer User     @relation("OfficerArrests", fields: [officerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([citizenId])
   @@map("fdo_arrests")
@@ -150,7 +150,7 @@ model Report {
   updatedAt   DateTime @updatedAt
 
   // Relazioni (solo con tabelle nello stesso database)
-  officer User      @relation("OfficerReports", fields: [officerId], references: [id])
+  officer User      @relation("OfficerReports", fields: [officerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([citizenId])
   @@index([accusedId])
@@ -174,7 +174,7 @@ model Wanted {
   updatedAt      DateTime @updatedAt
   
   // Relazioni (solo con tabelle nello stesso database)
-  officer User     @relation(name: "OfficerWanted", fields: [officerId], references: [id])
+  officer User     @relation(name: "OfficerWanted", fields: [officerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([citizenId])
   @@index([officerId])
@@ -200,7 +200,7 @@ model WeaponLicense {
   updatedAt         DateTime @updatedAt
 
   // Relazioni (solo con tabelle nello stesso database)
-  officer User     @relation("OfficerWeaponLicenses", fields: [officerId], references: [id])
+  officer User     @relation("OfficerWeaponLicenses", fields: [officerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([citizenId])
   @@index([licenseNumber])
