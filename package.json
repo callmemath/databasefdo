@@ -7,10 +7,10 @@
   },
   "scripts": {
     "preinstall": "node -e \"const major=Number(process.versions.node.split('.')[0]); if (major < 20) { console.error('Node.js 20+ required'); process.exit(1); }\"",
-    "dev": "NODE_OPTIONS='--max-old-space-size=2048' next dev --turbopack",
+    "dev": "NODE_OPTIONS='--max-old-space-size=2048' node ./node_modules/next/dist/bin/next dev --turbopack",
     "prebuild": "npm run prisma:generate",
-    "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
-    "start": "NODE_OPTIONS='--max-old-space-size=4096' next start",
+    "build": "NODE_OPTIONS='--max-old-space-size=4096' node ./node_modules/next/dist/bin/next build",
+    "start": "NODE_OPTIONS='--max-old-space-size=4096' node ./node_modules/next/dist/bin/next start",
     "lint": "eslint",
     "prisma:generate": "node ./node_modules/prisma/build/index.js generate && node ./node_modules/prisma/build/index.js generate --schema=prisma/schema-iarp.prisma",
     "prisma:migrate": "node ./node_modules/prisma/build/index.js migrate dev",
