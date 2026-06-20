@@ -79,6 +79,7 @@ export interface FindGameUsersResult {
 interface PrismaClientExtended extends PrismaClient {
   findGameUsers(options?: FindGameUsersOptions): Promise<FindGameUsersResult>;
   findGameUserById(id: number): Promise<GameUser | null>;
+  findGameUserByIdentifier(identifier: string): Promise<GameUser | null>;
 }
 
 // Funzioni di utilità per le query - ORA USANO IL DATABASE IARP
@@ -173,6 +174,42 @@ const findGameUserByIdQuery = async (
   } as GameUser;
 };
 
+const findGameUserByIdentifierQuery = async (
+  prisma: PrismaClient,
+  identifier: string
+): Promise<GameUser | null> => {
+  const user = await prismaIARP.gameUser.findUnique({
+    where: { identifier },
+    select: {
+      identifier: true,
+      firstname: true,
+      lastname: true,
+      dateofbirth: true,
+      sex: true,
+      nationality: true,
+      height: true,
+      accounts: true,
+      group: true,
+      inventory: true,
+      loadout: true,
+      metadata: true,
+      position: true,
+      status: true,
+      skin: true,
+      // bankingData: true,  // Colonna non presente nel DB VPS
+      // immProfilo: true,   // Colonna non presente nel DB VPS
+      // tattoos: true,      // Colonna non presente nel DB VPS
+    }
+  });
+
+  if (!user) return null;
+
+  return {
+    ...user,
+    id: extractNumericId(user.identifier || '')
+  } as GameUser;
+};
+
 // Clear any cached instances that might have old schema
 let prisma: PrismaClientExtended;
 
@@ -188,6 +225,7 @@ if (process.env.NODE_ENV === 'production') {
   }) as PrismaClientExtended;
   prisma.findGameUsers = (options) => findGameUsersQuery(prisma, options);
   prisma.findGameUserById = (id) => findGameUserByIdQuery(prisma, id);
+  prisma.findGameUserByIdentifier = (identifier) => findGameUserByIdentifierQuery(prisma, identifier);
 } else {
   // In development, clear any existing instance and create a new one
   if (global.prisma) {
@@ -202,6 +240,7 @@ if (process.env.NODE_ENV === 'production') {
   
   newPrisma.findGameUsers = (options) => findGameUsersQuery(newPrisma, options);
   newPrisma.findGameUserById = (id) => findGameUserByIdQuery(newPrisma, id);
+  newPrisma.findGameUserByIdentifier = (identifier) => findGameUserByIdentifierQuery(newPrisma, identifier);
   
   global.prisma = newPrisma;
   prisma = global.prisma;

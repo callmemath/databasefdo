@@ -13,6 +13,7 @@ import { User, FileText, AlertCircle, DollarSign, Calendar, Search, X, Target } 
 // Interfaccia per i tipi di dati dei cittadini
 interface Citizen {
   id: number;
+  identifier?: string | null;
   firstname: string;
   lastname: string;
   dateofbirth: string;
@@ -90,7 +91,8 @@ export default function Citizens() {
   };
 
   const handleRowClick = (citizen: Citizen) => {
-    router.push(`/citizens/${citizen.id}`);
+    const citizenRef = citizen.identifier ? encodeURIComponent(citizen.identifier) : String(citizen.id);
+    router.push(`/citizens/${citizenRef}`);
   };
 
   return (
@@ -280,7 +282,8 @@ export default function Citizens() {
                       size="sm" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        router.push(`/citizens/${citizen.id}`);
+                        const citizenRef = citizen.identifier ? encodeURIComponent(citizen.identifier) : String(citizen.id);
+                        router.push(`/citizens/${citizenRef}`);
                       }}
                     >
                       Dettagli

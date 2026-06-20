@@ -6,6 +6,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import { getCitizenRouteRef } from '@/lib/utils';
 import {
   Shield,
   User,
@@ -360,7 +361,7 @@ export default function WeaponLicenseDetailPage({
                 <Button
                   variant="secondary"
                   fullWidth
-                  onClick={() => router.push(`/citizens/${license.citizen.id}`)}
+                  onClick={() => router.push(`/citizens/${getCitizenRouteRef(license.citizen)}`)}
                 >
                   Visualizza Profilo
                 </Button>

@@ -40,3 +40,13 @@ export function calculateAge(birthDate: Date): number {
   
   return age;
 }
+
+export function getCitizenRouteRef(citizen: { id?: number | string; identifier?: string | null } | null | undefined): string {
+  if (!citizen) return '';
+
+  if (citizen.identifier) {
+    return encodeURIComponent(citizen.identifier);
+  }
+
+  return citizen.id != null ? String(citizen.id) : '';
+}

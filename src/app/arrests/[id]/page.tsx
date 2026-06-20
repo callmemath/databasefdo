@@ -7,6 +7,7 @@ import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import { formatDate } from '@/lib/utils';
+import { getCitizenRouteRef } from '@/lib/utils';
 import { 
   ArrowLeft, User, Calendar, Clock, AlertCircle, FileText, 
   Shield, Euro, Printer, Edit, Camera, MapPin, Plus, Loader,
@@ -500,7 +501,7 @@ export default function ArrestDetails() {
                             {accomplice.birthDate || 'Data di nascita non disponibile'}
                           </div>
                         </div>
-                        <Link href={`/citizens/${accomplice.id}`}>
+                        <Link href={`/citizens/${getCitizenRouteRef(accomplice)}`}>
                           <Button
                             variant="outline"
                             size="sm"
@@ -531,7 +532,7 @@ export default function ArrestDetails() {
               </h2>
               
               {arrest.citizen && (
-                <Link href={`/citizens/${arrest.citizen.id}`}>
+                <Link href={`/citizens/${getCitizenRouteRef(arrest.citizen)}`}>
                   <Button variant="outline" size="sm">
                     Profilo completo
                   </Button>

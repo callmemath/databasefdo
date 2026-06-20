@@ -173,6 +173,7 @@ export async function GET(req: NextRequest) {
         
         return {
           ...user,
+          identifier: user.identifier ?? null,
           arrests,
           reports,
           weaponLicenses

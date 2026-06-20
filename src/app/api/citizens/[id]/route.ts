@@ -17,14 +17,24 @@ export async function GET(
     }
 
     const { id } = await params;
-    const citizenId = parseInt(id);
-    
-    if (isNaN(citizenId)) {
-      return NextResponse.json({ error: "ID cittadino non valido" }, { status: 400 });
+    const numericCitizenId = Number.parseInt(id, 10);
+    const isNumericId = !Number.isNaN(numericCitizenId) && String(numericCitizenId) === id;
+
+    // Prima proviamo il lookup per identifier reale; se il parametro è il vecchio ID numerico,
+    // manteniamo la compatibilità con il formato già in uso altrove.
+    let citizen = isNumericId
+      ? await prisma.findGameUserById(numericCitizenId)
+      : await prisma.findGameUserByIdentifier(id);
+
+    if (!citizen && isNumericId) {
+      citizen = await prisma.findGameUserByIdentifier(id);
     }
-    
-    // Utilizziamo i metodi estesi integrati direttamente nel client Prisma
-    const citizen = await prisma.findGameUserById(citizenId);
+
+    if (!citizen) {
+      return NextResponse.json({ error: "Cittadino non trovato" }, { status: 404 });
+    }
+
+    const citizenId = citizen.id;
     
     // Includi anche gli arresti e i rapporti associati
     const arrests = await prisma.arrest.findMany({
@@ -169,13 +179,9 @@ export async function GET(
       }
     });
     
-    if (!citizen) {
-      return NextResponse.json({ error: "Cittadino non trovato" }, { status: 404 });
-    }
-    
     // Combina i risultati
     const citizenWithDetails = {
-      ...citizen, // non serve più prendere il primo elemento perché findGameUserById restituisce già l'oggetto
+      ...citizen,
       arrests,
       reports,
       accusedReports: enrichedAccusedReports,

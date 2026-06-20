@@ -6,6 +6,7 @@ import MainLayout from '../../../components/layout/MainLayout';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import SearchInput from '../../../components/ui/SearchInput';
+import { getCitizenRouteRef } from '@/lib/utils';
 import { 
   ArrowLeft, Save, User, Trash2, Calendar, MapPin, Check, X, 
   AlertCircle, Edit, FileText, Lock, Unlock, Eye
@@ -868,7 +869,7 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
                         </p>
                       </div>
                       <div className="ml-auto">
-                        <Link href={`/citizens/${report.citizen.id}`}>
+                        <Link href={`/citizens/${getCitizenRouteRef(report.citizen)}`}>
                           <Button size="sm" variant="outline" leftIcon={<Eye className="h-3 w-3" />}>
                             Profilo
                           </Button>
@@ -907,7 +908,7 @@ export default function ReportDetailsPage({ params }: { params: Promise<{ id: st
                         </p>
                       </div>
                       <div className="ml-auto">
-                        <Link href={`/citizens/${report.accused.id}`}>
+                        <Link href={`/citizens/${getCitizenRouteRef(report.accused)}`}>
                           <Button size="sm" variant="outline" leftIcon={<Eye className="h-3 w-3" />}>
                             Profilo
                           </Button>
