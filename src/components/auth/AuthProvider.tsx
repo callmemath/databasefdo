@@ -4,7 +4,7 @@
 
 import { SessionProvider, useSession } from "next-auth/react";
 import { ReactNode, useEffect } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -13,7 +13,6 @@ interface AuthProviderProps {
 function AuthGate({ children }: { children: ReactNode }) {
   const { status } = useSession();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
 
   const isLoginPage = pathname === '/login';
@@ -24,8 +23,9 @@ function AuthGate({ children }: { children: ReactNode }) {
     }
 
     if (status === 'unauthenticated' && !isLoginPage) {
-      const currentQuery = searchParams.toString();
-      const currentPath = currentQuery ? `${pathname}?${currentQuery}` : pathname;
+      const currentPath = typeof window !== 'undefined'
+        ? `${window.location.pathname}${window.location.search}`
+        : pathname;
       router.replace(`/login?callbackUrl=${encodeURIComponent(currentPath)}`);
       return;
     }
@@ -33,7 +33,7 @@ function AuthGate({ children }: { children: ReactNode }) {
     if (status === 'authenticated' && isLoginPage) {
       router.replace('/dashboard');
     }
-  }, [isLoginPage, pathname, router, searchParams, status]);
+  }, [isLoginPage, pathname, router, status]);
 
   if (status === 'loading' && !isLoginPage) {
     return (
