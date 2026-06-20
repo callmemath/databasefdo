@@ -2,22 +2,27 @@ import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
+const PUBLIC_PAGES = new Set(['/login']);
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const isPublicPage = PUBLIC_PAGES.has(pathname);
+  const isAuthApi = pathname.startsWith('/api/auth');
+  const isDiscordApi = pathname.startsWith('/api/discord');
   
-  // Consenti l'accesso alla pagina di login
-  if (pathname === '/login') {
+  // Consenti l'accesso alle pagine pubbliche
+  if (isPublicPage) {
     return NextResponse.next();
   }
 
   // Consenti SOLO le API di autenticazione NextAuth senza controllo
   // /api/discord deve usare il suo token speciale nell'env
-  if (pathname.startsWith('/api/auth')) {
+  if (isAuthApi) {
     return NextResponse.next();
   }
 
   // Consenti le API Discord (usano il proprio sistema di autenticazione con Bearer token)
-  if (pathname.startsWith('/api/discord')) {
+  if (isDiscordApi) {
     return NextResponse.next();
   }
 
