@@ -1,13 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import MainLayout from '../../components/layout/MainLayout';
 import { ChevronRight, Book, Search, FileText, BookOpen, Info } from 'lucide-react';
 import SearchInput from '../../components/ui/SearchInput';
+import { Loader2 } from 'lucide-react';
 
 export default function Codes() {
+  const router = useRouter();
+  const { status } = useSession();
   const [activeSection, setActiveSection] = useState('codici-radio');
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/login?callbackUrl=/codes');
+    }
+  }, [router, status]);
+
+  if (status === 'loading' || status === 'unauthenticated') {
+    return (
+      <MainLayout>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="flex items-center gap-3 text-police-blue-dark dark:text-police-text-light">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span>Verifica accesso in corso...</span>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
   
   // Mock data for sections
   const sections = [

@@ -43,27 +43,46 @@ interface Citizen {
   is_dead?: number;
 }
 
+interface CitizensResponse {
+  citizens: Citizen[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export default function Citizens() {
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [citizens, setCitizens] = useState<Citizen[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const pageSize = 10;
   
   // Fetch data from API
   useEffect(() => {
     const fetchCitizens = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/citizens?${searchQuery ? `q=${encodeURIComponent(searchQuery)}` : ''}`);
+        const params = new URLSearchParams();
+        if (searchQuery) {
+          params.set('q', searchQuery);
+        }
+        params.set('page', String(page));
+        params.set('limit', String(pageSize));
+
+        const res = await fetch(`/api/citizens?${params.toString()}`);
         
         if (!res.ok) {
           throw new Error('Errore durante il recupero dei dati dei cittadini');
         }
         
-        const data = await res.json();
+        const data = await res.json() as CitizensResponse;
         setCitizens(data.citizens || []);
+        setTotalPages(data.totalPages || 1);
       } catch (err) {
         console.error('Errore nel caricamento dei cittadini:', err);
         setError('Impossibile caricare i dati dei cittadini');
@@ -73,7 +92,7 @@ export default function Citizens() {
     };
     
     fetchCitizens();
-  }, [searchQuery]);
+  }, [searchQuery, page]);
   
   // Filter citizens based on selected tab
   const filteredCitizens = citizens.filter(citizen => {
@@ -88,6 +107,15 @@ export default function Citizens() {
   
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+    setPage(1);
+  };
+
+  const handlePreviousPage = () => {
+    setPage(current => Math.max(1, current - 1));
+  };
+
+  const handleNextPage = () => {
+    setPage(current => Math.min(totalPages, current + 1));
   };
 
   const handleRowClick = (citizen: Citizen) => {
@@ -129,7 +157,10 @@ export default function Citizens() {
                     ? 'bg-police-blue text-white dark:bg-police-blue-dark dark:text-white' 
                     : 'bg-police-gray-light text-police-gray-dark hover:bg-police-gray dark:bg-gray-800 dark:text-police-text-muted dark:hover:bg-gray-700'
                 }`}
-                onClick={() => setSelectedTab('all')}
+                onClick={() => {
+                  setSelectedTab('all');
+                  setPage(1);
+                }}
               >
                 Tutti
               </button>
@@ -139,7 +170,10 @@ export default function Citizens() {
                     ? 'bg-police-blue text-white dark:bg-police-blue-dark dark:text-white' 
                     : 'bg-police-gray-light text-police-gray-dark hover:bg-police-gray dark:bg-gray-800 dark:text-police-text-muted dark:hover:bg-gray-700'
                 }`}
-                onClick={() => setSelectedTab('criminal')}
+                onClick={() => {
+                  setSelectedTab('criminal');
+                  setPage(1);
+                }}
               >
                 Pregiudicati
               </button>
@@ -149,7 +183,10 @@ export default function Citizens() {
                     ? 'bg-police-blue text-white dark:bg-police-blue-dark dark:text-white' 
                     : 'bg-police-gray-light text-police-gray-dark hover:bg-police-gray dark:bg-gray-800 dark:text-police-text-muted dark:hover:bg-gray-700'
                 }`}
-                onClick={() => setSelectedTab('clean')}
+                onClick={() => {
+                  setSelectedTab('clean');
+                  setPage(1);
+                }}
               >
                 Fedina Pulita
               </button>
@@ -176,123 +213,139 @@ export default function Citizens() {
               <p className="mt-4 text-police-gray-dark dark:text-police-text-muted">Nessun cittadino trovato</p>
             </div>
           ) : (
-            <Table
-              data={filteredCitizens}
-              columns={[
-                {
-                  header: 'Nome e Cognome',
-                  accessor: (citizen) => (
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full bg-police-gray-light dark:bg-gray-700 flex items-center justify-center text-police-blue dark:text-blue-300 font-medium mr-3">
-                        {citizen.firstname && citizen.lastname 
-                          ? citizen.firstname[0] + citizen.lastname[0] 
-                          : 'N/A'}
+            <div className="space-y-4">
+              <Table
+                data={filteredCitizens}
+                columns={[
+                  {
+                    header: 'Nome e Cognome',
+                    accessor: (citizen) => (
+                      <div className="flex items-center">
+                        <div className="h-8 w-8 rounded-full bg-police-gray-light dark:bg-gray-700 flex items-center justify-center text-police-blue dark:text-blue-300 font-medium mr-3">
+                          {citizen.firstname && citizen.lastname 
+                            ? citizen.firstname[0] + citizen.lastname[0] 
+                            : 'N/A'}
+                        </div>
+                        <span className="font-medium dark:text-police-text-light">
+                          {citizen.firstname} {citizen.lastname}
+                        </span>
                       </div>
-                      <span className="font-medium dark:text-police-text-light">
-                        {citizen.firstname} {citizen.lastname}
-                      </span>
-                    </div>
-                  ),
-                },
-                {
-                  header: 'Data di Nascita',
-                  accessor: (citizen) => citizen.dateofbirth || 'N/A',
-                },
-                {
-                  header: 'Genere',
-                  accessor: (citizen) => {
-                    const sex = citizen.sex ? citizen.sex.toLowerCase() : '';
-                    return (
-                      <div>
-                        {sex === 'm' || sex === 'male' || sex === 'uomo' ? 'Uomo' 
-                         : sex === 'f' || sex === 'female' || sex === 'donna' ? 'Donna' 
-                         : 'Non specificato'}
-                      </div>
-                    );
+                    ),
                   },
-                },
-                {
-                  header: 'Status Penale',
-                  accessor: (citizen) => {
-                    const hasArrest = citizen.arrests && citizen.arrests.length > 0;
-                    
-                    return (
-                      <div>
-                        <Badge variant={hasArrest ? 'red' : 'green'}>
-                          {hasArrest ? 'Pregiudicato' : 'Fedina Pulita'}
-                        </Badge>
-                        <div className="flex items-center text-xs mt-1 space-x-2">
-                          <div className="flex items-center">
-                            <AlertCircle className="h-3 w-3 mr-1 text-police-accent-red dark:text-red-300" />
-                            <span className="dark:text-police-text-muted">
-                              Arresti: {citizen.arrests ? citizen.arrests.length : 0}
-                            </span>
-                          </div>
-                          <div className="flex items-center">
-                            <FileText className="h-3 w-3 mr-1 text-police-accent-gold dark:text-yellow-300" />
-                            <span className="dark:text-police-text-muted">
-                              Denunce: {citizen.reports ? citizen.reports.length : 0}
-                            </span>
+                  {
+                    header: 'Data di Nascita',
+                    accessor: (citizen) => citizen.dateofbirth || 'N/A',
+                  },
+                  {
+                    header: 'Genere',
+                    accessor: (citizen) => {
+                      const sex = citizen.sex ? citizen.sex.toLowerCase() : '';
+                      return (
+                        <div>
+                          {sex === 'm' || sex === 'male' || sex === 'uomo' ? 'Uomo' 
+                           : sex === 'f' || sex === 'female' || sex === 'donna' ? 'Donna' 
+                           : 'Non specificato'}
+                        </div>
+                      );
+                    },
+                  },
+                  {
+                    header: 'Status Penale',
+                    accessor: (citizen) => {
+                      const hasArrest = citizen.arrests && citizen.arrests.length > 0;
+                      
+                      return (
+                        <div>
+                          <Badge variant={hasArrest ? 'red' : 'green'}>
+                            {hasArrest ? 'Pregiudicato' : 'Fedina Pulita'}
+                          </Badge>
+                          <div className="flex items-center text-xs mt-1 space-x-2">
+                            <div className="flex items-center">
+                              <AlertCircle className="h-3 w-3 mr-1 text-police-accent-red dark:text-red-300" />
+                              <span className="dark:text-police-text-muted">
+                                Arresti: {citizen.arrests ? citizen.arrests.length : 0}
+                              </span>
+                            </div>
+                            <div className="flex items-center">
+                              <FileText className="h-3 w-3 mr-1 text-police-accent-gold dark:text-yellow-300" />
+                              <span className="dark:text-police-text-muted">
+                                Denunce: {citizen.reports ? citizen.reports.length : 0}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
+                      );
+                    },
                   },
-                },
-                {
-                  header: 'Porto d\'Armi',
-                  accessor: (citizen) => {
-                    const licenses = citizen.weaponLicenses || [];
-                    const activeLicenses = licenses.filter((l: any) => l.status === 'active');
-                    const hasActiveLicense = activeLicenses.length > 0;
-                    const expiredLicenses = licenses.filter((l: any) => 
-                      l.status === 'expired' || new Date(l.expiryDate) < new Date()
-                    );
-                    
-                    return (
-                      <div>
-                        <Badge variant={hasActiveLicense ? 'green' : licenses.length > 0 ? 'yellow' : 'gray'}>
-                          <Target className="h-3 w-3 mr-1" />
-                          {hasActiveLicense ? 'Attivo' : licenses.length > 0 ? 'Non Attivo' : 'Nessuno'}
-                        </Badge>
-                        {licenses.length > 0 && (
-                          <div className="text-xs mt-1 text-gray-600 dark:text-gray-400">
-                            {activeLicenses.length > 0 && (
-                              <span className="text-green-600 dark:text-green-400">
-                                {activeLicenses.length} attiv{activeLicenses.length === 1 ? 'a' : 'e'}
-                              </span>
-                            )}
-                            {activeLicenses.length > 0 && expiredLicenses.length > 0 && <span>, </span>}
-                            {expiredLicenses.length > 0 && (
-                              <span className="text-red-600 dark:text-red-400">
-                                {expiredLicenses.length} scadut{expiredLicenses.length === 1 ? 'a' : 'e'}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
+                  {
+                    header: 'Porto d\'Armi',
+                    accessor: (citizen) => {
+                      const licenses = citizen.weaponLicenses || [];
+                      const activeLicenses = licenses.filter((l: any) => l.status === 'active');
+                      const hasActiveLicense = activeLicenses.length > 0;
+                      const expiredLicenses = licenses.filter((l: any) => 
+                        l.status === 'expired' || new Date(l.expiryDate) < new Date()
+                      );
+                      
+                      return (
+                        <div>
+                          <Badge variant={hasActiveLicense ? 'green' : licenses.length > 0 ? 'yellow' : 'gray'}>
+                            <Target className="h-3 w-3 mr-1" />
+                            {hasActiveLicense ? 'Attivo' : licenses.length > 0 ? 'Non Attivo' : 'Nessuno'}
+                          </Badge>
+                          {licenses.length > 0 && (
+                            <div className="text-xs mt-1 text-gray-600 dark:text-gray-400">
+                              {activeLicenses.length > 0 && (
+                                <span className="text-green-600 dark:text-green-400">
+                                  {activeLicenses.length} attiv{activeLicenses.length === 1 ? 'a' : 'e'}
+                                </span>
+                              )}
+                              {activeLicenses.length > 0 && expiredLicenses.length > 0 && <span>, </span>}
+                              {expiredLicenses.length > 0 && (
+                                <span className="text-red-600 dark:text-red-400">
+                                  {expiredLicenses.length} scadut{expiredLicenses.length === 1 ? 'a' : 'e'}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    },
                   },
-                },
-                {
-                  header: 'Azioni',
-                  accessor: (citizen) => (
-                    <Button 
-                      variant="primary" 
-                      size="sm" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const citizenRef = citizen.identifier ? encodeURIComponent(citizen.identifier) : String(citizen.id);
-                        router.push(`/citizens/${citizenRef}`);
-                      }}
-                    >
-                      Dettagli
-                    </Button>
-                  ),
-                },
-              ]}
-              onRowClick={handleRowClick}
-            />
+                  {
+                    header: 'Azioni',
+                    accessor: (citizen) => (
+                      <Button 
+                        variant="primary" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const citizenRef = citizen.identifier ? encodeURIComponent(citizen.identifier) : String(citizen.id);
+                          router.push(`/citizens/${citizenRef}`);
+                        }}
+                      >
+                        Dettagli
+                      </Button>
+                    ),
+                  },
+                ]}
+                onRowClick={handleRowClick}
+              />
+
+              <div className="flex items-center justify-between gap-4 rounded-lg border border-police-gray dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+                <div className="text-sm text-police-gray-dark dark:text-police-text-muted">
+                  Pagina {page} di {totalPages}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handlePreviousPage} disabled={page <= 1}>
+                    Precedente
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleNextPage} disabled={page >= totalPages}>
+                    Successiva
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </Card>
