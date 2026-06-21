@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 
-// Usa PrismaClient diretto per accedere al modello CitizenNote
-const prisma = new PrismaClient();
+// Risolve il parametro [id] sia come numero intero che come identifier (es. "char1:abc123")
+async function resolveCitizenId(idParam: string): Promise<number | null> {
+  const numeric = parseInt(idParam, 10);
+  if (!isNaN(numeric) && String(numeric) === idParam) return numeric;
+
+  // Identifier-based (URL usa citizen.identifier direttamente)
+  const citizen = await prisma.findGameUserByIdentifier(idParam);
+  return citizen?.id ?? null;
+}
 
 // GET: Recupera tutte le note di un cittadino
 export async function GET(
@@ -22,15 +29,15 @@ export async function GET(
     }
 
     const resolvedParams = await params;
-    const citizenId = parseInt(resolvedParams.id);
+    const citizenId = await resolveCitizenId(resolvedParams.id);
 
-    if (isNaN(citizenId)) {
+    if (citizenId === null) {
       return NextResponse.json(
         { error: 'ID cittadino non valido' },
         { status: 400 }
       );
     }
-    
+
     const notes = await (prisma as any).citizenNote.findMany({
       where: {
         citizenId: BigInt(citizenId),
@@ -51,7 +58,7 @@ export async function GET(
         createdAt: 'desc',
       },
     });
-    
+
     const serializedNotes = notes.map((note: any) => ({
       ...note,
       citizenId: note.citizenId.toString(),
@@ -72,7 +79,6 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verifica autenticazione
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -82,9 +88,9 @@ export async function POST(
     }
 
     const resolvedParams = await params;
-    const citizenId = parseInt(resolvedParams.id);
+    const citizenId = await resolveCitizenId(resolvedParams.id);
 
-    if (isNaN(citizenId)) {
+    if (citizenId === null) {
       return NextResponse.json(
         { error: 'ID cittadino non valido' },
         { status: 400 }
@@ -121,7 +127,6 @@ export async function POST(
       },
     });
 
-    // Converti BigInt in stringa per JSON
     const serializedNote = {
       ...note,
       citizenId: note.citizenId.toString(),

@@ -150,34 +150,64 @@ export async function GET(
     }));
     
     // Carica i porto d'armi del cittadino
-    const weaponLicenses = await prisma.weaponLicense.findMany({
-      where: { citizenId },
-      select: {
-        id: true,
-        licenseNumber: true,
-        licenseType: true,
-        status: true,
-        issueDate: true,
-        expiryDate: true,
-        issuingAuthority: true,
-        restrictions: true,
-        authorizedWeapons: true,
-        notes: true,
-        createdAt: true,
-        officer: {
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-            badge: true,
-            department: true,
+    // Try/catch: se il client Prisma non è ancora rigenerato dopo la migrazione delle date
+    // nullable, il primo tentativo (con issueDate/expiryDate) potrebbe fallire.
+    // In tal caso si ritenta senza quei campi finché non viene eseguito `prisma generate`.
+    let weaponLicenses: any[] = [];
+    try {
+      weaponLicenses = await prisma.weaponLicense.findMany({
+        where: { citizenId },
+        select: {
+          id: true,
+          licenseNumber: true,
+          licenseType: true,
+          status: true,
+          issueDate: true,
+          expiryDate: true,
+          issuingAuthority: true,
+          restrictions: true,
+          authorizedWeapons: true,
+          notes: true,
+          createdAt: true,
+          officer: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              badge: true,
+              department: true,
+            }
           }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    } catch {
+      // Fallback senza campi potenzialmente null (client non ancora rigenerato)
+      weaponLicenses = await prisma.weaponLicense.findMany({
+        where: { citizenId },
+        select: {
+          id: true,
+          licenseNumber: true,
+          licenseType: true,
+          status: true,
+          issuingAuthority: true,
+          restrictions: true,
+          authorizedWeapons: true,
+          notes: true,
+          createdAt: true,
+          officer: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              badge: true,
+              department: true,
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    }
     
     // Combina i risultati
     const citizenWithDetails = {
