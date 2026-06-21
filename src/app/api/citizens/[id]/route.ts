@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getApiAuthContext } from "@/lib/api-auth";
 
+function normalizePendingDates<T extends { status?: string; issueDate?: unknown; expiryDate?: unknown }>(license: T): T {
+  if (license.status !== 'pending') return license;
+  return {
+    ...license,
+    issueDate: null,
+    expiryDate: null,
+  } as T;
+}
+
 // GET /api/citizens/[id] - Ottieni i dettagli di un cittadino specifico
 export async function GET(
   req: NextRequest,
@@ -210,12 +219,14 @@ export async function GET(
     }
     
     // Combina i risultati
+    const normalizedWeaponLicenses = weaponLicenses.map((license) => normalizePendingDates(license));
+
     const citizenWithDetails = {
       ...citizen,
       arrests,
       reports,
       accusedReports: enrichedAccusedReports,
-      weaponLicenses
+      weaponLicenses: normalizedWeaponLicenses
     };
 
     return NextResponse.json({ citizen: citizenWithDetails });
