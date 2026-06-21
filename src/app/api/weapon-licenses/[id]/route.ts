@@ -18,21 +18,56 @@ export async function GET(
 
     const { id } = await params;
 
-    const license = await prisma.weaponLicense.findUnique({
-      where: { id },
-      include: {
-        officer: {
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-            badge: true,
-            department: true,
-            rank: true,
+    // Try/catch: se il client Prisma non è ancora rigenerato, issueDate/expiryDate
+    // null nel DB causano un errore di deserializzazione. Il fallback usa select
+    // esplicito per escludere quei campi finché non viene eseguito `prisma generate`.
+    let license: any = null;
+    try {
+      license = await prisma.weaponLicense.findUnique({
+        where: { id },
+        include: {
+          officer: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              badge: true,
+              department: true,
+              rank: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch {
+      license = await prisma.weaponLicense.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          licenseNumber: true,
+          licenseType: true,
+          status: true,
+          issuingAuthority: true,
+          restrictions: true,
+          authorizedWeapons: true,
+          notes: true,
+          suspensionReason: true,
+          officerId: true,
+          citizenId: true,
+          createdAt: true,
+          updatedAt: true,
+          officer: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              badge: true,
+              department: true,
+              rank: true,
+            },
+          },
+        },
+      });
+    }
 
     if (!license) {
       return NextResponse.json(

@@ -39,23 +39,57 @@ export async function GET(request: NextRequest) {
       where.licenseNumber = { contains: search };
     }
 
-    const licenses = await prisma.weaponLicense.findMany({
-      where,
-      include: {
-        officer: {
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-            badge: true,
-            department: true,
+    // Try/catch: fallback senza issueDate/expiryDate se il client Prisma non è ancora rigenerato
+    let licenses: any[] = [];
+    try {
+      licenses = await prisma.weaponLicense.findMany({
+        where,
+        include: {
+          officer: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              badge: true,
+              department: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+    } catch {
+      licenses = await prisma.weaponLicense.findMany({
+        where,
+        select: {
+          id: true,
+          licenseNumber: true,
+          licenseType: true,
+          status: true,
+          issuingAuthority: true,
+          restrictions: true,
+          authorizedWeapons: true,
+          notes: true,
+          suspensionReason: true,
+          citizenId: true,
+          createdAt: true,
+          updatedAt: true,
+          officer: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              badge: true,
+              department: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+    }
 
     // Carica i dati dei cittadini dal database IARP
     const licensesWithCitizens = await Promise.all(
