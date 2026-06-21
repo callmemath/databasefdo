@@ -162,7 +162,9 @@ export async function GET(req: NextRequest) {
               licenseNumber: true,
               licenseType: true,
               status: true,
-              expiryDate: true,
+              // expiryDate escluso: può essere null nei record pending e il client
+              // Prisma generato potrebbe non averlo ancora come nullable.
+              // Per la lista cittadini basta lo status.
             }
           });
         } catch (queryError) {
