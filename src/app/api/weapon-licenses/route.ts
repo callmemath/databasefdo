@@ -216,8 +216,10 @@ export async function POST(request: NextRequest) {
       issuingAuthority,
       notes,
       status: 'pending',
-      officerId: officer.id,
-    } as const;
+    };
+
+    // Sintassi relazione Prisma 6 (checked create input): usa officer.connect invece di officerId scalare
+    const officerConnect = { officer: { connect: { id: officer.id } } };
 
     let license;
     try {
@@ -228,6 +230,7 @@ export async function POST(request: NextRequest) {
       license = await prisma.weaponLicense.create({
         data: {
           ...baseData,
+          ...officerConnect,
           issueDate: null as unknown as Date,
           expiryDate: null as unknown as Date,
         },
@@ -255,6 +258,7 @@ export async function POST(request: NextRequest) {
         license = await prisma.weaponLicense.create({
           data: {
             ...baseData,
+            ...officerConnect,
             issueDate,
             expiryDate,
           },
