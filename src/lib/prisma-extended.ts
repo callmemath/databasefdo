@@ -19,6 +19,39 @@ function extractNumericId(identifier: string): number {
   return Number((rawValue % maxInt) + BigInt(1));
 }
 
+function extractLegacyNumericIds(identifier: string): number[] {
+  if (!identifier) return [];
+
+  const parts = identifier.split(':');
+  const hashPart = parts.length > 1 ? parts[1] : identifier;
+  const maxInt = BigInt(2147483647);
+  const ids = new Set<number>();
+
+  const current = extractNumericId(identifier);
+  if (current > 0) ids.add(current);
+
+  try {
+    const numericPart8 = hashPart.substring(0, 8).padEnd(8, '0');
+    const raw8 = BigInt(`0x${numericPart8}`);
+    const legacyNoPlusOne = Number(raw8 % maxInt);
+    if (legacyNoPlusOne > 0) ids.add(legacyNoPlusOne);
+  } catch {
+    // ignore malformed hashes
+  }
+
+  for (const len of [6, 7, 8]) {
+    const chunk = hashPart.substring(0, len);
+    if (/^[0-9a-fA-F]+$/.test(chunk)) {
+      const parsed = parseInt(chunk, 16);
+      if (Number.isInteger(parsed) && parsed > 0) {
+        ids.add(parsed);
+      }
+    }
+  }
+
+  return Array.from(ids);
+}
+
 // Definisci tipi per le opzioni e i risultati
 interface GameUserOptions {
   where?: {
@@ -152,8 +185,11 @@ class ExtendedPrismaClient extends PrismaClient {
       }
     });
     
-    // Trova l'utente il cui ID numerico corrisponde
-    const user = allUsers.find(u => extractNumericId(u.identifier || '') === id);
+    // Trova l'utente con ID corrente o legacy (compatibilita record storici)
+    const user = allUsers.find((u) => {
+      const candidateIds = extractLegacyNumericIds(u.identifier || '');
+      return candidateIds.includes(id);
+    });
     
     if (!user) return null;
     

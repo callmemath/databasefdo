@@ -1057,7 +1057,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
 
                                     {isPending ? (
                                       <p className="text-blue-600 dark:text-blue-400 italic text-xs">
-                                        In attesa di attivazione tramite iarp-legal-docs — usa il numero richiesta nel documento.
+                                        In attesa di attivazione.
                                       </p>
                                     ) : (
                                       <>

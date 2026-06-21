@@ -19,6 +19,44 @@ function extractNumericId(identifier: string): number {
   return Number((rawValue % maxInt) + BigInt(1));
 }
 
+// Versioni legacy usate in passato per derivare citizenId dagli identifier.
+// Le manteniamo per compatibilita dei record storici (es. porto d'armi gia esistenti).
+function extractLegacyNumericIds(identifier: string): number[] {
+  if (!identifier) return [];
+
+  const parts = identifier.split(':');
+  const hashPart = parts.length > 1 ? parts[1] : identifier;
+  const maxInt = BigInt(2147483647);
+  const ids = new Set<number>();
+
+  // Algoritmo corrente
+  const current = extractNumericId(identifier);
+  if (current > 0) ids.add(current);
+
+  // Variante legacy senza +1 finale
+  try {
+    const numericPart8 = hashPart.substring(0, 8).padEnd(8, '0');
+    const raw8 = BigInt(`0x${numericPart8}`);
+    const legacyNoPlusOne = Number(raw8 % maxInt);
+    if (legacyNoPlusOne > 0) ids.add(legacyNoPlusOne);
+  } catch {
+    // ignore malformed hashes
+  }
+
+  // Varianti legacy "corte" viste in script/datastore piu vecchi
+  for (const len of [6, 7, 8]) {
+    const chunk = hashPart.substring(0, len);
+    if (/^[0-9a-fA-F]+$/.test(chunk)) {
+      const parsed = parseInt(chunk, 16);
+      if (Number.isInteger(parsed) && parsed > 0) {
+        ids.add(parsed);
+      }
+    }
+  }
+
+  return Array.from(ids);
+}
+
 // Definizione delle interfacce per i metodi estesi
 export interface GameUser {
   id: number;
@@ -165,8 +203,12 @@ const findGameUserByIdQuery = async (
     }
   });
   
-  // Trova l'utente il cui ID numerico corrisponde
-  const user = allUsers.find(u => extractNumericId(u.identifier || '') === id);
+  // Trova l'utente con ID corrente o legacy (compatibilita record storici)
+  const user = allUsers.find((u) => {
+    const identifier = u.identifier || '';
+    const candidateIds = extractLegacyNumericIds(identifier);
+    return candidateIds.includes(id);
+  });
   
   if (!user) return null;
   
