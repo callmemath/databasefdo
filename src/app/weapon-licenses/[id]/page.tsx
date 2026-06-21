@@ -305,13 +305,13 @@ export default function WeaponLicenseDetailPage({
                 <div>
                   <p className="text-sm text-police-gray-dark dark:text-gray-400">Data Rilascio</p>
                   <p className="font-medium text-police-blue-dark dark:text-white">
-                    {license.issueDate ? new Date(license.issueDate).toLocaleDateString('it-IT') : <span className="text-gray-400 italic">In attesa</span>}
+                    {license.status === 'pending' || !license.issueDate ? <span className="text-gray-400 italic">In attesa</span> : new Date(license.issueDate).toLocaleDateString('it-IT')}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-police-gray-dark dark:text-gray-400">Data Scadenza</p>
                   <p className={`font-medium ${isExpired ? 'text-red-600' : isExpiringSoon() ? 'text-yellow-600' : 'text-police-blue-dark dark:text-white'}`}>
-                    {license.expiryDate ? new Date(license.expiryDate).toLocaleDateString('it-IT') : <span className="text-gray-400 italic">In attesa</span>}
+                    {license.status === 'pending' || !license.expiryDate ? <span className="text-gray-400 italic">In attesa</span> : new Date(license.expiryDate).toLocaleDateString('it-IT')}
                   </p>
                 </div>
                 <div className="col-span-2">

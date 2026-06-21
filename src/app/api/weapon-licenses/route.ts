@@ -175,27 +175,67 @@ export async function POST(request: NextRequest) {
       ? `Forze dell'Ordine - ${officer.department.trim()}`
       : 'Forze dell\'Ordine di San Andreas';
 
-    const license = await prisma.weaponLicense.create({
-      data: {
-        licenseNumber,
-        citizenId: parsedCitizenId,
-        licenseType,
-        issuingAuthority,
-        notes,
-        status: 'pending',
-        officerId: officer.id,
-      },
-      include: {
-        officer: {
-          select: {
-            name: true,
-            surname: true,
-            badge: true,
-            department: true,
+    const baseData = {
+      licenseNumber,
+      citizenId: parsedCitizenId,
+      licenseType,
+      issuingAuthority,
+      notes,
+      status: 'pending',
+      officerId: officer.id,
+    } as const;
+
+    let license;
+    try {
+      // Flusso normale (schema aggiornato): richiesta pending senza date
+      license = await prisma.weaponLicense.create({
+        data: {
+          ...baseData,
+          issueDate: null,
+          expiryDate: null,
+        },
+        include: {
+          officer: {
+            select: {
+              name: true,
+              surname: true,
+              badge: true,
+              department: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (createError) {
+      // Compatibilità con DB non ancora migrato (issueDate/expiryDate NOT NULL)
+      if (
+        createError instanceof Prisma.PrismaClientKnownRequestError &&
+        (createError.code === 'P2011' || createError.code === 'P2012')
+      ) {
+        const issueDate = new Date();
+        const expiryDate = new Date(issueDate);
+        expiryDate.setFullYear(expiryDate.getFullYear() + 5);
+
+        license = await prisma.weaponLicense.create({
+          data: {
+            ...baseData,
+            issueDate,
+            expiryDate,
+          },
+          include: {
+            officer: {
+              select: {
+                name: true,
+                surname: true,
+                badge: true,
+                department: true,
+              },
+            },
+          },
+        });
+      } else {
+        throw createError;
+      }
+    }
 
     const licenseWithCitizen = {
       ...license,
@@ -220,6 +260,20 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+
+      if (error.code === 'P2011' || error.code === 'P2012') {
+        return NextResponse.json(
+          { error: 'Schema DB non allineato: applica le migration Prisma (issueDate/expiryDate nullable)' },
+          { status: 500 }
+        );
+      }
+    }
+
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: `Errore nella creazione della richiesta porto d'armi: ${error.message}` },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(
