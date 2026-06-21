@@ -231,8 +231,8 @@ export async function POST(request: NextRequest) {
         data: {
           ...baseData,
           ...officerConnect,
-          issueDate: null as unknown as Date,
-          expiryDate: null as unknown as Date,
+          issueDate: new Date(),               // placeholder: verrà sovrascritto all'attivazione
+          expiryDate: null as unknown as Date, // null finché non attivata
         },
         include: {
           officer: {
