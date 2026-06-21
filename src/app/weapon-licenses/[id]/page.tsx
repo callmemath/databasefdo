@@ -24,8 +24,8 @@ interface WeaponLicense {
   id: string;
   licenseNumber: string;
   licenseType: string;
-  issueDate: string;
-  expiryDate: string;
+  issueDate: string | null;
+  expiryDate: string | null;
   status: string;
   issuingAuthority: string;
   restrictions?: string;
@@ -144,8 +144,10 @@ export default function WeaponLicenseDetailPage({
     );
   }
 
-  const isExpired = new Date(license.expiryDate) < new Date();
+  const isExpired = !!license.expiryDate && new Date(license.expiryDate) < new Date();
   const isExpiringSoon = () => {
+    if (!license.expiryDate) return false;
+
     const expiry = new Date(license.expiryDate);
     const today = new Date();
     const daysUntilExpiry = Math.floor((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
@@ -221,7 +223,9 @@ export default function WeaponLicenseDetailPage({
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
             <div className="flex items-center text-red-800 dark:text-red-300">
               <XCircle className="w-5 h-5 mr-2" />
-              <span className="font-medium">Questa licenza è scaduta il {new Date(license.expiryDate).toLocaleDateString('it-IT')}</span>
+              <span className="font-medium">
+                Questa licenza è scaduta il {license.expiryDate ? new Date(license.expiryDate).toLocaleDateString('it-IT') : 'N/D'}
+              </span>
             </div>
           </div>
         )}
@@ -230,7 +234,9 @@ export default function WeaponLicenseDetailPage({
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-4">
             <div className="flex items-center text-yellow-800 dark:text-yellow-300">
               <AlertTriangle className="w-5 h-5 mr-2" />
-              <span className="font-medium">Questa licenza scadrà il {new Date(license.expiryDate).toLocaleDateString('it-IT')}</span>
+              <span className="font-medium">
+                Questa licenza scadrà il {license.expiryDate ? new Date(license.expiryDate).toLocaleDateString('it-IT') : 'N/D'}
+              </span>
             </div>
           </div>
         )}
@@ -259,13 +265,13 @@ export default function WeaponLicenseDetailPage({
                 <div>
                   <p className="text-sm text-police-gray-dark dark:text-gray-400">Data Rilascio</p>
                   <p className="font-medium text-police-blue-dark dark:text-white">
-                    {new Date(license.issueDate).toLocaleDateString('it-IT')}
+                    {license.issueDate ? new Date(license.issueDate).toLocaleDateString('it-IT') : 'In attesa di attivazione'}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-police-gray-dark dark:text-gray-400">Data Scadenza</p>
                   <p className={`font-medium ${isExpired ? 'text-red-600' : isExpiringSoon() ? 'text-yellow-600' : 'text-police-blue-dark dark:text-white'}`}>
-                    {new Date(license.expiryDate).toLocaleDateString('it-IT')}
+                    {license.expiryDate ? new Date(license.expiryDate).toLocaleDateString('it-IT') : 'In attesa di attivazione'}
                   </p>
                 </div>
                 <div className="col-span-2">
