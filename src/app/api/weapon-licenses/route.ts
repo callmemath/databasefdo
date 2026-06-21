@@ -223,19 +223,13 @@ export async function POST(request: NextRequest) {
 
     let license;
     try {
-      // Crea sempre date placeholder per compatibilità con DB dove le colonne
-      // sono ancora NOT NULL. Lo stato resta pending e le date verranno
-      // aggiornate al momento dell'attivazione tramite iarp-legal-docs.
-      const issueDate = new Date();
-      const expiryDate = new Date(issueDate);
-      expiryDate.setFullYear(expiryDate.getFullYear() + 5);
-
+      // Richiesta pending: le date vengono assegnate solo in attivazione.
       license = await prisma.weaponLicense.create({
         data: {
           ...baseData,
           ...officerConnect,
-          issueDate,
-          expiryDate,
+          issueDate: null as unknown as Date,
+          expiryDate: null as unknown as Date,
         },
         include: {
           officer: {
@@ -249,33 +243,18 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (createError) {
-      // Compatibilità con DB non ancora migrato (issueDate/expiryDate NOT NULL)
+      // Se il DB non è migrato (NOT NULL), blocca la creazione: niente date placeholder.
       if (
         createError instanceof Prisma.PrismaClientKnownRequestError &&
         (createError.code === 'P2011' || createError.code === 'P2012')
       ) {
-        const issueDate = new Date();
-        const expiryDate = new Date(issueDate);
-        expiryDate.setFullYear(expiryDate.getFullYear() + 5);
-
-        license = await prisma.weaponLicense.create({
-          data: {
-            ...baseData,
-            ...officerConnect,
-            issueDate,
-            expiryDate,
+        return NextResponse.json(
+          {
+            error:
+              'Database non allineato: issueDate/expiryDate devono essere nullable. Applica la migrazione prima di creare richieste pending.',
           },
-          include: {
-            officer: {
-              select: {
-                name: true,
-                surname: true,
-                badge: true,
-                department: true,
-              },
-            },
-          },
-        });
+          { status: 500 }
+        );
       } else {
         throw createError;
       }
