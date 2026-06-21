@@ -26,7 +26,6 @@ export default function NewWeaponLicensePage() {
   const [formData, setFormData] = useState({
     licenseNumber: '',
     licenseType: 'carry',
-    issuingAuthority: 'Forze dell\'Ordine di San Andreas',
     notes: '',
   });
 
@@ -177,18 +176,6 @@ export default function NewWeaponLicensePage() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Questo numero verrà usato nel documento iarp-legal-docs per attivare la licenza.
                 </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Autorità Emittente
-                </label>
-                <input
-                  type="text"
-                  value={formData.issuingAuthority}
-                  onChange={(e) => setFormData(prev => ({ ...prev, issuingAuthority: e.target.value }))}
-                  className="w-full px-4 py-2 border border-police-gray dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
               </div>
 
               <div>

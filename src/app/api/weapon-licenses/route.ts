@@ -114,7 +114,6 @@ export async function POST(request: NextRequest) {
       licenseNumber,
       citizenId,
       licenseType,
-      issuingAuthority,
       notes,
     } = body;
 
@@ -148,12 +147,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // L'autorità emittente viene sempre determinata lato server in base all'operatore autenticato
+    const officer = await prisma.user.findUnique({
+      where: { id: auth.officerId },
+      select: { department: true },
+    });
+
+    const issuingAuthority = officer?.department?.trim()
+      ? `Forze dell'Ordine - ${officer.department.trim()}`
+      : 'Forze dell\'Ordine di San Andreas';
+
     const license = await prisma.weaponLicense.create({
       data: {
         licenseNumber,
         citizenId: parseInt(citizenId),
         licenseType,
-        issuingAuthority: issuingAuthority || 'Forze dell\'Ordine di San Andreas',
+        issuingAuthority,
         notes,
         status: 'pending',
         officerId: auth.officerId,
