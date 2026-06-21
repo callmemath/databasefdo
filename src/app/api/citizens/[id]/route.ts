@@ -3,46 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getApiAuthContext } from "@/lib/api-auth";
 
-function getCitizenIdCandidates(identifier?: string | null, fallbackId?: number): number[] {
-  const maxInt = 2147483647;
-  const ids = new Set<number>();
-
-  if (Number.isInteger(fallbackId) && (fallbackId as number) > 0) {
-    ids.add(fallbackId as number);
-  }
-
-  if (!identifier) {
-    return Array.from(ids);
-  }
-
-  const parts = identifier.split(':');
-  const hashPart = parts.length > 1 ? parts[1] : identifier;
-
-  if (/^[0-9a-fA-F]+$/.test(hashPart)) {
-    const numericPart = hashPart.substring(0, 8).padEnd(8, '0');
-    const rawValue = Number.parseInt(numericPart, 16);
-    if (!Number.isNaN(rawValue)) {
-      const currentId = (rawValue % maxInt) + 1;
-      if (currentId > 0) ids.add(currentId);
-
-      const legacyId = rawValue % maxInt;
-      if (legacyId > 0) ids.add(legacyId);
-    }
-  }
-
-  for (const len of [6, 7, 8]) {
-    const chunk = hashPart.substring(0, len);
-    if (/^[0-9a-fA-F]+$/.test(chunk)) {
-      const parsed = Number.parseInt(chunk, 16);
-      if (Number.isInteger(parsed) && parsed > 0) {
-        ids.add(parsed);
-      }
-    }
-  }
-
-  return Array.from(ids);
-}
-
 // GET /api/citizens/[id] - Ottieni i dettagli di un cittadino specifico
 export async function GET(
   req: NextRequest,
@@ -75,15 +35,10 @@ export async function GET(
     }
 
     const citizenId = citizen.id;
-    const citizenIdCandidates = getCitizenIdCandidates(citizen.identifier, citizenId);
     
     // Includi anche gli arresti e i rapporti associati
     const arrests = await prisma.arrest.findMany({
-      where: {
-        citizenId: {
-          in: citizenIdCandidates,
-        },
-      },
+      where: { citizenId },
       select: {
         id: true,
         date: true,
@@ -110,76 +65,74 @@ export async function GET(
     });
     
     // Rapporti in cui il cittadino è il denunciante
-    const reports = await prisma.report.findMany({
-      where: {
-        citizenId: {
-          in: citizenIdCandidates,
-        },
-      },
-      select: {
-        id: true,
-        title: true,
-        date: true,
-        description: true,
-        type: true,
-        location: true,
-        isAnonymous: true,
-        createdAt: true,
-        updatedAt: true,
-        officerId: true,
-        citizenId: true,
-        accusedId: true,
-        officer: {
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-            badge: true,
-            department: true,
-            rank: true,
-          },
-        },
-      },
-      orderBy: {
-        date: 'desc',
-      },
-    });
+    const reportsData = await prisma.$queryRaw`
+      SELECT r.*, 
+        u.id as officer_id, u.name as officer_name, u.surname as officer_surname, 
+        u.badge as officer_badge, u.department as officer_department, u.rank as officer_rank
+      FROM fdo_reports r
+      LEFT JOIN fdo_users u ON r.officerId = u.id
+      WHERE r.citizenId = ${citizenId}
+      ORDER BY r.date DESC
+    `;
+    
+    // Trasformiamo i dati grezzi in un formato più strutturato
+    const reports = Array.isArray(reportsData) ? reportsData.map((report: any) => ({
+      id: report.id,
+      title: report.title,
+      date: report.date,
+      description: report.description,
+      type: report.type,
+      location: report.location,
+      isAnonymous: report.isAnonymous === 1, // Converti da 0/1 a boolean
+      createdAt: report.createdAt,
+      updatedAt: report.updatedAt,
+      officerId: report.officerId,
+      citizenId: report.citizenId,
+      accusedId: report.accusedId,
+      officer: {
+        id: report.officer_id,
+        name: report.officer_name,
+        surname: report.officer_surname,
+        badge: report.officer_badge,
+        department: report.officer_department,
+        rank: report.officer_rank
+      }
+    })) : [];
     
     // Rapporti in cui il cittadino è accusato
-    const accusedReports = await prisma.report.findMany({
-      where: {
-        accusedId: {
-          in: citizenIdCandidates,
-        },
-      },
-      select: {
-        id: true,
-        title: true,
-        date: true,
-        description: true,
-        type: true,
-        location: true,
-        isAnonymous: true,
-        createdAt: true,
-        updatedAt: true,
-        officerId: true,
-        citizenId: true,
-        accusedId: true,
-        officer: {
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-            badge: true,
-            department: true,
-            rank: true,
-          },
-        },
-      },
-      orderBy: {
-        date: 'desc',
-      },
-    });
+    const accusedReportsData = await prisma.$queryRaw`
+      SELECT r.*, 
+        u.id as officer_id, u.name as officer_name, u.surname as officer_surname, 
+        u.badge as officer_badge, u.department as officer_department, u.rank as officer_rank
+      FROM fdo_reports r
+      LEFT JOIN fdo_users u ON r.officerId = u.id
+      WHERE r.accusedId = ${citizenId}
+      ORDER BY r.date DESC
+    `;
+    
+    // Trasformiamo i dati grezzi in un formato più strutturato
+    const accusedReports = Array.isArray(accusedReportsData) ? accusedReportsData.map((report: any) => ({
+      id: report.id,
+      title: report.title,
+      date: report.date,
+      description: report.description,
+      type: report.type,
+      location: report.location,
+      isAnonymous: report.isAnonymous === 1, // Converti da 0/1 a boolean
+      createdAt: report.createdAt,
+      updatedAt: report.updatedAt,
+      officerId: report.officerId,
+      citizenId: report.citizenId,
+      accusedId: report.accusedId,
+      officer: {
+        id: report.officer_id,
+        name: report.officer_name,
+        surname: report.officer_surname,
+        badge: report.officer_badge,
+        department: report.officer_department,
+        rank: report.officer_rank
+      }
+    })) : [];
     
     // Per i report in cui il cittadino è accusato, carichiamo anche i dati del denunciante
     const enrichedAccusedReports = await Promise.all(accusedReports.map(async (report) => {
@@ -198,11 +151,7 @@ export async function GET(
     
     // Carica i porto d'armi del cittadino
     const weaponLicenses = await prisma.weaponLicense.findMany({
-      where: {
-        citizenId: {
-          in: citizenIdCandidates,
-        },
-      },
+      where: { citizenId },
       select: {
         id: true,
         licenseNumber: true,

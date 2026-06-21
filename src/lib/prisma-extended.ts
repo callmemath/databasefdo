@@ -2,54 +2,30 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import prismaIARP from './prisma-iarp';
 
-// Funzione per estrarre un ID numerico dall'identifier
-// L'identifier ha formato "char1:hash" - prendiamo la parte dopo i : e convertiamo i primi caratteri in numero
+// Funzione per estrarre un ID numerico dall'identifier.
+// Incorpora il numero personaggio (charN) come fattore moltiplicativo.
+// char1: rawValue * 1 % maxInt + 1 → identico alla vecchia formula (backward compatible).
 function extractNumericId(identifier: string): number {
   if (!identifier) return 0;
-  
-  // Estrai la parte dopo i :
-  const parts = identifier.split(':');
-  const hashPart = parts.length > 1 ? parts[1] : identifier;
-  
-  // Converti i primi 8 caratteri esadecimali in un numero
-  // Manteniamo il valore deterministico ma dentro il range di un INT firmato
-  const numericPart = hashPart.substring(0, 8).padEnd(8, '0');
-  const rawValue = BigInt(`0x${numericPart}`);
-  const maxInt = BigInt(2147483647);
-  return Number((rawValue % maxInt) + BigInt(1));
-}
 
-function extractCandidateNumericIds(identifier: string): number[] {
-  if (!identifier) return [];
+  const parts     = identifier.split(':');
+  const prefix    = parts[0];
+  const hashPart  = parts.length > 1 ? parts[1] : identifier;
 
-  const parts = identifier.split(':');
-  const hashPart = parts.length > 1 ? parts[1] : identifier;
-  const maxInt = BigInt(2147483647);
-  const ids = new Set<number>();
+  const charMatch  = prefix.match(/^char(\d+)$/);
+  const charNum    = charMatch ? parseInt(charMatch[1], 10) : 1;
 
-  const current = extractNumericId(identifier);
-  if (current > 0) ids.add(current);
+  const safeHash    = hashPart.replace(/[^0-9a-fA-F]/g, '0');
+  const numericPart = safeHash.substring(0, 8).padEnd(8, '0');
 
   try {
-    const numericPart8 = hashPart.substring(0, 8).padEnd(8, '0');
-    const raw8 = BigInt(`0x${numericPart8}`);
-    const legacyNoPlusOne = Number(raw8 % maxInt);
-    if (legacyNoPlusOne > 0) ids.add(legacyNoPlusOne);
+    const rawValue   = BigInt(`0x${numericPart}`);
+    const maxInt     = BigInt(2147483647);
+    const charFactor = BigInt(charNum);
+    return Number((rawValue * charFactor % maxInt) + BigInt(1));
   } catch {
-    // ignore malformed hashes
+    return 0;
   }
-
-  for (const len of [6, 7, 8]) {
-    const chunk = hashPart.substring(0, len);
-    if (/^[0-9a-fA-F]+$/.test(chunk)) {
-      const parsed = Number.parseInt(chunk, 16);
-      if (Number.isInteger(parsed) && parsed > 0) {
-        ids.add(parsed);
-      }
-    }
-  }
-
-  return Array.from(ids);
 }
 
 // Definisci tipi per le opzioni e i risultati
@@ -185,10 +161,19 @@ class ExtendedPrismaClient extends PrismaClient {
       }
     });
     
-    // Trova l'utente il cui ID numerico corrisponde (inclusi formati legacy)
-    const user = allUsers.find((u) => {
-      const candidates = extractCandidateNumericIds(u.identifier || '');
-      return candidates.includes(id);
+    // Trova l'utente il cui ID corrisponde (formula corrente o legacy per record storici)
+    const user = allUsers.find(u => {
+      const ident = u.identifier || '';
+      if (!ident) return false;
+      if (extractNumericId(ident) === id) return true;
+      // Fallback formula legacy (charNum ignorato): rawValue % maxInt + 1
+      const hp = ident.split(':');
+      const hashPart = hp.length > 1 ? hp[1] : ident;
+      const safe = hashPart.replace(/[^0-9a-fA-F]/g, '0').substring(0, 8).padEnd(8, '0');
+      try {
+        const rv = BigInt(`0x${safe}`);
+        return Number((rv % BigInt(2147483647)) + BigInt(1)) === id;
+      } catch { return false; }
     });
     
     if (!user) return null;

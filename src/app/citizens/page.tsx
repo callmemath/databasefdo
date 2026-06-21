@@ -266,11 +266,10 @@ export default function Citizens() {
                   header: 'Porto d\'Armi',
                   accessor: (citizen) => {
                     const licenses = citizen.weaponLicenses || [];
-                    const pendingLicenses = licenses.filter((l: any) => l.status === 'pending');
                     const activeLicenses = licenses.filter((l: any) => l.status === 'active');
                     const hasActiveLicense = activeLicenses.length > 0;
                     const expiredLicenses = licenses.filter((l: any) => 
-                      l.status === 'expired' || (l.status === 'active' && l.expiryDate && new Date(l.expiryDate) < new Date())
+                      l.status !== 'pending' && l.expiryDate && new Date(l.expiryDate) < new Date()
                     );
                     
                     return (
@@ -286,13 +285,7 @@ export default function Citizens() {
                                 {activeLicenses.length} attiv{activeLicenses.length === 1 ? 'a' : 'e'}
                               </span>
                             )}
-                            {activeLicenses.length > 0 && (pendingLicenses.length > 0 || expiredLicenses.length > 0) && <span>, </span>}
-                            {pendingLicenses.length > 0 && (
-                              <span className="text-slate-600 dark:text-slate-300">
-                                {pendingLicenses.length} in attesa
-                              </span>
-                            )}
-                            {pendingLicenses.length > 0 && expiredLicenses.length > 0 && <span>, </span>}
+                            {activeLicenses.length > 0 && expiredLicenses.length > 0 && <span>, </span>}
                             {expiredLicenses.length > 0 && (
                               <span className="text-red-600 dark:text-red-400">
                                 {expiredLicenses.length} scadut{expiredLicenses.length === 1 ? 'a' : 'e'}

@@ -8,49 +8,6 @@ import { getApiAuthContext } from "@/lib/api-auth";
 const searchCache = new Map<string, { results: any, timestamp: number }>();
 const CACHE_TTL = 60000; // 60 secondi di validità della cache
 
-function getCitizenIdCandidates(identifier?: string | null, fallbackId?: number): number[] {
-  const maxInt = 2147483647;
-  const ids = new Set<number>();
-
-  if (Number.isInteger(fallbackId) && (fallbackId as number) > 0) {
-    ids.add(fallbackId as number);
-  }
-
-  if (!identifier) {
-    return Array.from(ids);
-  }
-
-  const parts = identifier.split(':');
-  const hashPart = parts.length > 1 ? parts[1] : identifier;
-
-  // Algoritmo corrente
-  if (/^[0-9a-fA-F]+$/.test(hashPart)) {
-    const numericPart = hashPart.substring(0, 8).padEnd(8, '0');
-    const rawValue = Number.parseInt(numericPart, 16);
-    if (!Number.isNaN(rawValue)) {
-      const currentId = (rawValue % maxInt) + 1;
-      if (currentId > 0) ids.add(currentId);
-
-      // Variante legacy senza +1
-      const legacyId = rawValue % maxInt;
-      if (legacyId > 0) ids.add(legacyId);
-    }
-  }
-
-  // Varianti storiche corte
-  for (const len of [6, 7, 8]) {
-    const chunk = hashPart.substring(0, len);
-    if (/^[0-9a-fA-F]+$/.test(chunk)) {
-      const parsed = Number.parseInt(chunk, 16);
-      if (Number.isInteger(parsed) && parsed > 0) {
-        ids.add(parsed);
-      }
-    }
-  }
-
-  return Array.from(ids);
-}
-
 function isMissingTableOrColumnError(error: unknown): boolean {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     return error.code === "P2021" || error.code === "P2022";
@@ -143,18 +100,13 @@ export async function GET(req: NextRequest) {
     // restituendo array vuoti invece di un errore 500.
     const citizensWithDetails = await Promise.all(
       users.map(async (user: any) => {
-        const citizenIdCandidates = getCitizenIdCandidates(user.identifier, user.id);
         let arrests: any[] = [];
         let reports: any[] = [];
         let weaponLicenses: any[] = [];
 
         try {
           arrests = await prisma.arrest.findMany({
-            where: {
-              citizenId: {
-                in: citizenIdCandidates,
-              },
-            },
+            where: { citizenId: user.id },
             select: {
               id: true,
               date: true,
@@ -177,11 +129,7 @@ export async function GET(req: NextRequest) {
 
         try {
           reports = await prisma.report.findMany({
-            where: {
-              citizenId: {
-                in: citizenIdCandidates,
-              },
-            },
+            where: { citizenId: user.id },
             select: {
               id: true,
               title: true,
@@ -208,11 +156,7 @@ export async function GET(req: NextRequest) {
 
         try {
           weaponLicenses = await prisma.weaponLicense.findMany({
-            where: {
-              citizenId: {
-                in: citizenIdCandidates,
-              },
-            },
+            where: { citizenId: user.id },
             select: {
               id: true,
               licenseNumber: true,
