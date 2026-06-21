@@ -106,16 +106,6 @@ export default function NewWeaponLicensePage() {
             Crea una richiesta pendente. La licenza sarà attivata tramite iarp-legal-docs.
           </p>
         </div>
-
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4 flex items-start gap-3">
-          <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-          <div className="text-sm text-blue-800 dark:text-blue-300">
-            <strong>Flusso richiesta:</strong> Crea la richiesta qui → Il player completa i passaggi necessari → 
-            Torna dall'operatore → L'operatore emette il documento "Porto d'Armi Personale" tramite iarp-legal-docs → 
-            La licenza viene attivata automaticamente.
-          </div>
-        </div>
-
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
             <p className="text-red-800 dark:text-red-300">{error}</p>
