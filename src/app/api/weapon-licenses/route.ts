@@ -223,16 +223,19 @@ export async function POST(request: NextRequest) {
 
     let license;
     try {
-      // Flusso normale (schema aggiornato): richiesta pending senza date.
-      // Il cast `as any` è necessario finché il DB non ha ancora applicato la
-      // migrazione che rende issueDate/expiryDate nullable: il client Prisma
-      // generato riflette lo schema corrente del DB, non quello del file .prisma.
+      // Crea sempre date placeholder per compatibilità con DB dove le colonne
+      // sono ancora NOT NULL. Lo stato resta pending e le date verranno
+      // aggiornate al momento dell'attivazione tramite iarp-legal-docs.
+      const issueDate = new Date();
+      const expiryDate = new Date(issueDate);
+      expiryDate.setFullYear(expiryDate.getFullYear() + 5);
+
       license = await prisma.weaponLicense.create({
         data: {
           ...baseData,
           ...officerConnect,
-          issueDate: new Date(),               // placeholder: verrà sovrascritto all'attivazione
-          expiryDate: null as unknown as Date, // null finché non attivata
+          issueDate,
+          expiryDate,
         },
         include: {
           officer: {
