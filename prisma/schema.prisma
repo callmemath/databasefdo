@@ -187,9 +187,9 @@ model WeaponLicense {
   licenseNumber     String   @unique // Numero porto d'armi (es: "PDA-2024-001234")
   citizenId         Int      // ID del cittadino (riferimento a database IARP)
   licenseType       String   // Tipo: "sport_target", "hunting", "defense", "collection", "carry"
-  issueDate         DateTime // Data di rilascio
-  expiryDate        DateTime // Data di scadenza
-  status            String   @default("active") // Stato: "active", "expired", "suspended", "revoked"
+  issueDate         DateTime? // Data di rilascio (null finché la richiesta non viene attivata)
+  expiryDate        DateTime? // Data di scadenza (null finché la richiesta non viene attivata)
+  status            String   @default("pending") // Stato: "pending", "active", "expired", "suspended", "revoked"
   issuingAuthority  String   // Autorità di rilascio (es: "Questura di Roma")
   restrictions      String?  @db.Text // Eventuali restrizioni (es: "Solo tiro al bersaglio")
   authorizedWeapons Json?    // Array di armi autorizzate [{type, caliber, model, serialNumber}]
