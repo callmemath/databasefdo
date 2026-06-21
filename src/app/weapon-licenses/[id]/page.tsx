@@ -18,16 +18,14 @@ import {
   Edit,
   Ban,
   RotateCcw,
-  Clock,
-  Trash2,
 } from 'lucide-react';
 
 interface WeaponLicense {
   id: string;
   licenseNumber: string;
   licenseType: string;
-  issueDate: string | null;
-  expiryDate: string | null;
+  issueDate: string;
+  expiryDate: string;
   status: string;
   issuingAuthority: string;
   restrictions?: string;
@@ -41,7 +39,7 @@ interface WeaponLicense {
     dateofbirth: string;
     sex?: string;
     phone_number?: string;
-  } | null;
+  };
   officer: {
     id: string;
     name: string;
@@ -73,7 +71,6 @@ export default function WeaponLicenseDetailPage({
   const [actionLoading, setActionLoading] = useState(false);
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [suspensionReason, setSuspensionReason] = useState('');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [licenseId, setLicenseId] = useState<string>('');
 
   useEffect(() => {
@@ -131,22 +128,6 @@ export default function WeaponLicenseDetailPage({
     }
   };
 
-  const deleteRequest = async () => {
-    if (!licenseId) return;
-    setActionLoading(true);
-    try {
-      const res = await fetch(`/api/weapon-licenses/${licenseId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Errore nella cancellazione');
-      router.push('/weapon-licenses');
-    } catch (error) {
-      console.error('Errore:', error);
-      alert('Errore nella cancellazione della richiesta');
-    } finally {
-      setActionLoading(false);
-      setShowDeleteConfirm(false);
-    }
-  };
-
   if (loading) {
     return (
       <MainLayout>
@@ -163,9 +144,8 @@ export default function WeaponLicenseDetailPage({
     );
   }
 
-  const isExpired = license.expiryDate ? new Date(license.expiryDate) < new Date() : false;
+  const isExpired = new Date(license.expiryDate) < new Date();
   const isExpiringSoon = () => {
-    if (!license.expiryDate) return false;
     const expiry = new Date(license.expiryDate);
     const today = new Date();
     const daysUntilExpiry = Math.floor((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
@@ -182,12 +162,6 @@ export default function WeaponLicenseDetailPage({
               <h1 className="text-3xl font-bold text-police-blue-dark dark:text-white">
                 Porto d'Armi #{license.licenseNumber}
               </h1>
-              {license.status === 'pending' && (
-                <Badge variant="gray">
-                  <Clock className="w-3 h-3 mr-1" />
-                  In Attesa
-                </Badge>
-              )}
               {license.status === 'active' && (
                 <Badge variant="green">
                   <CheckCircle className="w-3 h-3 mr-1" />
@@ -219,16 +193,6 @@ export default function WeaponLicenseDetailPage({
           </div>
 
           <div className="flex gap-2">
-            {license.status === 'pending' && (
-              <Button
-                variant="danger"
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={actionLoading}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Cancella Richiesta
-              </Button>
-            )}
             {license.status === 'active' && (
               <Button
                 variant="danger"
@@ -252,22 +216,12 @@ export default function WeaponLicenseDetailPage({
           </div>
         </div>
 
-        {/* Alert in attesa */}
-        {license.status === 'pending' && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
-            <div className="flex items-center text-blue-800 dark:text-blue-300">
-              <Clock className="w-5 h-5 mr-2" />
-              <span className="font-medium">Richiesta in attesa di attivazione. L'operatore deve emettere il documento inserendo il numero <strong>{license.licenseNumber}</strong> nel campo apposito.</span>
-            </div>
-          </div>
-        )}
-
         {/* Alert scadenza */}
         {isExpired && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
             <div className="flex items-center text-red-800 dark:text-red-300">
               <XCircle className="w-5 h-5 mr-2" />
-              <span className="font-medium">Questa licenza è scaduta il {license.expiryDate ? new Date(license.expiryDate).toLocaleDateString('it-IT') : ''}</span>
+              <span className="font-medium">Questa licenza è scaduta il {new Date(license.expiryDate).toLocaleDateString('it-IT')}</span>
             </div>
           </div>
         )}
@@ -276,7 +230,7 @@ export default function WeaponLicenseDetailPage({
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-4">
             <div className="flex items-center text-yellow-800 dark:text-yellow-300">
               <AlertTriangle className="w-5 h-5 mr-2" />
-              <span className="font-medium">Questa licenza scadrà il {license.expiryDate ? new Date(license.expiryDate).toLocaleDateString('it-IT') : ''}</span>
+              <span className="font-medium">Questa licenza scadrà il {new Date(license.expiryDate).toLocaleDateString('it-IT')}</span>
             </div>
           </div>
         )}
@@ -305,13 +259,13 @@ export default function WeaponLicenseDetailPage({
                 <div>
                   <p className="text-sm text-police-gray-dark dark:text-gray-400">Data Rilascio</p>
                   <p className="font-medium text-police-blue-dark dark:text-white">
-                    {license.status === 'pending' || !license.issueDate ? <span className="text-gray-400 italic">In attesa</span> : new Date(license.issueDate).toLocaleDateString('it-IT')}
+                    {new Date(license.issueDate).toLocaleDateString('it-IT')}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-police-gray-dark dark:text-gray-400">Data Scadenza</p>
                   <p className={`font-medium ${isExpired ? 'text-red-600' : isExpiringSoon() ? 'text-yellow-600' : 'text-police-blue-dark dark:text-white'}`}>
-                    {license.status === 'pending' || !license.expiryDate ? <span className="text-gray-400 italic">In attesa</span> : new Date(license.expiryDate).toLocaleDateString('it-IT')}
+                    {new Date(license.expiryDate).toLocaleDateString('it-IT')}
                   </p>
                 </div>
                 <div className="col-span-2">
@@ -395,24 +349,19 @@ export default function WeaponLicenseDetailPage({
                 <div>
                   <p className="text-sm text-police-gray-dark dark:text-gray-400">Nome Completo</p>
                   <p className="font-medium text-police-blue-dark dark:text-white">
-                    {license.citizen ? `${license.citizen.firstname} ${license.citizen.lastname}` : 'Cittadino non disponibile'}
+                    {license.citizen.firstname} {license.citizen.lastname}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-police-gray-dark dark:text-gray-400">Data di Nascita</p>
                   <p className="font-medium text-police-blue-dark dark:text-white">
-                    {license.citizen ? new Date(license.citizen.dateofbirth).toLocaleDateString('it-IT') : 'N/D'}
+                    {new Date(license.citizen.dateofbirth).toLocaleDateString('it-IT')}
                   </p>
                 </div>
                 <Button
                   variant="secondary"
                   fullWidth
-                  onClick={() => {
-                    if (license.citizen) {
-                      router.push(`/citizens/${getCitizenRouteRef(license.citizen)}`);
-                    }
-                  }}
-                  disabled={!license.citizen}
+                  onClick={() => router.push(`/citizens/${getCitizenRouteRef(license.citizen)}`)}
                 >
                   Visualizza Profilo
                 </Button>
@@ -452,28 +401,6 @@ export default function WeaponLicenseDetailPage({
             </Card>
           </div>
         </div>
-
-        {/* Modal Cancellazione Richiesta */}
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-4">
-                Cancella Richiesta
-              </h3>
-              <p className="text-police-gray-dark dark:text-gray-400 mb-6">
-                Sei sicuro di voler cancellare la richiesta porto d'armi n° <strong>{license.licenseNumber}</strong>? Questa azione non può essere annullata.
-              </p>
-              <div className="flex justify-end gap-3">
-                <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)} disabled={actionLoading}>
-                  Annulla
-                </Button>
-                <Button variant="danger" onClick={deleteRequest} disabled={actionLoading}>
-                  {actionLoading ? 'Cancellazione...' : 'Conferma Cancellazione'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Modal Sospensione */}
         {showSuspendModal && (

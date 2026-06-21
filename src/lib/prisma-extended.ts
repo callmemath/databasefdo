@@ -19,7 +19,7 @@ function extractNumericId(identifier: string): number {
   return Number((rawValue % maxInt) + BigInt(1));
 }
 
-function extractLegacyNumericIds(identifier: string): number[] {
+function extractCandidateNumericIds(identifier: string): number[] {
   if (!identifier) return [];
 
   const parts = identifier.split(':');
@@ -42,7 +42,7 @@ function extractLegacyNumericIds(identifier: string): number[] {
   for (const len of [6, 7, 8]) {
     const chunk = hashPart.substring(0, len);
     if (/^[0-9a-fA-F]+$/.test(chunk)) {
-      const parsed = parseInt(chunk, 16);
+      const parsed = Number.parseInt(chunk, 16);
       if (Number.isInteger(parsed) && parsed > 0) {
         ids.add(parsed);
       }
@@ -185,10 +185,10 @@ class ExtendedPrismaClient extends PrismaClient {
       }
     });
     
-    // Trova l'utente con ID corrente o legacy (compatibilita record storici)
+    // Trova l'utente il cui ID numerico corrisponde (inclusi formati legacy)
     const user = allUsers.find((u) => {
-      const candidateIds = extractLegacyNumericIds(u.identifier || '');
-      return candidateIds.includes(id);
+      const candidates = extractCandidateNumericIds(u.identifier || '');
+      return candidates.includes(id);
     });
     
     if (!user) return null;

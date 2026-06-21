@@ -10,7 +10,6 @@ export async function middleware(request: NextRequest) {
   const isPublicPage = PUBLIC_PAGES.has(pathname);
   const isAuthApi = pathname.startsWith('/api/auth');
   const isDiscordApi = pathname.startsWith('/api/discord');
-  const isWeaponActivateApi = pathname === '/api/weapon-licenses/activate';
   const hasSiteAccessCookie = Boolean(request.cookies.get(SITE_ACCESS_COOKIE)?.value);
   
   // Consenti l'accesso alle pagine pubbliche
@@ -26,11 +25,6 @@ export async function middleware(request: NextRequest) {
 
   // Consenti le API Discord (usano il proprio sistema di autenticazione con Bearer token)
   if (isDiscordApi) {
-    return NextResponse.next();
-  }
-
-  // Consenti l'endpoint di attivazione porto d'armi (chiamato da iarp-legal-docs con Bearer token)
-  if (isWeaponActivateApi) {
     return NextResponse.next();
   }
 
