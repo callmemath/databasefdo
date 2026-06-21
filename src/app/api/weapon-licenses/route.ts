@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { discordWebhook } from '@/lib/discord-webhook';
 import { getApiAuthContext } from '@/lib/api-auth';
@@ -125,8 +126,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const parsedCitizenId = Number(citizenId);
+    if (!Number.isInteger(parsedCitizenId) || parsedCitizenId <= 0) {
+      return NextResponse.json(
+        { error: 'citizenId non valido' },
+        { status: 400 }
+      );
+    }
+
     // Verifica se il cittadino esiste nel database IARP
-    const citizen = await prisma.findGameUserById(parseInt(citizenId));
+    const citizen = await prisma.findGameUserById(parsedCitizenId);
 
     if (!citizen) {
       return NextResponse.json(
@@ -150,8 +159,17 @@ export async function POST(request: NextRequest) {
     // L'autorità emittente viene sempre determinata lato server in base all'operatore autenticato
     const officer = await prisma.user.findUnique({
       where: { id: auth.officerId },
-      select: { department: true },
+      select: { id: true, department: true },
     });
+
+    if (!officer) {
+      return NextResponse.json(
+        {
+          error: 'Operatore non trovato. Verifica x-tablet-user-id oppure FDO_TABLET_OFFICER_ID (deve essere un ID utente valido fdo_users.id).',
+        },
+        { status: 400 }
+      );
+    }
 
     const issuingAuthority = officer?.department?.trim()
       ? `Forze dell'Ordine - ${officer.department.trim()}`
@@ -160,12 +178,12 @@ export async function POST(request: NextRequest) {
     const license = await prisma.weaponLicense.create({
       data: {
         licenseNumber,
-        citizenId: parseInt(citizenId),
+        citizenId: parsedCitizenId,
         licenseType,
         issuingAuthority,
         notes,
         status: 'pending',
-        officerId: auth.officerId,
+        officerId: officer.id,
       },
       include: {
         officer: {
@@ -187,6 +205,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ license: licenseWithCitizen }, { status: 201 });
   } catch (error) {
     console.error('Errore nella creazione della richiesta porto d\'armi:', error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return NextResponse.json(
+          { error: 'Numero richiesta già esistente' },
+          { status: 400 }
+        );
+      }
+
+      if (error.code === 'P2003') {
+        return NextResponse.json(
+          { error: 'Relazione non valida: verifica operatore e cittadino' },
+          { status: 400 }
+        );
+      }
+    }
+
     return NextResponse.json(
       { error: 'Errore nella creazione della richiesta porto d\'armi' },
       { status: 500 }

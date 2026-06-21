@@ -103,7 +103,7 @@ export default function NewWeaponLicensePage() {
             Nuova Richiesta Porto d'Armi
           </h1>
           <p className="text-police-gray-dark dark:text-gray-400 mt-1">
-            Crea una richiesta pendente. La licenza sarà attivata tramite iarp-legal-docs.
+            Crea una richiesta pendente.
           </p>
         </div>
         {error && (
@@ -164,7 +164,7 @@ export default function NewWeaponLicensePage() {
                   placeholder="Seleziona prima un cittadino..."
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Questo numero verrà usato nel documento iarp-legal-docs per attivare la licenza.
+                  Questo numero verrà usato nel documento per attivare la licenza.
                 </p>
               </div>
 
