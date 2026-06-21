@@ -267,7 +267,7 @@ export default function WeaponLicenseDetailPage({
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
             <div className="flex items-center text-red-800 dark:text-red-300">
               <XCircle className="w-5 h-5 mr-2" />
-              <span className="font-medium">Questa licenza è scaduta il {license.expiryDate ? new Date(license.expiryDate).toLocaleDateString('it-IT') : ''leDateString('it-IT') : ''}</span>
+              <span className="font-medium">Questa licenza è scaduta il {license.expiryDate ? new Date(license.expiryDate).toLocaleDateString('it-IT') : ''}</span>
             </div>
           </div>
         )}
@@ -276,7 +276,7 @@ export default function WeaponLicenseDetailPage({
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-4">
             <div className="flex items-center text-yellow-800 dark:text-yellow-300">
               <AlertTriangle className="w-5 h-5 mr-2" />
-              <span className="font-medium">Questa licenza scadrà il {license.expiryDate ? new Date(license.expiryDate).toLocaleDateString('it-IT') : ''leDateString('it-IT') : ''}</span>
+              <span className="font-medium">Questa licenza scadrà il {license.expiryDate ? new Date(license.expiryDate).toLocaleDateString('it-IT') : ''}</span>
             </div>
           </div>
         )}
