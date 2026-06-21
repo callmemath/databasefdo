@@ -4,15 +4,6 @@ import prisma from '@/lib/prisma';
 import { discordWebhook } from '@/lib/discord-webhook';
 import { getApiAuthContext } from '@/lib/api-auth';
 
-function normalizePendingDates<T extends { status?: string; issueDate?: unknown; expiryDate?: unknown }>(license: T): T {
-  if (license.status !== 'pending') return license;
-  return {
-    ...license,
-    issueDate: null,
-    expiryDate: null,
-  } as T;
-}
-
 // GET - Lista tutti i porto d'armi con filtri
 export async function GET(request: NextRequest) {
   try {
@@ -108,7 +99,7 @@ export async function GET(request: NextRequest) {
           citizenData = await prisma.findGameUserById(license.citizenId);
         }
         return {
-          ...normalizePendingDates(license),
+          ...license,
           citizen: citizenData
         };
       })
@@ -232,19 +223,12 @@ export async function POST(request: NextRequest) {
 
     let license;
     try {
-      // Crea sempre date placeholder per compatibilità con DB dove le colonne
-      // sono ancora NOT NULL. Lo stato resta pending e le date verranno
-      // aggiornate al momento dell'attivazione tramite iarp-legal-docs.
-      const issueDate = new Date();
-      const expiryDate = new Date(issueDate);
-      expiryDate.setFullYear(expiryDate.getFullYear() + 5);
-
       license = await prisma.weaponLicense.create({
         data: {
           ...baseData,
           ...officerConnect,
-          issueDate,
-          expiryDate,
+          issueDate: null as unknown as Date,
+          expiryDate: null as unknown as Date,
         },
         include: {
           officer: {
@@ -258,40 +242,25 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (createError) {
-      // Compatibilità con DB non ancora migrato (issueDate/expiryDate NOT NULL)
+      // Se il DB non è ancora migrato, le date pending non possono essere null.
+      // In quel caso non usiamo placeholder: chiediamo di applicare la migrazione.
       if (
         createError instanceof Prisma.PrismaClientKnownRequestError &&
         (createError.code === 'P2011' || createError.code === 'P2012')
       ) {
-        const issueDate = new Date();
-        const expiryDate = new Date(issueDate);
-        expiryDate.setFullYear(expiryDate.getFullYear() + 5);
-
-        license = await prisma.weaponLicense.create({
-          data: {
-            ...baseData,
-            ...officerConnect,
-            issueDate,
-            expiryDate,
+        return NextResponse.json(
+          {
+            error: 'Il database non è ancora migrato per supportare le richieste pending senza date. Applica la migrazione di fdo_weapon_licenses e rigenera Prisma.',
           },
-          include: {
-            officer: {
-              select: {
-                name: true,
-                surname: true,
-                badge: true,
-                department: true,
-              },
-            },
-          },
-        });
+          { status: 500 }
+        );
       } else {
         throw createError;
       }
     }
 
     const licenseWithCitizen = {
-      ...normalizePendingDates(license),
+      ...license,
       citizen
     };
 

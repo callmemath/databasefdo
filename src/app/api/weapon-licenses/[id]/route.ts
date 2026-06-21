@@ -4,15 +4,6 @@ import { authOptions } from '@/lib/auth';
 import { getApiAuthContext } from '@/lib/api-auth';
 import prisma from '@/lib/prisma';
 
-function normalizePendingDates<T extends { status?: string; issueDate?: unknown; expiryDate?: unknown }>(license: T): T {
-  if (license.status !== 'pending') return license;
-  return {
-    ...license,
-    issueDate: null,
-    expiryDate: null,
-  } as T;
-}
-
 // GET - Dettagli porto d'armi specifico
 export async function GET(
   request: NextRequest,
@@ -93,7 +84,7 @@ export async function GET(
 
     // Costruisci l'oggetto di risposta con i dati combinati
     const licenseWithRelations = {
-      ...normalizePendingDates(license),
+      ...license,
       citizen: citizenData
     };
 
@@ -164,7 +155,7 @@ export async function PATCH(
 
     // Costruisci l'oggetto di risposta con i dati combinati
     const licenseWithRelations = {
-      ...normalizePendingDates(license),
+      ...license,
       citizen: citizenData
     };
 
