@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -19,6 +19,8 @@ interface Citizen {
 
 export default function NewWeaponLicensePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefilledCitizenId = searchParams.get('citizenId');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedCitizen, setSelectedCitizen] = useState<Citizen | null>(null);
@@ -44,6 +46,29 @@ export default function NewWeaponLicensePage() {
     const random = Math.floor(1000 + Math.random() * 9000).toString();
     return `${prefix}-${dateStr}-${citizenId}-${random}`;
   };
+
+  // Pre-carica il cittadino se passato dalla pagina cittadino
+  useEffect(() => {
+    if (!prefilledCitizenId) return;
+    fetch(`/api/citizens/${prefilledCitizenId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.citizen) {
+          const c: Citizen = {
+            id: data.citizen.id,
+            firstname: data.citizen.firstname,
+            lastname: data.citizen.lastname,
+            dateofbirth: data.citizen.dateofbirth,
+            identifier: data.citizen.identifier,
+            sex: data.citizen.sex,
+          };
+          setSelectedCitizen(c);
+          setFormData(prev => ({ ...prev, licenseNumber: generateLicenseNumber(c, prev.licenseType) }));
+        }
+      })
+      .catch(() => {/* ignora errori di pre-fill */});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefilledCitizenId]);
 
   const handleCitizenSelect = (citizen: Citizen | null) => {
     setSelectedCitizen(citizen);

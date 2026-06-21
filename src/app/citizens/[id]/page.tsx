@@ -998,67 +998,92 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                   {citizen.weaponLicenses && citizen.weaponLicenses.length > 0 ? (
                     <div className="space-y-4">
                       {citizen.weaponLicenses.map((license: any) => {
-                        const isActive = license.status === 'active';
-                        const isExpired = new Date(license.expiryDate) < new Date();
-                        const statusColor = isActive && !isExpired ? 'green' : isExpired ? 'red' : 'yellow';
+                        const isPending   = license.status === 'pending';
+                        const isActive    = license.status === 'active';
+                        const isSuspended = license.status === 'suspended';
+                        const isRevoked   = license.status === 'revoked';
+                        const isExpired   = !isPending && license.expiryDate && new Date(license.expiryDate) < new Date();
+
+                        const borderClass = isPending
+                          ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-900/30 hover:bg-blue-100/50'
+                          : isActive && !isExpired
+                          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/30 hover:bg-green-100/50 dark:hover:bg-green-900/30'
+                          : isExpired
+                          ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30 hover:bg-red-100/50 dark:hover:bg-red-900/30'
+                          : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-900/30 hover:bg-yellow-100/50 dark:hover:bg-yellow-900/30';
+
+                        const statusLabel = isPending   ? 'In Attesa'
+                          : isExpired   ? 'Scaduto'
+                          : isActive    ? 'Attivo'
+                          : isSuspended ? 'Sospeso'
+                          : isRevoked   ? 'Revocato'
+                          : license.status;
+
+                        const badgeVariant: 'gray' | 'green' | 'red' | 'yellow' = isPending ? 'gray'
+                          : isActive && !isExpired ? 'green'
+                          : isExpired || isRevoked  ? 'red'
+                          : 'yellow';
+
+                        const licenseTypeLabels: Record<string, string> = {
+                          sport_target: 'Tiro Sportivo',
+                          hunting: 'Caccia',
+                          defense: 'Difesa Personale',
+                          collection: 'Collezione',
+                          carry: "Porto d'Armi",
+                        };
                         
                         return (
                           <div 
                             key={license.id} 
-                            className={`p-4 border rounded-md transition-colors ${
-                              isActive && !isExpired
-                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/30 hover:bg-green-100/50 dark:hover:bg-green-900/30'
-                                : isExpired
-                                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30 hover:bg-red-100/50 dark:hover:bg-red-900/30'
-                                : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-900/30 hover:bg-yellow-100/50 dark:hover:bg-yellow-900/30'
-                            }`}
+                            className={`p-4 border rounded-md transition-colors ${borderClass}`}
                           >
                             <Link href={`/weapon-licenses/${license.id}`} className="block">
                               <div className="flex justify-between items-start gap-4">
                                 <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <h4 className={`font-semibold ${
-                                      isActive && !isExpired 
-                                        ? 'text-green-800 dark:text-green-400' 
-                                        : isExpired
-                                        ? 'text-red-800 dark:text-red-400'
-                                        : 'text-yellow-800 dark:text-yellow-400'
-                                    }`}>
-                                      Licenza N° {license.licenseNumber}
+                                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                    <h4 className="font-semibold text-gray-800 dark:text-gray-200">
+                                      {isPending ? 'Richiesta N°' : 'Licenza N°'} {license.licenseNumber}
                                     </h4>
-                                    <Badge variant={statusColor}>
-                                      {isExpired ? 'Scaduto' : license.status === 'active' ? 'Attivo' : license.status === 'suspended' ? 'Sospeso' : 'Revocato'}
+                                    <Badge variant={badgeVariant}>
+                                      {statusLabel}
                                     </Badge>
                                   </div>
                                   
                                   <div className="space-y-1 text-sm">
                                     <p className="text-gray-700 dark:text-gray-300">
-                                      <span className="font-medium">Tipo:</span> {
-                                        license.licenseType === 'sport_target' ? 'Tiro Sportivo' :
-                                        license.licenseType === 'hunting' ? 'Caccia' :
-                                        license.licenseType === 'defense' ? 'Difesa Personale' :
-                                        license.licenseType === 'collection' ? 'Collezione' :
-                                        license.licenseType === 'carry' ? 'Porto d\'Armi' :
-                                        license.licenseType
-                                      }
+                                      <span className="font-medium">Tipo:</span>{' '}
+                                      {licenseTypeLabels[license.licenseType] || license.licenseType}
                                     </p>
-                                    
-                                    <p className="text-gray-600 dark:text-gray-400">
-                                      <span className="font-medium">Emissione:</span> {formatDate(license.issueDate)}
-                                    </p>
-                                    
-                                    <p className={`font-medium ${isExpired ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
-                                      <span className="font-medium">Scadenza:</span> {formatDate(license.expiryDate)}
-                                      {isExpired && ' - SCADUTO'}
-                                    </p>
-                                    
+
+                                    {isPending ? (
+                                      <p className="text-blue-600 dark:text-blue-400 italic text-xs">
+                                        In attesa di attivazione tramite iarp-legal-docs — usa il numero richiesta nel documento.
+                                      </p>
+                                    ) : (
+                                      <>
+                                        <p className="text-gray-600 dark:text-gray-400">
+                                          <span className="font-medium">Emissione:</span> {formatDate(license.issueDate)}
+                                        </p>
+                                        <p className={`${isExpired ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-600 dark:text-gray-400'}`}>
+                                          <span className="font-medium">Scadenza:</span> {formatDate(license.expiryDate)}
+                                          {isExpired && ' — SCADUTO'}
+                                        </p>
+                                      </>
+                                    )}
+
                                     {license.issuingAuthority && (
                                       <p className="text-gray-600 dark:text-gray-400">
                                         <span className="font-medium">Autorità:</span> {license.issuingAuthority}
                                       </p>
                                     )}
+
+                                    {(isSuspended || isRevoked) && license.suspensionReason && (
+                                      <p className="text-yellow-700 dark:text-yellow-400 mt-1">
+                                        <span className="font-medium">Motivo:</span> {license.suspensionReason}
+                                      </p>
+                                    )}
                                     
-                                    {license.authorizedWeapons && Array.isArray(license.authorizedWeapons) && license.authorizedWeapons.length > 0 && (
+                                    {!isPending && license.authorizedWeapons && Array.isArray(license.authorizedWeapons) && license.authorizedWeapons.length > 0 && (
                                       <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                                         <p className="font-medium text-gray-700 dark:text-gray-300 mb-1">
                                           Armi autorizzate ({license.authorizedWeapons.length}):
@@ -1080,13 +1105,12 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                                   </div>
                                 </div>
                                 
-                                <div className="flex flex-col items-end gap-2">
+                                <div className="flex flex-col items-end gap-2 shrink-0">
                                   <Target className={`h-6 w-6 ${
-                                    isActive && !isExpired 
-                                      ? 'text-green-500' 
-                                      : isExpired
-                                      ? 'text-red-500'
-                                      : 'text-yellow-500'
+                                    isPending        ? 'text-blue-400'
+                                    : isActive && !isExpired ? 'text-green-500'
+                                    : isExpired      ? 'text-red-500'
+                                    : 'text-yellow-500'
                                   }`} />
                                 </div>
                               </div>
@@ -1104,9 +1128,9 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                   )}
                   
                   <div className="mt-4">
-                    <Link href={`/weapon-licenses/new`}>
+                    <Link href={`/weapon-licenses/new?citizenId=${citizen.id}`}>
                       <Button variant="primary" leftIcon={<Target className="h-4 w-4" />}>
-                        Rilascia Porto d'Armi
+                        Nuova Richiesta Porto d'Armi
                       </Button>
                     </Link>
                   </div>
