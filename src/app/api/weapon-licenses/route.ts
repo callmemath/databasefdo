@@ -92,6 +92,8 @@ export async function GET(request: NextRequest) {
 }
 
 // POST - Crea un nuovo porto d'armi
+// POST - Crea una nuova RICHIESTA di porto d'armi (status: pending)
+// La licenza diventa attiva solo quando l'operatore crea il documento in iarp-legal-docs
 export async function POST(request: NextRequest) {
   try {
     const auth = await getApiAuthContext(request);
@@ -112,18 +114,14 @@ export async function POST(request: NextRequest) {
       licenseNumber,
       citizenId,
       licenseType,
-      issueDate,
-      expiryDate,
       issuingAuthority,
-      restrictions,
-      authorizedWeapons,
       notes,
     } = body;
 
-    // Validazione
-    if (!licenseNumber || !citizenId || !licenseType || !issueDate || !expiryDate) {
+    // Validazione campi obbligatori per la richiesta
+    if (!licenseNumber || !citizenId || !licenseType) {
       return NextResponse.json(
-        { error: 'Campi obbligatori mancanti' },
+        { error: 'Campi obbligatori mancanti: licenseNumber, citizenId, licenseType' },
         { status: 400 }
       );
     }
@@ -145,7 +143,7 @@ export async function POST(request: NextRequest) {
 
     if (existingLicense) {
       return NextResponse.json(
-        { error: 'Numero porto d\'armi già esistente' },
+        { error: 'Numero richiesta già esistente' },
         { status: 400 }
       );
     }
@@ -155,13 +153,9 @@ export async function POST(request: NextRequest) {
         licenseNumber,
         citizenId: parseInt(citizenId),
         licenseType,
-        issueDate: new Date(issueDate),
-        expiryDate: new Date(expiryDate),
-        issuingAuthority,
-        restrictions,
-        authorizedWeapons,
+        issuingAuthority: issuingAuthority || 'Forze dell\'Ordine di San Andreas',
         notes,
-        status: 'active',
+        status: 'pending',
         officerId: auth.officerId,
       },
       include: {
@@ -176,31 +170,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Carica i dati del cittadino dal database IARP
     const licenseWithCitizen = {
       ...license,
       citizen
     };
 
-    // 🔔 Invia notifica Discord per nuova licenza porto d'armi
-    try {
-      await discordWebhook.notifyNewWeaponLicense({
-        licenseId: Number(licenseWithCitizen.id),
-        citizenName: `${citizen.firstname} ${citizen.lastname}`,
-        type: licenseType,
-        validUntil: new Date(expiryDate),
-        issuedBy: `${licenseWithCitizen.officer.name} ${licenseWithCitizen.officer.surname}`,
-      });
-    } catch (webhookError) {
-      // Non bloccare la creazione della licenza se il webhook fallisce
-      console.error('Errore durante l\'invio della notifica Discord:', webhookError);
-    }
-
     return NextResponse.json({ license: licenseWithCitizen }, { status: 201 });
   } catch (error) {
-    console.error('Errore nella creazione del porto d\'armi:', error);
+    console.error('Errore nella creazione della richiesta porto d\'armi:', error);
     return NextResponse.json(
-      { error: 'Errore nella creazione del porto d\'armi' },
+      { error: 'Errore nella creazione della richiesta porto d\'armi' },
       { status: 500 }
     );
   }

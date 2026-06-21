@@ -14,8 +14,8 @@ interface WeaponLicense {
   id: string;
   licenseNumber: string;
   licenseType: string;
-  issueDate: string;
-  expiryDate: string;
+  issueDate: string | null;
+  expiryDate: string | null;
   status: string;
   issuingAuthority: string;
   restrictions?: string;
@@ -47,6 +47,7 @@ const licenseTypeLabels: Record<string, string> = {
 };
 
 const statusLabels: Record<string, { label: string; color: string; icon: any }> = {
+  pending: { label: 'In Attesa', color: 'gray', icon: Clock },
   active: { label: 'Attivo', color: 'green', icon: CheckCircle },
   expired: { label: 'Scaduto', color: 'red', icon: XCircle },
   suspended: { label: 'Sospeso', color: 'yellow', icon: AlertTriangle },
@@ -102,14 +103,16 @@ export default function WeaponLicensesPage() {
     );
   };
 
-  const isExpiringSoon = (expiryDate: string) => {
+  const isExpiringSoon = (expiryDate: string | null) => {
+    if (!expiryDate) return false;
     const expiry = new Date(expiryDate);
     const today = new Date();
     const daysUntilExpiry = Math.floor((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
   };
 
-  const isExpired = (expiryDate: string) => {
+  const isExpired = (expiryDate: string | null) => {
+    if (!expiryDate) return false;
     return new Date(expiryDate) < new Date();
   };
 
@@ -150,6 +153,9 @@ export default function WeaponLicensesPage() {
       header: 'Scadenza',
       accessor: 'expiryDate' as const,
       cell: (license: WeaponLicense) => {
+        if (!license.expiryDate || license.status === 'pending') {
+          return <span className="text-gray-400 italic text-sm">In attesa di attivazione</span>;
+        }
         const expiry = new Date(license.expiryDate);
         const isExpiring = isExpiringSoon(license.expiryDate);
         const expired = isExpired(license.expiryDate);
@@ -182,22 +188,22 @@ export default function WeaponLicensesPage() {
 
   const stats = [
     {
-      title: 'Totale Licenze',
+      title: 'Totale',
       value: licenses.length,
       icon: Shield,
       color: 'blue' as const,
+    },
+    {
+      title: 'In Attesa',
+      value: licenses.filter(l => l.status === 'pending').length,
+      icon: Clock,
+      color: 'gray' as const,
     },
     {
       title: 'Attive',
       value: licenses.filter(l => l.status === 'active').length,
       icon: CheckCircle,
       color: 'green' as const,
-    },
-    {
-      title: 'In Scadenza',
-      value: licenses.filter(l => isExpiringSoon(l.expiryDate) && l.status === 'active').length,
-      icon: AlertTriangle,
-      color: 'yellow' as const,
     },
     {
       title: 'Sospese/Revocate',
@@ -225,7 +231,7 @@ export default function WeaponLicensesPage() {
             onClick={() => router.push('/weapon-licenses/new')}
           >
             <Plus className="w-4 h-4 mr-2" />
-            Nuova Licenza
+            Nuova Richiesta
           </Button>
         </div>
 
@@ -268,6 +274,7 @@ export default function WeaponLicensesPage() {
               className="px-4 py-2 border border-police-gray dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="all">Tutti gli stati</option>
+              <option value="pending">In Attesa</option>
               <option value="active">Attive</option>
               <option value="expired">Scadute</option>
               <option value="suspended">Sospese</option>
