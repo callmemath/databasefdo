@@ -41,7 +41,7 @@ interface WeaponLicense {
     dateofbirth: string;
     sex?: string;
     phone_number?: string;
-  };
+  } | null;
   officer: {
     id: string;
     name: string;
@@ -395,19 +395,24 @@ export default function WeaponLicenseDetailPage({
                 <div>
                   <p className="text-sm text-police-gray-dark dark:text-gray-400">Nome Completo</p>
                   <p className="font-medium text-police-blue-dark dark:text-white">
-                    {license.citizen.firstname} {license.citizen.lastname}
+                    {license.citizen ? `${license.citizen.firstname} ${license.citizen.lastname}` : 'Cittadino non disponibile'}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-police-gray-dark dark:text-gray-400">Data di Nascita</p>
                   <p className="font-medium text-police-blue-dark dark:text-white">
-                    {new Date(license.citizen.dateofbirth).toLocaleDateString('it-IT')}
+                    {license.citizen ? new Date(license.citizen.dateofbirth).toLocaleDateString('it-IT') : 'N/D'}
                   </p>
                 </div>
                 <Button
                   variant="secondary"
                   fullWidth
-                  onClick={() => router.push(`/citizens/${getCitizenRouteRef(license.citizen)}`)}
+                  onClick={() => {
+                    if (license.citizen) {
+                      router.push(`/citizens/${getCitizenRouteRef(license.citizen)}`);
+                    }
+                  }}
+                  disabled={!license.citizen}
                 >
                   Visualizza Profilo
                 </Button>

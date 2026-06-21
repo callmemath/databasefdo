@@ -27,7 +27,7 @@ interface WeaponLicense {
     firstname: string;
     lastname: string;
     dateofbirth: string;
-  };
+  } | null;
   officer: {
     name: string;
     surname: string;
@@ -131,7 +131,7 @@ export default function WeaponLicensesPage() {
       accessor: 'citizen' as const,
       cell: (license: WeaponLicense) => (
         <div className="font-medium text-gray-900 dark:text-white">
-          {license.citizen.firstname} {license.citizen.lastname}
+          {license.citizen ? `${license.citizen.firstname} ${license.citizen.lastname}` : 'Cittadino non disponibile'}
         </div>
       ),
     },
