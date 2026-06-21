@@ -185,14 +185,20 @@ export async function POST(request: NextRequest) {
       officerId: officer.id,
     } as const;
 
+    // Schema corrente: issueDate/expiryDate sono obbligatori anche per le richieste pending.
+    // Manteniamo lo stato pending e usiamo date placeholder finché non arriva l'attivazione.
+    const issueDate = new Date();
+    const expiryDate = new Date(issueDate);
+    expiryDate.setFullYear(expiryDate.getFullYear() + 5);
+
     let license;
     try {
-      // Flusso normale (schema aggiornato): richiesta pending senza date
+      // Crea richiesta pending con date obbligatorie (compatibile con schema non-null)
       license = await prisma.weaponLicense.create({
         data: {
           ...baseData,
-          issueDate: null,
-          expiryDate: null,
+          issueDate,
+          expiryDate,
         },
         include: {
           officer: {
@@ -206,15 +212,11 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (createError) {
-      // Compatibilità con DB non ancora migrato (issueDate/expiryDate NOT NULL)
+      // Compatibilità extra: in caso di validazione campi, ritenta con stesse date placeholder
       if (
         createError instanceof Prisma.PrismaClientKnownRequestError &&
         (createError.code === 'P2011' || createError.code === 'P2012')
       ) {
-        const issueDate = new Date();
-        const expiryDate = new Date(issueDate);
-        expiryDate.setFullYear(expiryDate.getFullYear() + 5);
-
         license = await prisma.weaponLicense.create({
           data: {
             ...baseData,
