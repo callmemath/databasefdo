@@ -14,9 +14,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token mancante' }, { status: 401 });
     }
 
-    // Verifica il token
+    // Verifica il token (valido se non scaduto o senza scadenza)
     const apiToken = await prisma.apiToken.findFirst({
-      where: { token, isActive: true },
+      where: {
+        token,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
     });
 
     if (!apiToken) {
