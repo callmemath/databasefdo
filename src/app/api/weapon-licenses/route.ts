@@ -187,12 +187,15 @@ export async function POST(request: NextRequest) {
 
     let license;
     try {
-      // Flusso normale (schema aggiornato): richiesta pending senza date
+      // Flusso normale (schema aggiornato): richiesta pending senza date.
+      // Il cast `as any` è necessario finché il DB non ha ancora applicato la
+      // migrazione che rende issueDate/expiryDate nullable: il client Prisma
+      // generato riflette lo schema corrente del DB, non quello del file .prisma.
       license = await prisma.weaponLicense.create({
         data: {
           ...baseData,
-          issueDate: null,
-          expiryDate: null,
+          issueDate: null as unknown as Date,
+          expiryDate: null as unknown as Date,
         },
         include: {
           officer: {
