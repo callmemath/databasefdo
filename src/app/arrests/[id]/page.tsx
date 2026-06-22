@@ -25,12 +25,6 @@ export default function ArrestDetails() {
   const { actionRules } = usePermissions();
 
   const deleteRules = actionRules['delete_arrest'] ?? [];
-  const canDeleteArrest =
-    deleteRules.length === 0 ||
-    hasPermission(
-      { deptId: session?.user?.deptId ?? null, rankId: session?.user?.rankId ?? null },
-      deleteRules
-    );
   const arrestId = params.id;
   const [arrest, setArrest] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,7 +43,17 @@ export default function ArrestDetails() {
     // signingOfficers e accomplices sono gestiti separatamente poiché sono Json
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  
+
+  // Può eliminare solo se soddisfa la soglia di rango (config) E l'arresto è della propria fazione
+  const canDeleteArrest =
+    (deleteRules.length === 0 ||
+      hasPermission(
+        { deptId: session?.user?.deptId ?? null, rankId: session?.user?.rankId ?? null },
+        deleteRules
+      )) &&
+    !!arrest &&
+    arrest.department === session?.user?.department;
+
   // Recupera i dati dell'arresto
   useEffect(() => {
     const fetchArrestDetails = async () => {
