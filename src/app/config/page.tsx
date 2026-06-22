@@ -71,7 +71,7 @@ export default function ConfigPage() {
 
   
   // Categorie selezionate attualmente
-  const [activeTab, setActiveTab] = useState<'reports' | 'permissions' | 'roles'>('reports');
+  const [activeTab, setActiveTab] = useState<'reports' | 'permissions' | 'actions' | 'roles'>('reports');
   
   // Stato per i permessi di accesso alle sezioni
   const { rules: contextRules, reload: reloadPermissions } = usePermissions();
@@ -95,6 +95,19 @@ export default function ConfigPage() {
   const [selectedDeptName, setSelectedDeptName] = useState<string>('');
   const [newRuleDeptId, setNewRuleDeptId] = useState<number>(1);
   const [newRuleMinRankId, setNewRuleMinRankId] = useState<number>(1);
+
+  // Stato per i permessi azioni UI
+  const [actionRules, setActionRules] = useState<RouteRulesMap>({});
+  const [actionSaving, setActionSaving] = useState(false);
+  const [actionSaved, setActionSaved] = useState(false);
+  const [selectedAction, setSelectedAction] = useState<string>('delete_arrest');
+  const [actionDeptName, setActionDeptName] = useState<string>('');
+  const [actionDeptId, setActionDeptId] = useState<number>(1);
+  const [actionMinRankId, setActionMinRankId] = useState<number>(1);
+
+  const CONFIGURABLE_ACTIONS: Record<string, string> = {
+    delete_arrest: 'Elimina Arresto',
+  };
 
   // Stato per la configurazione ruoli Discord
   const [rolesConfig, setRolesConfig] = useState<RolesConfig>(buildDefaultRolesConfig());
@@ -270,6 +283,67 @@ export default function ConfigPage() {
     setSelectedDeptName(firstName);
     setNewRuleDeptId(Number(rolesConfig[firstName]?.dept_id ?? 1));
   }, [rolesConfig]);
+
+  // Inizializza il dipartimento selezionato nel form azioni
+  useEffect(() => {
+    if (actionDeptName || Object.keys(rolesConfig).length === 0) return;
+    const firstName = Object.keys(rolesConfig)[0];
+    setActionDeptName(firstName);
+    setActionDeptId(Number(rolesConfig[firstName]?.dept_id ?? 1));
+  }, [rolesConfig]);
+
+  // Carica i permessi azioni
+  useEffect(() => {
+    fetch('/api/config/action-permissions')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.rules) {
+          const coerced: RouteRulesMap = {};
+          for (const [action, arr] of Object.entries(data.rules as RouteRulesMap)) {
+            coerced[action] = (arr as PermissionRule[]).map((r) => ({
+              deptId: Number(r.deptId),
+              minRankId: Number(r.minRankId),
+            }));
+          }
+          setActionRules(coerced);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSaveActionPermissions = async () => {
+    setActionSaving(true);
+    try {
+      const res = await fetch('/api/config/action-permissions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rules: actionRules }),
+      });
+      if (res.ok) {
+        setActionSaved(true);
+        setTimeout(() => setActionSaved(false), 3000);
+      }
+    } finally {
+      setActionSaving(false);
+    }
+  };
+
+  const handleAddActionRule = () => {
+    const existing = actionRules[selectedAction] ?? [];
+    const duplicate = existing.some(
+      (r) => r.deptId === actionDeptId && r.minRankId === actionMinRankId
+    );
+    if (duplicate) return;
+    setActionRules({
+      ...actionRules,
+      [selectedAction]: [...existing, { deptId: actionDeptId, minRankId: actionMinRankId }],
+    });
+  };
+
+  const handleRemoveActionRule = (action: string, index: number) => {
+    const updated = (actionRules[action] ?? []).filter((_, i) => i !== index);
+    setActionRules({ ...actionRules, [action]: updated });
+  };
 
   // Aggiorna un campo di un grado nella configurazione ruoli
   const handleRankFieldChange = (
@@ -504,10 +578,23 @@ export default function ConfigPage() {
                 </div>
               </button>
 
-              <button 
+              <button
                 className={`py-3 px-4 border-b-2 font-medium text-sm focus:outline-none whitespace-nowrap
-                  ${activeTab === 'roles' 
-                    ? 'border-police-blue text-police-blue-dark dark:text-police-blue-light' 
+                  ${activeTab === 'actions'
+                    ? 'border-police-blue text-police-blue-dark dark:text-police-blue-light'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                onClick={() => setActiveTab('actions')}
+              >
+                <div className="flex items-center">
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  Permessi Azioni
+                </div>
+              </button>
+
+              <button
+                className={`py-3 px-4 border-b-2 font-medium text-sm focus:outline-none whitespace-nowrap
+                  ${activeTab === 'roles'
+                    ? 'border-police-blue text-police-blue-dark dark:text-police-blue-light'
                     : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                 onClick={() => setActiveTab('roles')}
               >
@@ -764,6 +851,123 @@ export default function ConfigPage() {
                   leftIcon={<Save className="h-4 w-4" />}
                 >
                   {permSaved ? 'Salvato!' : permSaving ? 'Salvataggio...' : 'Salva permessi'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Tab Permessi Azioni */}
+          {activeTab === 'actions' && (
+            <div className="space-y-6">
+              <p className="text-sm text-police-gray-dark dark:text-police-text-muted">
+                Per ogni azione puoi definire quali dipartimenti e gradi minimi possono eseguirla.
+                Se non sono presenti regole, l&apos;azione è disponibile a tutti gli utenti autenticati.
+              </p>
+
+              {Object.entries(CONFIGURABLE_ACTIONS).map(([actionKey, actionLabel]) => {
+                const rules = actionRules[actionKey] ?? [];
+                return (
+                  <div key={actionKey} className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-medium text-police-blue-dark dark:text-police-text-light">
+                        {actionLabel}
+                        <span className="ml-2 text-xs text-gray-400 font-mono">{actionKey}</span>
+                      </h3>
+                      {rules.length === 0 && (
+                        <Badge variant="green">Visibile a tutti</Badge>
+                      )}
+                    </div>
+
+                    {rules.length > 0 && (
+                      <div className="space-y-2 mb-3">
+                        {rules.map((rule, idx) => (
+                          <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded px-3 py-2 text-sm">
+                            <span>
+                              <span className="font-medium">{getDeptDisplayName(rule.deptId)}</span>
+                              {' — '}
+                              grado min.{' '}
+                              <span className="font-medium">
+                                {getRankDisplayName(rule.deptId, rule.minRankId)}
+                              </span>
+                              <span className="text-gray-400 ml-1">(rankId {rule.minRankId})</span>
+                            </span>
+                            <button
+                              onClick={() => handleRemoveActionRule(actionKey, idx)}
+                              className="ml-3 text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Form aggiunta regola azione */}
+              <div className="border border-dashed border-gray-300 dark:border-gray-600 rounded-md p-4 space-y-4">
+                <h3 className="font-medium text-police-blue-dark dark:text-police-text-light">Aggiungi regola</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-police-gray-dark dark:text-police-text-muted mb-1">Azione</label>
+                    <select
+                      value={selectedAction}
+                      onChange={(e) => setSelectedAction(e.target.value)}
+                      className="form-input block w-full sm:text-sm border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-md"
+                    >
+                      {Object.entries(CONFIGURABLE_ACTIONS).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-police-gray-dark dark:text-police-text-muted mb-1">Dipartimento</label>
+                    <select
+                      value={actionDeptName}
+                      onChange={(e) => {
+                        const name = e.target.value;
+                        setActionDeptName(name);
+                        setActionDeptId(Number(rolesConfig[name]?.dept_id ?? 1));
+                        setActionMinRankId(1);
+                      }}
+                      className="form-input block w-full sm:text-sm border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-md"
+                    >
+                      {Object.keys(rolesConfig).map((name) => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-police-gray-dark dark:text-police-text-muted mb-1">Grado minimo</label>
+                    <select
+                      value={actionMinRankId}
+                      onChange={(e) => setActionMinRankId(Number(e.target.value))}
+                      className="form-input block w-full sm:text-sm border-police-gray dark:border-gray-600 dark:bg-gray-700 dark:text-police-text-light rounded-md"
+                    >
+                      {(rolesConfig[actionDeptName]?.ranks ?? []).map((rank: RankConfig) => (
+                        <option key={rank.rank_id} value={rank.rank_id}>{rank.rank_name} (rankId {rank.rank_id})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleAddActionRule}
+                  leftIcon={<Plus className="h-4 w-4" />}
+                >
+                  Aggiungi regola
+                </Button>
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  variant="primary"
+                  onClick={handleSaveActionPermissions}
+                  disabled={actionSaving}
+                  leftIcon={<Save className="h-4 w-4" />}
+                >
+                  {actionSaved ? 'Salvato!' : actionSaving ? 'Salvataggio...' : 'Salva permessi azioni'}
                 </Button>
               </div>
             </div>

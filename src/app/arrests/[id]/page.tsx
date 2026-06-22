@@ -2,14 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import MainLayout from '../../../components/layout/MainLayout';
 import Card from '../../../components/ui/Card';
 import Badge from '../../../components/ui/Badge';
 import Button from '../../../components/ui/Button';
 import { formatDate } from '@/lib/utils';
 import { getCitizenRouteRef } from '@/lib/utils';
-import { 
-  ArrowLeft, User, Calendar, Clock, AlertCircle, FileText, 
+import { hasPermission } from '@/lib/permissions';
+import { usePermissions } from '@/contexts/PermissionsContext';
+import {
+  ArrowLeft, User, Calendar, Clock, AlertCircle, FileText,
   Shield, Euro, Printer, Edit, Camera, MapPin, Plus, Loader,
   Trash2, Save, X
 } from 'lucide-react';
@@ -18,6 +21,16 @@ import Link from 'next/link';
 export default function ArrestDetails() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
+  const { actionRules } = usePermissions();
+
+  const deleteRules = actionRules['delete_arrest'] ?? [];
+  const canDeleteArrest =
+    deleteRules.length === 0 ||
+    hasPermission(
+      { deptId: session?.user?.deptId ?? null, rankId: session?.user?.rankId ?? null },
+      deleteRules
+    );
   const arrestId = params.id;
   const [arrest, setArrest] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -634,14 +647,16 @@ export default function ArrestDetails() {
                     Modifica Arresto
                   </Button>
                   
-                  <Button
-                    variant="danger"
-                    fullWidth
-                    leftIcon={<Trash2 className="h-4 w-4" />}
-                    onClick={() => setIsDeleting(true)}
-                  >
-                    Elimina Arresto
-                  </Button>
+                  {canDeleteArrest && (
+                    <Button
+                      variant="danger"
+                      fullWidth
+                      leftIcon={<Trash2 className="h-4 w-4" />}
+                      onClick={() => setIsDeleting(true)}
+                    >
+                      Elimina Arresto
+                    </Button>
+                  )}
                   
                   <Link href="/arrests">
                     <Button
