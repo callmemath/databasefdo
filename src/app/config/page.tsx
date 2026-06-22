@@ -1161,22 +1161,6 @@ export default function ConfigPage() {
             </div>
           )}
 
-          <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-police-gray-dark dark:text-police-text-muted">
-                Le modifiche vengono salvate automaticamente.
-              </p>
-              <Button
-                variant="outline"
-                leftIcon={<Save className="h-4 w-4" />}
-                onClick={() => {
-                  alert('Configurazioni salvate con successo!');
-                }}
-              >
-                Salva configurazioni
-              </Button>
-            </div>
-          </div>
         </Card>
         
                   <Card>
