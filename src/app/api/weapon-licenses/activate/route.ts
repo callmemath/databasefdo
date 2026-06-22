@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { hasValidTabletApiToken } from '@/lib/api-auth';
 
 // POST - Attiva una richiesta di porto d'armi pendente
 // Chiamato da iarp-legal-docs quando viene creato il documento
@@ -14,7 +15,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token mancante' }, { status: 401 });
     }
 
-    // Verifica il token (valido se non scaduto o senza scadenza)
+    // Verifica token: accetta sia token salvati in DB (fdo_api_tokens)
+    // sia il token servizio del tablet configurato via env (FDO_TABLET_API_TOKEN).
     const apiToken = await prisma.apiToken.findFirst({
       where: {
         token,
@@ -22,7 +24,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (!apiToken) {
+    const isTabletServiceToken = hasValidTabletApiToken(request);
+
+    if (!apiToken && !isTabletServiceToken) {
       return NextResponse.json({ error: 'Token non valido o revocato' }, { status: 401 });
     }
 
