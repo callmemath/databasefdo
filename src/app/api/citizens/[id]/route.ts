@@ -134,19 +134,17 @@ export async function GET(
       }
     })) : [];
     
-    // Per i report in cui il cittadino è accusato, carichiamo anche i dati del denunciante
-    const enrichedAccusedReports = await Promise.all(accusedReports.map(async (report) => {
-      const result = { ...report };
-      
-      if (report.citizenId) {
-        const citizen = await prisma.findGameUserById(report.citizenId);
-        if (citizen) {
-          // Aggiungiamo il denunciante ai dati del report
-          (result as any).citizen = citizen;
-        }
-      }
-      
-      return result;
+    // Batch lookup denuncianti — 1 full-scan invece di N
+    const accusedReportCitizenIds = [...new Set(
+      accusedReports.map(r => r.citizenId).filter(Boolean) as number[]
+    )];
+    const accusedReportCitizenMap = accusedReportCitizenIds.length > 0
+      ? await prisma.findGameUsersByIds(accusedReportCitizenIds)
+      : new Map();
+
+    const enrichedAccusedReports = accusedReports.map(report => ({
+      ...report,
+      citizen: report.citizenId ? (accusedReportCitizenMap.get(report.citizenId) || null) : null,
     }));
     
     // Carica i porto d'armi del cittadino

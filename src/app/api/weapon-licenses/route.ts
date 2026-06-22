@@ -39,84 +39,65 @@ export async function GET(request: NextRequest) {
       where.licenseNumber = { contains: search };
     }
 
-    // Try/catch: fallback senza issueDate/expiryDate se il client Prisma non è ancora rigenerato
+    const reqUrl = new URL(request.url);
+    const page = parseInt(reqUrl.searchParams.get('page') || '1');
+    const limit = Math.min(parseInt(reqUrl.searchParams.get('limit') || '50'), 200);
+    const skip = (page - 1) * limit;
+
+    const officerSelect = { select: { id: true, name: true, surname: true, badge: true, department: true } };
+
     let licenses: any[] = [];
+    let total = 0;
     try {
-      licenses = await prisma.weaponLicense.findMany({
-        where,
-        include: {
-          officer: {
-            select: {
-              id: true,
-              name: true,
-              surname: true,
-              badge: true,
-              department: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      });
+      [total, licenses] = await Promise.all([
+        prisma.weaponLicense.count({ where }),
+        prisma.weaponLicense.findMany({
+          where,
+          include: { officer: officerSelect },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        })
+      ]);
     } catch {
-      licenses = await prisma.weaponLicense.findMany({
-        where,
-        select: {
-          id: true,
-          licenseNumber: true,
-          licenseType: true,
-          status: true,
-          issuingAuthority: true,
-          restrictions: true,
-          authorizedWeapons: true,
-          notes: true,
-          suspensionReason: true,
-          citizenId: true,
-          createdAt: true,
-          updatedAt: true,
-          officer: {
-            select: {
-              id: true,
-              name: true,
-              surname: true,
-              badge: true,
-              department: true,
-            },
+      [total, licenses] = await Promise.all([
+        prisma.weaponLicense.count({ where }),
+        prisma.weaponLicense.findMany({
+          where,
+          select: {
+            id: true, licenseNumber: true, licenseType: true, status: true,
+            issuingAuthority: true, restrictions: true, authorizedWeapons: true,
+            notes: true, suspensionReason: true, citizenId: true, createdAt: true, updatedAt: true,
+            officer: officerSelect,
           },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      });
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        })
+      ]);
     }
 
-    // Carica i dati dei cittadini dal database IARP
-    const licensesWithCitizens = await Promise.all(
-      licenses.map(async (license) => {
-        let citizenData = null;
-        if (license.citizenId) {
-          citizenData = await prisma.findGameUserById(license.citizenId);
-        }
-        return {
-          ...license,
-          citizen: citizenData
-        };
-      })
-    );
+    // Batch IARP lookup — 1 full-scan invece di N
+    const citizenIds = [...new Set(licenses.map((l: any) => l.citizenId).filter(Boolean))] as number[];
+    const citizenMap = await prisma.findGameUsersByIds(citizenIds);
 
-    // Se c'è una ricerca per nome, filtra i risultati dopo aver caricato i dati dei cittadini
-    let filteredLicenses = licensesWithCitizens;
+    let licensesWithCitizens = licenses.map((license: any) => ({
+      ...license,
+      citizen: license.citizenId ? (citizenMap.get(license.citizenId) || null) : null,
+    }));
+
+    // Filtro per nome cittadino dopo enrichment
     if (search && !where.licenseNumber) {
       const searchLower = search.toLowerCase();
-      filteredLicenses = licensesWithCitizens.filter((license) => {
-        if (!license.citizen) return false;
-        const fullName = `${license.citizen.firstname} ${license.citizen.lastname}`.toLowerCase();
-        return fullName.includes(searchLower);
+      licensesWithCitizens = licensesWithCitizens.filter((l: any) => {
+        if (!l.citizen) return false;
+        return `${l.citizen.firstname} ${l.citizen.lastname}`.toLowerCase().includes(searchLower);
       });
     }
 
-    return NextResponse.json({ licenses: filteredLicenses });
+    return NextResponse.json({ licenses: licensesWithCitizens, total, page, limit }, {
+      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' }
+    });
   } catch (error) {
     console.error('Errore nel recupero dei porto d\'armi:', error);
     return NextResponse.json(

@@ -172,27 +172,29 @@ export async function GET(req: NextRequest) {
       ]
     } : {};
 
-    const users = await prisma.user.findMany({
-      where: whereClause,
-      select: {
-        id: true,
-        name: true,
-        surname: true,
-        email: true,
-        badge: true,
-        department: true,
-        rank: true,
-        image: true,
-        createdAt: true,
-        updatedAt: true,
-        // Non includiamo la password
-      },
-      orderBy: {
-        surname: 'asc'
-      }
-    });
+    const reqUrl2 = new URL(req.url);
+    const page = parseInt(reqUrl2.searchParams.get('page') || '1');
+    const limit = Math.min(parseInt(reqUrl2.searchParams.get('limit') || '50'), 200);
+    const skip = (page - 1) * limit;
 
-    return NextResponse.json({ users });
+    const [total, users] = await Promise.all([
+      prisma.user.count({ where: whereClause }),
+      prisma.user.findMany({
+        where: whereClause,
+        select: {
+          id: true, name: true, surname: true, email: true,
+          badge: true, department: true, rank: true, image: true,
+          createdAt: true, updatedAt: true,
+        },
+        orderBy: { surname: 'asc' },
+        skip,
+        take: limit,
+      })
+    ]);
+
+    return NextResponse.json({ users, total, page, limit }, {
+      headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=120' }
+    });
   } catch (error) {
     console.error("Errore durante il recupero degli utenti:", error);
     return NextResponse.json(

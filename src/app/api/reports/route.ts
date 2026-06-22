@@ -176,94 +176,49 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
     }
 
-    // Ottieni i parametri di query
-    const url = new URL(req.url);
-    const citizenId = url.searchParams.get('citizenId');
-    const type = url.searchParams.get('type');
-    
-    // Costruisci la query in base ai filtri
+    const reqUrl = new URL(req.url);
+    const citizenId = reqUrl.searchParams.get('citizenId');
+    const type = reqUrl.searchParams.get('type');
+    const page = parseInt(reqUrl.searchParams.get('page') || '1');
+    const limit = Math.min(parseInt(reqUrl.searchParams.get('limit') || '50'), 200);
+    const skip = (page - 1) * limit;
+
     const where: any = {};
-    
-    if (citizenId) {
-      where.citizenId = parseInt(citizenId);
-    }
-    
-    if (type) {
-      where.type = type;
-    }
+    if (citizenId) where.citizenId = parseInt(citizenId);
+    if (type) where.type = type;
 
-    // Ottieni tutti i rapporti utilizzando una query SQL
-    let reportsData;
-    
-    if (citizenId && type) {
-      reportsData = await prisma.$queryRaw`
-        SELECT * FROM fdo_reports
-        WHERE citizenId = ${parseInt(citizenId)} AND type = ${type}
-        ORDER BY date DESC
-      `;
-    } else if (citizenId) {
-      reportsData = await prisma.$queryRaw`
-        SELECT * FROM fdo_reports
-        WHERE citizenId = ${parseInt(citizenId)}
-        ORDER BY date DESC
-      `;
-    } else if (type) {
-      reportsData = await prisma.$queryRaw`
-        SELECT * FROM fdo_reports
-        WHERE type = ${type}
-        ORDER BY date DESC
-      `;
-    } else {
-      reportsData = await prisma.$queryRaw`
-        SELECT * FROM fdo_reports
-        ORDER BY date DESC
-      `;
-    }
-    
-    // Convertiamo i dati grezzi in un formato più gestibile
-    const reports = Array.isArray(reportsData) ? reportsData.map((report: any) => ({
-      ...report,
-      officer: null // Sarà popolato sotto
-    })) : [];
-    
-    // Carichiamo i dati degli ufficiali
-    for (const report of reports) {
-      const officer = await prisma.user.findUnique({
-        where: { id: report.officerId },
-        select: {
-          id: true,
-          name: true,
-          surname: true,
-          badge: true,
-          department: true,
-          rank: true,
+    // Singola query con officer incluso — elimina N+1 officer loop + $queryRaw senza LIMIT
+    const [total, reports] = await Promise.all([
+      prisma.report.count({ where }),
+      prisma.report.findMany({
+        where,
+        orderBy: { date: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          officer: {
+            select: { id: true, name: true, surname: true, badge: true, department: true, rank: true }
+          }
         }
-      });
-      report.officer = officer;
-    }
-    
-    // Carica manualmente i dati dei cittadini e degli accusati
-    const reportsWithRelations = await Promise.all(
-      reports.map(async (report: any) => {
-        let citizenData = null;
-        if (report.citizenId) {
-          citizenData = await prisma.findGameUserById(report.citizenId);
-        }
-        
-        let accusedData = null;
-        if (report.accusedId) {
-          accusedData = await prisma.findGameUserById(report.accusedId);
-        }
-        
-        return {
-          ...report,
-          citizen: citizenData,
-          accused: accusedData
-        };
       })
-    );
+    ]);
 
-    return NextResponse.json({ reports: reportsWithRelations });
+    // Batch IARP lookup — cittadini + accusati in 1 full-scan
+    const allCitizenIds = [
+      ...reports.map((r: any) => r.citizenId).filter(Boolean),
+      ...reports.map((r: any) => r.accusedId).filter(Boolean),
+    ] as number[];
+    const citizenMap = await prisma.findGameUsersByIds([...new Set(allCitizenIds)]);
+
+    const reportsWithRelations = reports.map((report: any) => ({
+      ...report,
+      citizen: report.citizenId ? (citizenMap.get(report.citizenId) || null) : null,
+      accused: report.accusedId ? (citizenMap.get(report.accusedId) || null) : null,
+    }));
+
+    return NextResponse.json({ reports: reportsWithRelations, total, page, limit }, {
+      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' }
+    });
   } catch (error) {
     console.error("Errore durante il recupero dei rapporti:", error);
     return NextResponse.json(

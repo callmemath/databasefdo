@@ -13,29 +13,28 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
     }
 
-    // Ottieni gli operatori con i dati necessari
-    const operators = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        surname: true,
-        email: true,
-        badge: true,
-        department: true,
-        rank: true,
-        image: true,
-        createdAt: true,
-        updatedAt: true,
-        // Non includiamo la password per sicurezza
-      },
-      orderBy: [
-        { department: 'asc' },
-        { rank: 'asc' },
-        { surname: 'asc' }
-      ]
-    });
+    const reqUrl = new URL(req.url);
+    const page = parseInt(reqUrl.searchParams.get('page') || '1');
+    const limit = Math.min(parseInt(reqUrl.searchParams.get('limit') || '200'), 500);
+    const skip = (page - 1) * limit;
 
-    return NextResponse.json({ operators });
+    const [total, operators] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.findMany({
+        select: {
+          id: true, name: true, surname: true, email: true,
+          badge: true, department: true, rank: true, image: true,
+          createdAt: true, updatedAt: true,
+        },
+        orderBy: [{ department: 'asc' }, { rank: 'asc' }, { surname: 'asc' }],
+        skip,
+        take: limit,
+      })
+    ]);
+
+    return NextResponse.json({ operators, total, page, limit }, {
+      headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=120' }
+    });
   } catch (error) {
     console.error("Errore durante il recupero degli operatori:", error);
     return NextResponse.json(

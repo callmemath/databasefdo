@@ -30,67 +30,60 @@ export async function GET(request: Request) {
       where.dangerLevel = dangerLevel;
     }
     
-    // Recupera tutti i ricercati con i dati dell'officer
-    const wantedRecords = await (prisma as any).wanted.findMany({
-      where,
-      include: {
-        officer: {
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-            badge: true,
-            rank: true,
-            department: true
+    const reqUrl = new URL(request.url);
+    const page = parseInt(reqUrl.searchParams.get('page') || '1');
+    const limit = Math.min(parseInt(reqUrl.searchParams.get('limit') || '100'), 500);
+    const skip = (page - 1) * limit;
+
+    const [total, wantedRecords] = await Promise.all([
+      (prisma as any).wanted.count({ where }),
+      (prisma as any).wanted.findMany({
+        where,
+        include: {
+          officer: {
+            select: { id: true, name: true, surname: true, badge: true, rank: true, department: true }
           }
-        }
-      },
-      orderBy: {
-        insertedAt: 'desc'
-      }
+        },
+        orderBy: { insertedAt: 'desc' },
+        skip,
+        take: limit,
+      })
+    ]);
+
+    // Batch IARP lookup — 1 full-scan invece di N
+    const citizenIds = [...new Set(wantedRecords.map((w: any) => w.citizenId))] as number[];
+    const citizenMap = await prisma.findGameUsersByIds(citizenIds);
+
+    let enrichedWanted = wantedRecords.map((wanted: any) => {
+      const citizen = citizenMap.get(wanted.citizenId);
+      return {
+        ...wanted,
+        citizen_firstname: citizen?.firstname || 'Sconosciuto',
+        citizen_lastname: citizen?.lastname || '',
+        citizen_dateofbirth: citizen?.dateofbirth || null,
+        citizen_gender: citizen?.sex || null,
+        citizen_height: citizen?.height || null,
+        citizen_phone: citizen?.phone_number || null,
+        officer_name: wanted.officer?.name || 'Sconosciuto',
+        officer_surname: wanted.officer?.surname || '',
+        officer_badge: wanted.officer?.badge || null,
+      };
     });
 
-    // Arricchisci i dati con le informazioni dei cittadini dal database IARP
-    const enrichedWanted = await Promise.all(
-      wantedRecords.map(async (wanted: any) => {
-        // Recupera i dati del cittadino dal database IARP
-        const citizen = await prisma.findGameUserById(wanted.citizenId);
-        
-        // Applica il filtro di ricerca se necessario
-        if (search) {
-          const searchLower = search.toLowerCase();
-          const matchesCitizen = citizen && (
-            citizen.firstname?.toLowerCase().includes(searchLower) ||
-            citizen.lastname?.toLowerCase().includes(searchLower)
-          );
-          const matchesWanted = 
-            wanted.crimes?.toLowerCase().includes(searchLower) ||
-            wanted.description?.toLowerCase().includes(searchLower);
-          
-          if (!matchesCitizen && !matchesWanted) {
-            return null; // Filtra questo record
-          }
-        }
+    // Filtro ricerca su nome e testo dopo enrichment
+    if (search) {
+      const searchLower = search.toLowerCase();
+      enrichedWanted = enrichedWanted.filter((w: any) =>
+        w.citizen_firstname.toLowerCase().includes(searchLower) ||
+        w.citizen_lastname.toLowerCase().includes(searchLower) ||
+        w.crimes?.toLowerCase().includes(searchLower) ||
+        w.description?.toLowerCase().includes(searchLower)
+      );
+    }
 
-        return {
-          ...wanted,
-          citizen_firstname: citizen?.firstname || 'Sconosciuto',
-          citizen_lastname: citizen?.lastname || '',
-          citizen_dateofbirth: citizen?.dateofbirth || null,
-          citizen_gender: citizen?.sex || null,
-          citizen_height: citizen?.height || null,
-          citizen_phone: citizen?.phone_number || null,
-          officer_name: wanted.officer?.name || 'Sconosciuto',
-          officer_surname: wanted.officer?.surname || '',
-          officer_badge: wanted.officer?.badge || null,
-        };
-      })
-    );
-
-    // Rimuovi i record null (filtrati dalla ricerca)
-    const filteredWanted = enrichedWanted.filter(w => w !== null);
-
-    return NextResponse.json(filteredWanted);
+    return NextResponse.json({ wanted: enrichedWanted, total, page, limit }, {
+      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' }
+    });
   } catch (error) {
     console.error('Errore durante il recupero dei ricercati:', error);
     return NextResponse.json({ error: 'Errore durante il recupero dei ricercati' }, { status: 500 });
