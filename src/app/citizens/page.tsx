@@ -130,15 +130,6 @@ export default function Citizens() {
               Informazioni complete su tutti i cittadini
             </p>
           </div>
-          
-          <div className="mt-4 md:mt-0">
-            <Button
-              variant="primary"
-              leftIcon={<Search className="h-4 w-4" />}
-            >
-              Ricerca Avanzata
-            </Button>
-          </div>
         </div>
       </div>
       
