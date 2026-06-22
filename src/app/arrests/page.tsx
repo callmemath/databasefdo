@@ -177,14 +177,7 @@ export default function Arrests() {
       console.log(`Avvio ricerca per "${currentQuery}"`);
       setIsSearching(true);
       
-      const res = await fetch(`/api/citizens?q=${encodeURIComponent(currentQuery)}&_=${Date.now()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
-        // Aggiungiamo l'AbortSignal alla richiesta
+      const res = await fetch(`/api/citizens?q=${encodeURIComponent(currentQuery)}`, {
         signal: controller.signal
       });
       
@@ -267,13 +260,7 @@ export default function Arrests() {
     try {
       setIsSearchingAccomplices(true);
       
-      const res = await fetch(`/api/citizens?q=${encodeURIComponent(currentQuery)}&_=${Date.now()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
+      const res = await fetch(`/api/citizens?q=${encodeURIComponent(currentQuery)}`, {
         signal: controller.signal
       });
       
@@ -335,13 +322,7 @@ export default function Arrests() {
       setIsSearchingOfficers(true);
       
       // Usa l'API degli utenti invece che dei cittadini
-      const res = await fetch(`/api/users?q=${encodeURIComponent(currentQuery)}&_=${Date.now()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        },
+      const res = await fetch(`/api/users?q=${encodeURIComponent(currentQuery)}`, {
         signal: controller.signal
       });
       

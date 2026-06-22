@@ -97,6 +97,7 @@ export interface FindGameUsersResult {
 interface PrismaClientExtended extends PrismaClient {
   findGameUsers(options?: FindGameUsersOptions): Promise<FindGameUsersResult>;
   findGameUserById(id: number): Promise<GameUser | null>;
+  findGameUsersByIds(ids: number[]): Promise<Map<number, GameUser>>;
   findGameUserByIdentifier(identifier: string): Promise<GameUser | null>;
 }
 
@@ -204,6 +205,60 @@ const findGameUserByIdQuery = async (
   } as GameUser;
 };
 
+const findGameUsersByIdsQuery = async (
+  _prisma: PrismaClient,
+  ids: number[]
+): Promise<Map<number, GameUser>> => {
+  if (ids.length === 0) return new Map();
+
+  const allUsers = await prismaIARP.gameUser.findMany({
+    select: {
+      identifier: true,
+      firstname: true,
+      lastname: true,
+      dateofbirth: true,
+      sex: true,
+      nationality: true,
+      height: true,
+      accounts: true,
+      group: true,
+      inventory: true,
+      loadout: true,
+      metadata: true,
+      position: true,
+      status: true,
+      skin: true,
+    }
+  });
+
+  const result = new Map<number, GameUser>();
+  const idSet = new Set(ids);
+
+  for (const u of allUsers) {
+    const ident = u.identifier || '';
+    if (!ident) continue;
+
+    let computedId = extractNumericId(ident);
+    if (idSet.has(computedId)) {
+      result.set(computedId, { ...u, id: computedId } as GameUser);
+      continue;
+    }
+
+    // Fallback formula legacy
+    const hp = ident.split(':');
+    const hashPart = hp.length > 1 ? hp[1] : ident;
+    const safe = hashPart.replace(/[^0-9a-fA-F]/g, '0').substring(0, 8).padEnd(8, '0');
+    try {
+      const legacyId = Number((BigInt(`0x${safe}`) % BigInt(2147483647)) + BigInt(1));
+      if (idSet.has(legacyId) && !result.has(legacyId)) {
+        result.set(legacyId, { ...u, id: legacyId } as GameUser);
+      }
+    } catch { /* skip */ }
+  }
+
+  return result;
+};
+
 const findGameUserByIdentifierQuery = async (
   prisma: PrismaClient,
   identifier: string
@@ -255,6 +310,7 @@ if (process.env.NODE_ENV === 'production') {
   }) as PrismaClientExtended;
   prisma.findGameUsers = (options) => findGameUsersQuery(prisma, options);
   prisma.findGameUserById = (id) => findGameUserByIdQuery(prisma, id);
+  prisma.findGameUsersByIds = (ids) => findGameUsersByIdsQuery(prisma, ids);
   prisma.findGameUserByIdentifier = (identifier) => findGameUserByIdentifierQuery(prisma, identifier);
 } else {
   // In development, clear any existing instance and create a new one
@@ -270,6 +326,7 @@ if (process.env.NODE_ENV === 'production') {
   
   newPrisma.findGameUsers = (options) => findGameUsersQuery(newPrisma, options);
   newPrisma.findGameUserById = (id) => findGameUserByIdQuery(newPrisma, id);
+  newPrisma.findGameUsersByIds = (ids) => findGameUsersByIdsQuery(newPrisma, ids);
   newPrisma.findGameUserByIdentifier = (identifier) => findGameUserByIdentifierQuery(newPrisma, identifier);
   
   global.prisma = newPrisma;

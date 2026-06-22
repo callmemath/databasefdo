@@ -46,27 +46,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const validationResponse = await fetch(new URL('/api/auth/validate', request.url), {
-    headers: {
-      cookie: request.headers.get('cookie') ?? '',
-    },
-  });
+  // Le API route fanno la propria autenticazione via getApiAuthContext — skip DB validation.
+  // Solo le navigazioni di pagina controllano la revoca account contro il DB.
+  if (!pathname.startsWith('/api/')) {
+    const validationResponse = await fetch(new URL('/api/auth/validate', request.url), {
+      headers: {
+        cookie: request.headers.get('cookie') ?? '',
+      },
+    });
 
-  if (!validationResponse.ok) {
-    if (pathname.startsWith('/api/')) {
-      const response = NextResponse.json(
-        { error: 'Sessione scaduta o revocata' },
-        { status: 401 }
-      );
+    if (!validationResponse.ok) {
+      const url = new URL('/login', request.url);
+      url.searchParams.set('callbackUrl', encodeURI(request.url));
+      const response = NextResponse.redirect(url);
       response.headers.append('Set-Cookie', clearSiteAccessCookie());
       return response;
     }
-
-    const url = new URL('/login', request.url);
-    url.searchParams.set('callbackUrl', encodeURI(request.url));
-    const response = NextResponse.redirect(url);
-    response.headers.append('Set-Cookie', clearSiteAccessCookie());
-    return response;
   }
   
   // Per le API (escluse quelle di auth), restituisci 401 se non autenticato

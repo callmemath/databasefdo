@@ -160,38 +160,24 @@ export async function GET(req: NextRequest) {
       count
     }));
 
-    // Carica i dati dei cittadini per gli arresti recenti
-    const arrestsWithCitizens = await Promise.all(
-      recentArrests.map(async (arrest) => {
-        let citizenData = null;
-        if (arrest.citizenId) {
-          citizenData = await prisma.findGameUserById(arrest.citizenId);
-        }
-        return {
-          ...arrest,
-          citizen: citizenData
-        };
-      })
-    );
+    // Batch lookup cittadini: 1 full-scan IARP invece di 10
+    const allCitizenIds = [
+      ...recentArrests.map(a => a.citizenId).filter(Boolean),
+      ...recentReports.map(r => r.citizenId).filter(Boolean),
+      ...recentReports.map(r => (r as any).accusedId).filter(Boolean),
+    ] as number[];
+    const citizenMap = await prisma.findGameUsersByIds([...new Set(allCitizenIds)]);
 
-    // Carica i dati dei cittadini per i report recenti
-    const reportsWithCitizens = await Promise.all(
-      recentReports.map(async (report) => {
-        let citizenData = null;
-        let accusedData = null;
-        if (report.citizenId) {
-          citizenData = await prisma.findGameUserById(report.citizenId);
-        }
-        if (report.accusedId) {
-          accusedData = await prisma.findGameUserById(report.accusedId);
-        }
-        return {
-          ...report,
-          citizen: citizenData,
-          accused: accusedData
-        };
-      })
-    );
+    const arrestsWithCitizens = recentArrests.map(arrest => ({
+      ...arrest,
+      citizen: arrest.citizenId ? (citizenMap.get(arrest.citizenId) || null) : null
+    }));
+
+    const reportsWithCitizens = recentReports.map(report => ({
+      ...report,
+      citizen: report.citizenId ? (citizenMap.get(report.citizenId) || null) : null,
+      accused: (report as any).accusedId ? (citizenMap.get((report as any).accusedId) || null) : null
+    }));
 
     const responseData = {
       counts: {

@@ -285,66 +285,47 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
     }
 
-    // Ottieni i parametri di query
-    const url = new URL(req.url);
-    const citizenId = url.searchParams.get('citizenId');
-    
-    // Costruisci la query in base ai filtri
-    const where = citizenId 
-      ? { citizenId: parseInt(citizenId) } 
-      : {};
+    const reqUrl = new URL(req.url);
+    const citizenId = reqUrl.searchParams.get('citizenId');
+    const page = parseInt(reqUrl.searchParams.get('page') || '1');
+    const limit = Math.min(parseInt(reqUrl.searchParams.get('limit') || '50'), 200);
+    const skip = (page - 1) * limit;
 
-    // Ottieni tutti gli arresti usando una query raw per includere tutti i campi
-    let arrestsRaw: any[];
-    
-    if (citizenId) {
-      arrestsRaw = await prisma.$queryRaw`
-        SELECT * FROM fdo_arrests 
-        WHERE citizenId = ${parseInt(citizenId)}
-        ORDER BY date DESC
-      `;
-    } else {
-      arrestsRaw = await prisma.$queryRaw`
-        SELECT * FROM fdo_arrests 
-        ORDER BY date DESC
-      `;
-    }
-    
-    // Carica gli officer per ogni arresto
-    const arrests = await Promise.all(
-      arrestsRaw.map(async (arrest) => {
-        const officer = await prisma.user.findUnique({
-          where: { id: arrest.officerId },
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-            badge: true,
-            department: true,
-            rank: true
+    const where = citizenId ? { citizenId: parseInt(citizenId) } : {};
+
+    // Singola query con officer incluso — elimina N+1 per officer
+    const [total, arrestsWithOfficer] = await Promise.all([
+      prisma.arrest.count({ where }),
+      prisma.arrest.findMany({
+        where,
+        orderBy: { date: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          officer: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              badge: true,
+              department: true,
+              rank: true
+            }
           }
-        });
-        
-        return {
-          ...arrest,
-          officer
-        };
+        }
       })
-    );
-    
-    // Carica i dati dei cittadini per gli arresti usando il modello GameUser
-    const arrestsWithCitizens = await Promise.all(
-      arrests.map(async (arrest) => {
-        const citizenData = await prisma.findGameUserById(arrest.citizenId);
-        
-        return {
-          ...arrest,
-          citizen: citizenData
-        };
-      })
-    );
+    ]);
 
-    return NextResponse.json({ arrests: arrestsWithCitizens });
+    // Batch lookup cittadini: 1 full-scan IARP invece di N full-scan
+    const citizenIds = [...new Set(arrestsWithOfficer.map(a => a.citizenId))];
+    const citizenMap = await prisma.findGameUsersByIds(citizenIds);
+
+    const arrestsWithCitizens = arrestsWithOfficer.map(arrest => ({
+      ...arrest,
+      citizen: citizenMap.get(arrest.citizenId) || null
+    }));
+
+    return NextResponse.json({ arrests: arrestsWithCitizens, total, page, limit });
   } catch (error) {
     console.error("Errore durante il recupero degli arresti:", error);
     return NextResponse.json(

@@ -95,93 +95,94 @@ export async function GET(req: NextRequest) {
       take: limit
     });
     
-    // Per ogni utente, ottieni gli arresti e i rapporti associati.
-    // Se le tabelle FDO non sono ancora state create, manteniamo la pagina utilizzabile
-    // restituendo array vuoti invece di un errore 500.
-    const citizensWithDetails = await Promise.all(
-      users.map(async (user: any) => {
-        let arrests: any[] = [];
-        let reports: any[] = [];
-        let weaponLicenses: any[] = [];
+    // Batch queries per tutti i citizen in pagina — 3 query totali invece di 3N
+    const userIds = users.map((u: any) => u.id);
 
-        try {
-          arrests = await prisma.arrest.findMany({
-            where: { citizenId: user.id },
-            select: {
-              id: true,
-              date: true,
-              charges: true,
-              officer: {
-                select: {
-                  id: true,
-                  name: true,
-                  surname: true,
-                  badge: true,
-                }
-              }
-            }
-          });
-        } catch (queryError) {
-          if (!isMissingTableOrColumnError(queryError)) {
-            throw queryError;
+    let allArrests: any[] = [];
+    let allReports: any[] = [];
+    let allWeaponLicenses: any[] = [];
+
+    try {
+      allArrests = await prisma.arrest.findMany({
+        where: { citizenId: { in: userIds } },
+        select: {
+          id: true,
+          date: true,
+          charges: true,
+          citizenId: true,
+          officer: {
+            select: { id: true, name: true, surname: true, badge: true }
           }
         }
+      });
+    } catch (queryError) {
+      if (!isMissingTableOrColumnError(queryError)) throw queryError;
+    }
 
-        try {
-          reports = await prisma.report.findMany({
-            where: { citizenId: user.id },
-            select: {
-              id: true,
-              title: true,
-              date: true,
-              description: true,
-              type: true,
-              location: true,
-              isAnonymous: true,
-              officer: {
-                select: {
-                  id: true,
-                  name: true,
-                  surname: true,
-                  badge: true,
-                }
-              }
-            }
-          });
-        } catch (queryError) {
-          if (!isMissingTableOrColumnError(queryError)) {
-            throw queryError;
+    try {
+      allReports = await prisma.report.findMany({
+        where: { citizenId: { in: userIds } },
+        select: {
+          id: true,
+          title: true,
+          date: true,
+          description: true,
+          type: true,
+          location: true,
+          isAnonymous: true,
+          citizenId: true,
+          officer: {
+            select: { id: true, name: true, surname: true, badge: true }
           }
         }
+      });
+    } catch (queryError) {
+      if (!isMissingTableOrColumnError(queryError)) throw queryError;
+    }
 
-        try {
-          weaponLicenses = await prisma.weaponLicense.findMany({
-            where: { citizenId: user.id },
-            select: {
-              id: true,
-              licenseNumber: true,
-              licenseType: true,
-              status: true,
-              // expiryDate escluso: può essere null nei record pending e il client
-              // Prisma generato potrebbe non averlo ancora come nullable.
-              // Per la lista cittadini basta lo status.
-            }
-          });
-        } catch (queryError) {
-          if (!isMissingTableOrColumnError(queryError)) {
-            throw queryError;
-          }
+    try {
+      allWeaponLicenses = await prisma.weaponLicense.findMany({
+        where: { citizenId: { in: userIds } },
+        select: {
+          id: true,
+          licenseNumber: true,
+          licenseType: true,
+          status: true,
+          citizenId: true,
         }
-        
-        return {
-          ...user,
-          identifier: user.identifier ?? null,
-          arrests,
-          reports,
-          weaponLicenses
-        };
-      })
-    );
+      });
+    } catch (queryError) {
+      if (!isMissingTableOrColumnError(queryError)) throw queryError;
+    }
+
+    // Raggruppa per citizenId in O(n)
+    const arrestsByUser = new Map<number, any[]>();
+    const reportsByUser = new Map<number, any[]>();
+    const licensesByUser = new Map<number, any[]>();
+
+    for (const a of allArrests) {
+      const list = arrestsByUser.get(a.citizenId) || [];
+      list.push(a);
+      arrestsByUser.set(a.citizenId, list);
+    }
+    for (const r of allReports) {
+      const list = reportsByUser.get(r.citizenId) || [];
+      list.push(r);
+      reportsByUser.set(r.citizenId, list);
+    }
+    for (const l of allWeaponLicenses) {
+      const list = licensesByUser.get(l.citizenId) || [];
+      list.push(l);
+      licensesByUser.set(l.citizenId, list);
+    }
+
+    const citizensWithDetails = users.map((user: any) => ({
+      ...user,
+      identifier: user.identifier ?? null,
+      arrests: arrestsByUser.get(user.id) || [],
+      reports: reportsByUser.get(user.id) || [],
+      weaponLicenses: licensesByUser.get(user.id) || [],
+    }));
 
     // Calcola il numero totale di pagine
     const totalPages = Math.ceil(totalCount / limit);

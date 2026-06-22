@@ -89,15 +89,6 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: '/api/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, must-revalidate',
-          },
-        ],
-      },
-      {
         source: '/_next/static/:path*',
         headers: [
           {
