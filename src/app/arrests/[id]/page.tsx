@@ -600,7 +600,7 @@ export default function ArrestDetails() {
               Azioni
             </h2>
             
-            <div className="space-y-3">
+            <div className="flex flex-col gap-3">
               {isEditing ? (
                 <>
                   <Button
