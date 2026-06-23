@@ -147,307 +147,6 @@ export default function ArrestDetails() {
     }
   };
   
-  const handlePrint = () => {
-    const accomplices = (() => {
-      try { return JSON.parse(arrest.accomplices || '[]'); } catch { return []; }
-    })();
-    const signingOfficers = (() => {
-      try { return JSON.parse(arrest.signingOfficers || '[]'); } catch { return []; }
-    })();
-
-    const html = `<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8"/>
-  <title>Verbale di Arresto #${arrestId}</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', 'Segoe UI', sans-serif; font-size: 11pt; color: #1a1a2e; background: #f0f2f5; }
-    .page { max-width: 800px; margin: 32px auto; background: #fff; box-shadow: 0 4px 24px rgba(0,0,0,.12); border-radius: 8px; overflow: hidden; }
-
-    /* Header */
-    .header { background: linear-gradient(135deg, #1a237e 0%, #283593 60%, #1565c0 100%); color: #fff; padding: 32px 40px 28px; position: relative; overflow: hidden; }
-    .header::before { content: ''; position: absolute; top: -40px; right: -40px; width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,.06); }
-    .header::after { content: ''; position: absolute; bottom: -60px; right: 60px; width: 140px; height: 140px; border-radius: 50%; background: rgba(255,255,255,.04); }
-    .header-top { display: flex; align-items: center; gap: 18px; margin-bottom: 18px; }
-    .badge-icon { width: 56px; height: 56px; background: rgba(255,255,255,.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; border: 2px solid rgba(255,255,255,.3); }
-    .header-dept { font-size: 9pt; letter-spacing: 2px; text-transform: uppercase; opacity: .75; margin-bottom: 4px; }
-    .header-title { font-size: 22pt; font-weight: 700; letter-spacing: -0.5px; }
-    .header-sub { font-size: 11pt; opacity: .8; margin-top: 2px; }
-    .header-meta { display: flex; gap: 24px; flex-wrap: wrap; }
-    .header-chip { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25); border-radius: 20px; padding: 4px 14px; font-size: 9pt; letter-spacing: .5px; }
-
-    /* Status banner */
-    .status-bar { background: #e8f5e9; border-left: 5px solid #2e7d32; padding: 10px 40px; font-size: 10pt; color: #1b5e20; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #2e7d32; flex-shrink: 0; }
-
-    /* Body */
-    .body { padding: 32px 40px; }
-
-    /* Section */
-    .section { margin-bottom: 28px; }
-    .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-    .section-icon { width: 28px; height: 28px; border-radius: 6px; background: #1a237e; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; flex-shrink: 0; }
-    .section-title { font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #1a237e; }
-    .section-divider { flex: 1; height: 1px; background: linear-gradient(to right, #c5cae9, transparent); }
-
-    /* Info card */
-    .info-card { background: #f8f9fc; border: 1px solid #e8eaf6; border-radius: 8px; padding: 18px 20px; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 32px; }
-    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px 16px; }
-    .field .label { font-size: 8pt; color: #7986cb; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin-bottom: 3px; }
-    .field .value { font-size: 11pt; font-weight: 600; color: #1a1a2e; }
-    .field .value.mono { font-family: 'Courier New', monospace; font-size: 10pt; }
-
-    /* Citizen highlight */
-    .citizen-card { background: linear-gradient(135deg, #e8eaf6 0%, #f3e5f5 100%); border: 1px solid #c5cae9; border-radius: 8px; padding: 18px 20px; display: flex; align-items: center; gap: 16px; }
-    .citizen-avatar { width: 50px; height: 50px; border-radius: 50%; background: #1a237e; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18pt; font-weight: 700; flex-shrink: 0; }
-    .citizen-name { font-size: 15pt; font-weight: 700; color: #1a237e; }
-    .citizen-meta { font-size: 9pt; color: #555; margin-top: 2px; }
-
-    /* Charges */
-    .charge-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 6px; margin-bottom: 6px; background: #fff; border: 1px solid #e0e0e0; }
-    .charge-item:nth-child(odd) { background: #fafafa; }
-    .charge-num { width: 24px; height: 24px; border-radius: 50%; background: #c62828; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 9pt; font-weight: 700; flex-shrink: 0; }
-    .charge-text { font-size: 11pt; color: #1a1a2e; font-weight: 500; }
-
-    /* Sentence chips */
-    .sentence-row { display: flex; gap: 12px; flex-wrap: wrap; }
-    .sentence-chip { padding: 10px 20px; border-radius: 8px; text-align: center; flex: 1; min-width: 160px; }
-    .sentence-chip.prison { background: #fce4ec; border: 1px solid #f48fb1; }
-    .sentence-chip.fine { background: #fff8e1; border: 1px solid #ffe082; }
-    .sentence-chip .chip-label { font-size: 8pt; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-    .sentence-chip .chip-value { font-size: 14pt; font-weight: 700; color: #1a1a2e; }
-
-    /* Text block */
-    .text-block { background: #f8f9fc; border: 1px solid #e8eaf6; border-left: 4px solid #7986cb; border-radius: 0 6px 6px 0; padding: 12px 16px; font-size: 11pt; line-height: 1.6; color: #333; white-space: pre-wrap; }
-
-    /* Person rows */
-    .person-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 6px; margin-bottom: 4px; background: #f8f9fc; border: 1px solid #e8eaf6; }
-    .person-initial { width: 30px; height: 30px; border-radius: 50%; background: #3949ab; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11pt; font-weight: 700; flex-shrink: 0; }
-    .person-name { font-weight: 600; font-size: 11pt; flex: 1; }
-    .person-meta { font-size: 9pt; color: #888; }
-
-    /* Footer / signatures */
-    .footer { margin-top: 40px; padding-top: 24px; border-top: 2px solid #e8eaf6; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
-    .signature-box { text-align: center; padding: 0 20px; }
-    .signature-role { font-size: 9pt; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 4px; }
-    .signature-name { font-size: 10pt; font-weight: 600; color: #333; margin-bottom: 40px; }
-    .signature-line { border-bottom: 1px solid #aaa; padding-top: 10px; }
-
-    /* Doc meta */
-    .doc-meta { background: #f8f9fc; border-top: 1px solid #e8eaf6; padding: 12px 40px; display: flex; justify-content: space-between; align-items: center; font-size: 8pt; color: #999; }
-    .doc-meta .confidential { font-weight: 700; color: #c62828; letter-spacing: 1px; text-transform: uppercase; }
-
-    @media print {
-      body { background: #fff; }
-      .page { box-shadow: none; margin: 0; border-radius: 0; max-width: 100%; }
-    }
-  </style>
-</head>
-<body>
-<div class="page">
-  <div class="header">
-    <div class="header-top">
-      <div class="badge-icon">⚖️</div>
-      <div>
-        <div class="header-dept">${arrest.department || 'Forze dell\'Ordine'}</div>
-        <div class="header-title">Verbale di Arresto</div>
-        <div class="header-sub">Documento Ufficiale — Uso Riservato</div>
-      </div>
-    </div>
-    <div class="header-meta">
-      <div class="header-chip">📋 Pratica N° ${arrestId}</div>
-      <div class="header-chip">📅 ${formattedDate}</div>
-      <div class="header-chip">🕐 ${formattedTime}</div>
-      <div class="header-chip">🏛️ ${arrest.department || 'N/D'}</div>
-    </div>
-  </div>
-
-  <div class="status-bar">
-    <div class="status-dot"></div>
-    Documento redatto in data ${formattedDate} da ${officerFullName} — ${arrest.officer?.badge ?? 'N/D'}
-  </div>
-
-  <div class="body">
-
-    <div class="section">
-      <div class="section-header">
-        <div class="section-icon">👤</div>
-        <div class="section-title">Soggetto Arrestato</div>
-        <div class="section-divider"></div>
-      </div>
-      <div class="citizen-card">
-        <div class="citizen-avatar">${(arrest.citizen?.firstname?.[0] ?? '?')}${(arrest.citizen?.lastname?.[0] ?? '')}</div>
-        <div>
-          <div class="citizen-name">${citizenName}</div>
-          <div class="citizen-meta">
-            Nato il ${citizenBirthDate}
-            ${arrest.citizen?.sex ? ` &nbsp;·&nbsp; ${arrest.citizen.sex}` : ''}
-            ${arrest.citizen?.nationality ? ` &nbsp;·&nbsp; ${arrest.citizen.nationality}` : ''}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="section-header">
-        <div class="section-icon">🔒</div>
-        <div class="section-title">Dati Arresto</div>
-        <div class="section-divider"></div>
-      </div>
-      <div class="info-card">
-        <div class="grid-2">
-          <div class="field">
-            <div class="label">Data e Ora</div>
-            <div class="value">${formattedDate} — ${formattedTime}</div>
-          </div>
-          <div class="field">
-            <div class="label">Luogo</div>
-            <div class="value">${arrest.location || 'N/D'}</div>
-          </div>
-          <div class="field">
-            <div class="label">Dipartimento</div>
-            <div class="value">${arrest.department || 'Non specificato'}</div>
-          </div>
-          <div class="field">
-            <div class="label">Agente Responsabile</div>
-            <div class="value">${arrest.officer?.rank ?? ''} ${officerFullName}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="section-header">
-        <div class="section-icon" style="background:#c62828">⚠️</div>
-        <div class="section-title">Reati Contestati</div>
-        <div class="section-divider"></div>
-      </div>
-      ${chargesList.length > 0
-        ? chargesList.map((c: string, i: number) => `
-          <div class="charge-item">
-            <div class="charge-num">${i + 1}</div>
-            <div class="charge-text">${c}</div>
-          </div>`).join('')
-        : '<p style="color:#999;padding:12px 0">Nessun reato registrato</p>'}
-    </div>
-
-    ${arrest.sentence || arrest.fine ? `
-    <div class="section">
-      <div class="section-header">
-        <div class="section-icon" style="background:#4a148c">⚖️</div>
-        <div class="section-title">Sentenza</div>
-        <div class="section-divider"></div>
-      </div>
-      <div class="sentence-row">
-        ${arrest.sentence ? `
-        <div class="sentence-chip prison">
-          <div class="chip-label">Pena Detentiva</div>
-          <div class="chip-value">${arrest.sentence}</div>
-        </div>` : ''}
-        ${arrest.fine ? `
-        <div class="sentence-chip fine">
-          <div class="chip-label">Multa</div>
-          <div class="chip-value">€ ${arrest.fine}</div>
-        </div>` : ''}
-      </div>
-    </div>` : ''}
-
-    ${arrest.incidentDescription ? `
-    <div class="section">
-      <div class="section-header">
-        <div class="section-icon">📝</div>
-        <div class="section-title">Descrizione Accaduti</div>
-        <div class="section-divider"></div>
-      </div>
-      <div class="text-block">${arrest.incidentDescription}</div>
-    </div>` : ''}
-
-    ${arrest.seizedItems ? `
-    <div class="section">
-      <div class="section-header">
-        <div class="section-icon">📦</div>
-        <div class="section-title">Oggetti Sequestrati</div>
-        <div class="section-divider"></div>
-      </div>
-      <div class="text-block">${arrest.seizedItems}</div>
-    </div>` : ''}
-
-    ${arrest.description ? `
-    <div class="section">
-      <div class="section-header">
-        <div class="section-icon">🗒️</div>
-        <div class="section-title">Note Aggiuntive</div>
-        <div class="section-divider"></div>
-      </div>
-      <div class="text-block">${arrest.description}</div>
-    </div>` : ''}
-
-    ${accomplices.length > 0 ? `
-    <div class="section">
-      <div class="section-header">
-        <div class="section-icon" style="background:#e65100">👥</div>
-        <div class="section-title">Complici (${accomplices.length})</div>
-        <div class="section-divider"></div>
-      </div>
-      ${accomplices.map((a: any) => `
-        <div class="person-row">
-          <div class="person-initial">${(a.name?.[0] ?? '?').toUpperCase()}</div>
-          <div class="person-name">${a.name || 'N/D'}</div>
-          <div class="person-meta">${a.birthDate || ''}</div>
-        </div>`).join('')}
-    </div>` : ''}
-
-    ${signingOfficers.length > 0 ? `
-    <div class="section">
-      <div class="section-header">
-        <div class="section-icon">🪪</div>
-        <div class="section-title">Operatori Firmatari</div>
-        <div class="section-divider"></div>
-      </div>
-      ${signingOfficers.map((o: any) => `
-        <div class="person-row">
-          <div class="person-initial">${(o.name?.[0] ?? '?').toUpperCase()}</div>
-          <div class="person-name">${o.name || 'N/D'}</div>
-          <div class="person-meta">${o.badge ? 'Badge: ' + o.badge : ''}</div>
-        </div>`).join('')}
-    </div>` : ''}
-
-    <div class="footer">
-      <div class="signature-box">
-        <div class="signature-role">Agente Responsabile</div>
-        <div class="signature-name">${arrest.officer?.rank ?? ''} ${officerFullName}<br><span style="font-size:9pt;color:#888">${arrest.officer?.badge ?? ''} — ${arrest.officer?.department ?? ''}</span></div>
-        <div class="signature-line"></div>
-      </div>
-      <div class="signature-box">
-        <div class="signature-role">Comandante / Responsabile</div>
-        <div class="signature-name">&nbsp;</div>
-        <div class="signature-line"></div>
-      </div>
-    </div>
-
-  </div><!-- /body -->
-
-  <div class="doc-meta">
-    <span class="confidential">🔒 Riservato</span>
-    <span>Arresto #${arrestId} &nbsp;·&nbsp; Generato il ${new Date().toLocaleString('it-IT')}</span>
-  </div>
-</div><!-- /page -->
-
-  <div class="meta">Documento generato il ${new Date().toLocaleString('it-IT')} &nbsp;|&nbsp; Arresto #${arrestId}</div>
-</body>
-</html>`;
-
-    const win = window.open('', '_blank');
-    if (!win) return;
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 300);
-  };
-
   // Gestione dell'input del form
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!editForm) return;
@@ -511,6 +210,193 @@ export default function ArrestDetails() {
   
   // Estrai le informazioni sui reati dalle charges
   const chargesList = arrest.charges ? arrest.charges.split(',').map((charge: string) => charge.trim()) : [];
+
+  const handlePrint = () => {
+    let accompliceList: any[] = [];
+    try { accompliceList = JSON.parse(arrest.accomplices || '[]'); } catch {}
+    let signingList: any[] = [];
+    try { signingList = JSON.parse(arrest.signingOfficers || '[]'); } catch {}
+
+    const html = `<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>Verbale di Arresto #${arrestId}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Times New Roman', serif; color: #1a1a2e; background: #fff; padding: 40px; font-size: 13px; }
+    .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-35deg); font-size: 90px; color: rgba(0,0,0,0.04); font-weight: bold; pointer-events: none; white-space: nowrap; z-index: 0; letter-spacing: 8px; }
+    .page { position: relative; z-index: 1; max-width: 780px; margin: 0 auto; }
+    .header { border-bottom: 3px double #1a1a2e; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .header-left { }
+    .header-right { text-align: right; font-size: 11px; color: #555; }
+    .logo-area { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+    .badge-icon { width: 48px; height: 48px; background: #1a1a2e; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px; font-weight: bold; }
+    .agency { font-size: 18px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
+    .doc-title { font-size: 14px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #444; margin-top: 4px; }
+    .doc-number { font-size: 22px; font-weight: bold; color: #1a1a2e; margin-bottom: 2px; }
+    .section { margin-bottom: 20px; }
+    .section-title { font-size: 11px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #888; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 10px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px 16px; }
+    .field { margin-bottom: 6px; }
+    .label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+    .value { font-size: 13px; font-weight: 500; color: #1a1a2e; }
+    .charge-row { display: flex; align-items: flex-start; gap: 10px; padding: 7px 10px; border-left: 3px solid #b91c1c; background: #fef2f2; margin-bottom: 6px; border-radius: 0 4px 4px 0; }
+    .charge-num { font-weight: bold; color: #b91c1c; font-size: 11px; min-width: 18px; }
+    .charge-text { font-size: 13px; }
+    .text-block { background: #f8f8f8; border: 1px solid #e5e5e5; border-radius: 4px; padding: 10px 12px; font-size: 12px; line-height: 1.6; color: #333; white-space: pre-wrap; }
+    .accomplice-row { display: flex; justify-content: space-between; padding: 6px 10px; background: #f8f8f8; border: 1px solid #eee; border-radius: 4px; margin-bottom: 5px; font-size: 12px; }
+    .signing-row { display: inline-block; background: #f0f0f0; border: 1px solid #ddd; border-radius: 3px; padding: 3px 8px; margin: 3px; font-size: 11px; }
+    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; }
+    .status-processing { background: #dbeafe; color: #1e40af; }
+    .status-completed { background: #dcfce7; color: #166534; }
+    .status-released { background: #fef9c3; color: #92400e; }
+    .fine-box { display: inline-block; background: #1a1a2e; color: #fff; padding: 6px 16px; border-radius: 4px; font-size: 16px; font-weight: bold; letter-spacing: 1px; }
+    .sentence-box { font-size: 15px; font-weight: bold; color: #1a1a2e; }
+    .disclaimer { margin-top: 32px; border: 1px dashed #bbb; border-radius: 6px; padding: 12px 16px; background: #fafafa; }
+    .disclaimer-title { font-size: 10px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase; color: #888; margin-bottom: 5px; }
+    .disclaimer-text { font-size: 10px; color: #999; line-height: 1.6; }
+    .footer { margin-top: 24px; border-top: 1px solid #ddd; padding-top: 12px; display: flex; justify-content: space-between; font-size: 10px; color: #aaa; }
+    .signature-area { margin-top: 36px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+    .sig-line { border-top: 1px solid #333; padding-top: 4px; font-size: 10px; color: #666; text-align: center; margin-top: 32px; }
+    @media print { body { padding: 20px; } .watermark { font-size: 70px; } }
+  </style>
+</head>
+<body>
+<div class="watermark">ROLEPLAY</div>
+<div class="page">
+
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-area">
+        <div class="badge-icon">⚖</div>
+        <div>
+          <div class="agency">${arrest.department || 'Forze dell\'Ordine'}</div>
+          <div class="doc-title">Verbale di Arresto</div>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="doc-number">#${arrestId}</div>
+      <div>Data: ${formattedDate}</div>
+      <div>Ora: ${formattedTime}</div>
+      <div style="margin-top:4px;">
+        <span class="status-badge status-${arrest.status || 'processing'}">${
+          arrest.status === 'completed' ? 'Completato' :
+          arrest.status === 'released' ? 'Rilasciato' : 'In elaborazione'
+        }</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Dati Soggetto Arrestato</div>
+    <div class="grid3">
+      <div class="field"><div class="label">Nome Completo</div><div class="value">${citizenName}</div></div>
+      <div class="field"><div class="label">Data di Nascita</div><div class="value">${citizenBirthDate}</div></div>
+      <div class="field"><div class="label">Sesso</div><div class="value">${arrest.citizen?.sex || 'N/D'}</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Dettagli Arresto</div>
+    <div class="grid2">
+      <div class="field"><div class="label">Luogo</div><div class="value">${arrest.location || 'N/D'}</div></div>
+      <div class="field"><div class="label">Dipartimento</div><div class="value">${arrest.department || 'Non specificato'}</div></div>
+      <div class="field"><div class="label">Agente Responsabile</div><div class="value">${officerFullName}</div></div>
+      <div class="field"><div class="label">Matricola / Reparto</div><div class="value">${arrest.officer?.badge || ''} · ${arrest.officer?.department || ''}</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Reati Contestati (${chargesList.length})</div>
+    ${chargesList.map((c: string, i: number) => `
+      <div class="charge-row">
+        <span class="charge-num">${i + 1}.</span>
+        <span class="charge-text">${c}</span>
+      </div>`).join('') || '<p style="color:#888;font-size:12px;">Nessun reato registrato</p>'}
+  </div>
+
+  ${arrest.incidentDescription ? `
+  <div class="section">
+    <div class="section-title">Descrizione degli Accaduti</div>
+    <div class="text-block">${arrest.incidentDescription}</div>
+  </div>` : ''}
+
+  ${arrest.seizedItems ? `
+  <div class="section">
+    <div class="section-title">Oggetti Sequestrati</div>
+    <div class="text-block">${arrest.seizedItems}</div>
+  </div>` : ''}
+
+  <div class="section">
+    <div class="section-title">Sentenza e Sanzioni</div>
+    <div class="grid2">
+      <div class="field">
+        <div class="label">Pena Detentiva</div>
+        <div class="sentence-box">${arrest.sentence || '—'}</div>
+      </div>
+      <div class="field">
+        <div class="label">Ammenda</div>
+        ${arrest.fine ? `<div class="fine-box">€ ${arrest.fine}</div>` : '<div class="value">—</div>'}
+      </div>
+    </div>
+  </div>
+
+  ${accompliceList.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Complici (${accompliceList.length})</div>
+    ${accompliceList.map((a: any) => `
+      <div class="accomplice-row">
+        <span>${a.name || 'N/D'}</span>
+        <span style="color:#888;">${a.birthDate || ''}</span>
+      </div>`).join('')}
+  </div>` : ''}
+
+  ${signingList.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Operatori Firmatari</div>
+    <div>${signingList.map((o: any) => `<span class="signing-row">${o.name || ''}${o.badge ? ' ('+o.badge+')' : ''}</span>`).join('')}</div>
+  </div>` : ''}
+
+  ${arrest.description ? `
+  <div class="section">
+    <div class="section-title">Note Aggiuntive</div>
+    <div class="text-block">${arrest.description}</div>
+  </div>` : ''}
+
+  <div class="signature-area">
+    <div><div class="sig-line">Firma Agente Responsabile</div></div>
+    <div><div class="sig-line">Firma Superiore / Controfirma</div></div>
+  </div>
+
+  <div class="disclaimer">
+    <div class="disclaimer-title">⚠ Avviso — Server Roleplay</div>
+    <div class="disclaimer-text">
+      Il presente documento è generato nell'ambito di un server di gioco di ruolo (FiveM Roleplay) a scopo puramente ludico e ricreativo.
+      Tutti i dati, i nomi, gli eventi e le informazioni contenute in questo verbale sono fittizi e non hanno alcun valore legale, giuridico o amministrativo nella realtà.
+      Qualsiasi riferimento a persone, luoghi o fatti reali è del tutto casuale e non intenzionale.
+      Questo documento non costituisce un atto ufficiale di nessuna autorità pubblica o privata.
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>DatabaseFDO — Sistema Gestionale Forze dell'Ordine</span>
+    <span>Generato il ${new Date().toLocaleString('it-IT')}</span>
+  </div>
+
+</div>
+<script>window.onload = () => { window.print(); }</script>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank', 'width=900,height=700');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    }
+  };
   
   return (
     <MainLayout>
