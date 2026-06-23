@@ -147,6 +147,158 @@ export default function ArrestDetails() {
     }
   };
   
+  const handlePrint = () => {
+    const accomplices = (() => {
+      try { return JSON.parse(arrest.accomplices || '[]'); } catch { return []; }
+    })();
+    const signingOfficers = (() => {
+      try { return JSON.parse(arrest.signingOfficers || '[]'); } catch { return []; }
+    })();
+
+    const html = `<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Verbale di Arresto #${arrestId}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Times New Roman', serif; font-size: 12pt; color: #111; background: #fff; padding: 40px; }
+    .header { text-align: center; border-bottom: 3px double #111; padding-bottom: 16px; margin-bottom: 24px; }
+    .header h1 { font-size: 16pt; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+    .header h2 { font-size: 13pt; margin-top: 6px; }
+    .header p { font-size: 10pt; color: #444; margin-top: 4px; }
+    .section { margin-bottom: 20px; }
+    .section-title { font-size: 11pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 4px; margin-bottom: 10px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+    .field { margin-bottom: 6px; }
+    .field .label { font-size: 9pt; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+    .field .value { font-size: 11pt; font-weight: 500; }
+    .charge-item { padding: 5px 8px; border-left: 3px solid #333; margin-bottom: 5px; font-size: 11pt; }
+    .charge-num { font-weight: bold; margin-right: 6px; }
+    .person-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dotted #ccc; font-size: 11pt; }
+    .text-block { background: #f5f5f5; border: 1px solid #ddd; padding: 10px; border-radius: 4px; font-size: 11pt; white-space: pre-wrap; }
+    .footer { margin-top: 40px; border-top: 1px solid #333; padding-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+    .signature-box { text-align: center; }
+    .signature-line { border-bottom: 1px solid #333; margin-top: 40px; margin-bottom: 6px; }
+    .meta { font-size: 9pt; color: #666; text-align: right; margin-top: 8px; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${arrest.department || 'Forze dell\'Ordine'}</h1>
+    <h2>Verbale di Arresto</h2>
+    <p>N° ${arrestId} &nbsp;|&nbsp; Data: ${formattedDate} alle ${formattedTime}</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Soggetto Arrestato</div>
+    <div class="grid">
+      <div class="field">
+        <div class="label">Nome e Cognome</div>
+        <div class="value">${citizenName}</div>
+      </div>
+      <div class="field">
+        <div class="label">Data di Nascita</div>
+        <div class="value">${citizenBirthDate}</div>
+      </div>
+      ${arrest.citizen?.sex ? `<div class="field"><div class="label">Sesso</div><div class="value">${arrest.citizen.sex}</div></div>` : ''}
+      ${arrest.citizen?.nationality ? `<div class="field"><div class="label">Nazionalità</div><div class="value">${arrest.citizen.nationality}</div></div>` : ''}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Dati Arresto</div>
+    <div class="grid">
+      <div class="field">
+        <div class="label">Data e Ora</div>
+        <div class="value">${formattedDate} — ${formattedTime}</div>
+      </div>
+      <div class="field">
+        <div class="label">Luogo</div>
+        <div class="value">${arrest.location || 'N/D'}</div>
+      </div>
+      <div class="field">
+        <div class="label">Dipartimento</div>
+        <div class="value">${arrest.department || 'Non specificato'}</div>
+      </div>
+      <div class="field">
+        <div class="label">Agente Responsabile</div>
+        <div class="value">${arrest.officer?.rank ?? ''} ${officerFullName} (${arrest.officer?.badge ?? 'N/D'})</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Reati Contestati (${chargesList.length})</div>
+    ${chargesList.length > 0
+      ? chargesList.map((c: string, i: number) => `<div class="charge-item"><span class="charge-num">${i + 1}.</span>${c}</div>`).join('')
+      : '<p style="color:#666">Nessun reato registrato</p>'}
+  </div>
+
+  ${arrest.sentence || arrest.fine ? `
+  <div class="section">
+    <div class="section-title">Sentenza</div>
+    <div class="grid">
+      ${arrest.sentence ? `<div class="field"><div class="label">Pena Detentiva</div><div class="value">${arrest.sentence}</div></div>` : ''}
+      ${arrest.fine ? `<div class="field"><div class="label">Multa</div><div class="value">€ ${arrest.fine}</div></div>` : ''}
+    </div>
+  </div>` : ''}
+
+  ${arrest.incidentDescription ? `
+  <div class="section">
+    <div class="section-title">Descrizione Accaduti</div>
+    <div class="text-block">${arrest.incidentDescription}</div>
+  </div>` : ''}
+
+  ${arrest.seizedItems ? `
+  <div class="section">
+    <div class="section-title">Oggetti Sequestrati</div>
+    <div class="text-block">${arrest.seizedItems}</div>
+  </div>` : ''}
+
+  ${arrest.description ? `
+  <div class="section">
+    <div class="section-title">Note Aggiuntive</div>
+    <div class="text-block">${arrest.description}</div>
+  </div>` : ''}
+
+  ${accomplices.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Complici (${accomplices.length})</div>
+    ${accomplices.map((a: any) => `<div class="person-row"><span>${a.name || 'N/D'}</span><span>${a.birthDate || ''}</span></div>`).join('')}
+  </div>` : ''}
+
+  ${signingOfficers.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Operatori Firmatari</div>
+    ${signingOfficers.map((o: any) => `<div class="person-row"><span>${o.name || 'N/D'}</span><span>${o.badge ? '(' + o.badge + ')' : ''}</span></div>`).join('')}
+  </div>` : ''}
+
+  <div class="footer">
+    <div class="signature-box">
+      <div class="signature-line"></div>
+      <div>Agente Responsabile</div>
+      <div style="font-size:9pt;color:#555">${officerFullName}</div>
+    </div>
+    <div class="signature-box">
+      <div class="signature-line"></div>
+      <div>Comandante / Responsabile</div>
+    </div>
+  </div>
+
+  <div class="meta">Documento generato il ${new Date().toLocaleString('it-IT')} &nbsp;|&nbsp; Arresto #${arrestId}</div>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 300);
+  };
+
   // Gestione dell'input del form
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!editForm) return;
@@ -258,7 +410,7 @@ export default function ArrestDetails() {
             <Button
               variant="outline"
               leftIcon={<Printer className="h-4 w-4" />}
-              onClick={() => window.print()}
+              onClick={handlePrint}
             >
               Stampa
             </Button>
