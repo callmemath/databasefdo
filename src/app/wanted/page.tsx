@@ -65,7 +65,7 @@ export default function Wanted() {
       }
       
       const data = await response.json();
-      setWantedPersons(data);
+      setWantedPersons(data.wanted ?? data);
       setError(null);
     } catch (err) {
       setError('Errore nel caricamento dei dati. Riprova più tardi.');
