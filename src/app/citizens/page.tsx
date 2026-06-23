@@ -75,7 +75,7 @@ export default function Citizens() {
         const remainingPages = Array.from({ length: totalPages - 1 }, (_, index) => index + 2);
         const remainingResponses = await Promise.all(
           remainingPages.map(async (page) => {
-            const response = await fetch(`/api/citizens?${baseQuery}page=${page}&limit=50`);
+            const response = await fetch(`/api/citizens?${baseQuery}page=${page}&limit=50`, { cache: 'no-store' });
 
             if (!response.ok) {
               throw new Error('Errore durante il recupero dei dati dei cittadini');

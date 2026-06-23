@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     return NextResponse.json({ operators, total, page, limit }, {
-      headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=120' }
+      headers: { 'Cache-Control': 'no-store' }
     });
   } catch (error) {
     console.error("Errore durante il recupero degli operatori:", error);

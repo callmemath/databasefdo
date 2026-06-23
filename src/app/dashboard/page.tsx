@@ -55,10 +55,7 @@ export default function Dashboard() {
         setLoading(true);
         const response = await fetch('/api/stats', {
           credentials: 'include',
-          // Aggiungi header per caching
-          headers: {
-            'Cache-Control': 'max-age=300', // 5 minuti
-          }
+          cache: 'no-store',
         });
 
         if (!response.ok) {

@@ -58,6 +58,7 @@ export default function Operators() {
         setLoading(true);
         const response = await fetch('/api/operators', {
           credentials: 'include',
+          cache: 'no-store',
         });
         
         if (!response.ok) {

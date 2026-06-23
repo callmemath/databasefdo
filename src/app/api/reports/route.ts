@@ -217,7 +217,7 @@ export async function GET(req: NextRequest) {
     }));
 
     return NextResponse.json({ reports: reportsWithRelations, total, page, limit }, {
-      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' }
+      headers: { 'Cache-Control': 'no-store' }
     });
   } catch (error) {
     console.error("Errore durante il recupero dei rapporti:", error);

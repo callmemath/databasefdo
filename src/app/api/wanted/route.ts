@@ -82,7 +82,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ wanted: enrichedWanted, total, page, limit }, {
-      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' }
+      headers: { 'Cache-Control': 'no-store' }
     });
   } catch (error) {
     console.error('Errore durante il recupero dei ricercati:', error);

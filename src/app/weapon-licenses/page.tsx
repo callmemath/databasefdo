@@ -71,7 +71,7 @@ export default function WeaponLicensesPage() {
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (typeFilter !== 'all') params.append('licenseType', typeFilter);
 
-      const res = await fetch(`/api/weapon-licenses?${params.toString()}`);
+      const res = await fetch(`/api/weapon-licenses?${params.toString()}`, { cache: 'no-store' });
       
       if (!res.ok) {
         throw new Error('Errore nel recupero dei porto d\'armi');

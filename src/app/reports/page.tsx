@@ -24,7 +24,7 @@ export default function Reports() {
   const fetchReports = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/reports');
+      const response = await fetch('/api/reports', { cache: 'no-store' });
       
       if (!response.ok) {
         throw new Error('Errore durante il recupero delle denunce');

@@ -58,7 +58,7 @@ export default function Wanted() {
         queryParams.append('dangerLevel', dangerFilter);
       }
 
-      const response = await fetch(`/api/wanted?${queryParams.toString()}`);
+      const response = await fetch(`/api/wanted?${queryParams.toString()}`, { cache: 'no-store' });
       
       if (!response.ok) {
         throw new Error('Errore nel caricamento dei ricercati');

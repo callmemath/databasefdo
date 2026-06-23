@@ -75,6 +75,7 @@ export default function Arrests() {
     try {
       const res = await fetch('/api/arrests', {
         method: 'GET',
+        cache: 'no-store',
         headers: {
           'Content-Type': 'application/json'
         }

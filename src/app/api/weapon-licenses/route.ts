@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ licenses: licensesWithCitizens, total, page, limit }, {
-      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' }
+      headers: { 'Cache-Control': 'no-store' }
     });
   } catch (error) {
     console.error('Errore nel recupero dei porto d\'armi:', error);

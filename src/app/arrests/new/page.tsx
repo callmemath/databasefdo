@@ -81,7 +81,7 @@ function NewArrestContent() {
         }
         
         // Ottieni i dati dell'utente corrente
-        const profileRes = await fetch('/api/profile');
+        const profileRes = await fetch('/api/profile', { cache: 'no-store' });
         
         if (!profileRes.ok) {
           throw new Error('Errore durante il recupero del profilo utente');
