@@ -1093,9 +1093,10 @@ export default function Arrests() {
                     const otherCharges = charges.length > 1 ? `+ ${charges.length - 1} altri` : '';
 
                     return (
-                      <Table.Row 
+                      <Table.Row
                         key={`arrest-${arrest.id || index}`}
-                        className="hover:bg-police-gray-light/50 dark:hover:bg-gray-700/50 transition-colors duration-150"
+                        className="hover:bg-police-gray-light/50 dark:hover:bg-gray-700/50 transition-colors duration-150 cursor-pointer"
+                        onClick={() => router.push(`/arrests/${arrest.id}`)}
                       >
                         <Table.Cell className="font-medium text-police-blue-dark dark:text-blue-400">
                           #{index + 1}
@@ -1161,16 +1162,16 @@ export default function Arrests() {
                           </div>
                         </Table.Cell>
                         <Table.Cell>
-                          <Link href={`/arrests/${arrest.id}`}>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              leftIcon={<Info className="h-3.5 w-3.5" />}
-                              className="hover:bg-police-blue hover:text-white dark:hover:bg-blue-600 transition-colors duration-200"
-                            >
-                              Dettagli
-                            </Button>
-                          </Link>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/arrests/${arrest.id}`);
+                            }}
+                          >
+                            Dettagli
+                          </Button>
                         </Table.Cell>
                       </Table.Row>
                     );
