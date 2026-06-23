@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import Card from '@/components/ui/Card';
@@ -161,7 +161,7 @@ export default function WeaponLicenseDetailPage() {
     return days <= 30 && days > 0;
   })();
 
-  const statusMap: Record<string, JSX.Element> = {
+  const statusMap: Record<string, React.ReactElement> = {
     active: (
       <Badge variant="green">
         <CheckCircle className="w-3 h-3 mr-1" />
