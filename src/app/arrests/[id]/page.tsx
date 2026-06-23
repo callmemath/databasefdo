@@ -258,6 +258,7 @@ export default function ArrestDetails() {
             <Button
               variant="outline"
               leftIcon={<Printer className="h-4 w-4" />}
+              onClick={() => window.print()}
             >
               Stampa
             </Button>
@@ -456,86 +457,94 @@ export default function ArrestDetails() {
           
           {/* Crimes */}
           <Card>
-            <h2 className="text-lg font-semibold text-police-blue-dark dark:text-police-text-light mb-4 flex items-center">
-              <AlertCircle className="h-5 w-5 mr-2 text-police-accent-red dark:text-red-400" />
-              Reati Contestati
-            </h2>
-            
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-police-blue-dark dark:text-police-text-light flex items-center">
+                <AlertCircle className="h-5 w-5 mr-2 text-police-accent-red dark:text-red-400" />
+                Reati Contestati
+              </h2>
+              {!isEditing && chargesList.length > 0 && (
+                <span className="text-xs font-medium px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full">
+                  {chargesList.length} {chargesList.length === 1 ? 'reato' : 'reati'}
+                </span>
+              )}
+            </div>
+
             {isEditing && editForm ? (
-              <div className="space-y-4">
-                <div className="p-4 border border-police-gray dark:border-gray-600 rounded-md">
-                  <div className="mb-2 text-sm text-police-gray-dark dark:text-police-text-muted">
-                    Inserisci i reati separati da virgole (es. Furto, Rapina, Guida in stato di ebbrezza)
-                  </div>
-                  <textarea
-                    name="charges"
-                    value={editForm.charges}
-                    onChange={handleInputChange}
-                    className="w-full p-3 bg-white dark:bg-gray-800 border border-police-gray dark:border-gray-600 rounded-md text-police-blue-dark dark:text-police-text-light"
-                    rows={3}
-                    placeholder="Inserisci i reati separati da virgole"
-                  />
+              <div>
+                <div className="mb-2 text-sm text-police-gray-dark dark:text-police-text-muted">
+                  Inserisci i reati separati da virgole
                 </div>
+                <textarea
+                  name="charges"
+                  value={editForm.charges}
+                  onChange={handleInputChange}
+                  className="w-full p-3 bg-white dark:bg-gray-800 border border-police-gray dark:border-gray-600 rounded-md text-police-blue-dark dark:text-police-text-light"
+                  rows={3}
+                  placeholder="Es. Furto, Rapina, Guida in stato di ebbrezza"
+                />
+              </div>
+            ) : chargesList.length > 0 ? (
+              <div className="space-y-2">
+                {chargesList.map((charge: string, index: number) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-3 p-3 bg-police-gray-light dark:bg-gray-700/50 rounded-lg border-l-4 border-police-accent-red dark:border-red-500"
+                  >
+                    <span className="text-xs font-bold text-police-accent-red dark:text-red-400 w-5 flex-shrink-0">
+                      {index + 1}.
+                    </span>
+                    <span className="font-medium text-police-blue-dark dark:text-police-text-light text-sm">
+                      {charge}
+                    </span>
+                  </div>
+                ))}
               </div>
             ) : (
-              <div className="space-y-4">
-                {chargesList.length > 0 ? (
-                  chargesList.map((charge: string, index: number) => (
-                    <div key={index} className="p-4 border border-police-gray dark:border-gray-600 rounded-md">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="font-medium dark:text-police-text-light">{charge}</h3>
-                        </div>
-                        <div className="text-lg font-bold bg-police-gray-light dark:bg-gray-700 h-8 w-8 flex items-center justify-center rounded-full text-police-blue-dark dark:text-police-text-light">
-                          {index + 1}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center p-4 text-police-gray-dark dark:text-gray-300">
-                    Nessun reato registrato per questo arresto
-                  </div>
-                )}
+              <div className="text-center py-6 text-police-gray-dark dark:text-gray-400 text-sm">
+                Nessun reato registrato per questo arresto
               </div>
             )}
 
             {/* Accomplices section */}
-            {arrest.accomplices && (
-              <div className="mt-6 border-t border-police-gray dark:border-gray-600 pt-4">
-                <h3 className="font-medium text-police-blue-dark dark:text-police-text-light mb-3 flex items-center">
-                  <User className="h-4 w-4 mr-2 text-police-accent-red dark:text-red-400" />
-                  Complici
-                </h3>
-                
-                <div className="space-y-3">
-                  {Array.isArray(JSON.parse(arrest.accomplices || '[]')) && JSON.parse(arrest.accomplices || '[]').length > 0 ? (
-                    JSON.parse(arrest.accomplices).map((accomplice: any, index: number) => (
-                      <div key={`accomplice-${index}`} className="flex items-center justify-between bg-police-gray-light dark:bg-gray-700 p-2 rounded-md">
-                        <div>
-                          <div className="font-medium text-sm dark:text-police-text-light">{accomplice.name}</div>
-                          <div className="text-xs text-police-gray-dark dark:text-gray-400">
-                            {accomplice.birthDate || 'Data di nascita non disponibile'}
+            {arrest.accomplices && (() => {
+              let accompliceList: any[] = [];
+              try { accompliceList = JSON.parse(arrest.accomplices || '[]'); } catch {}
+              if (!Array.isArray(accompliceList) || accompliceList.length === 0) return null;
+              return (
+                <div className="mt-6 pt-4 border-t border-police-gray dark:border-gray-600">
+                  <h3 className="font-semibold text-police-blue-dark dark:text-police-text-light mb-3 flex items-center text-sm">
+                    <User className="h-4 w-4 mr-2 text-police-accent-red dark:text-red-400" />
+                    Complici
+                    <span className="ml-2 text-xs font-medium px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full">
+                      {accompliceList.length}
+                    </span>
+                  </h3>
+                  <div className="space-y-2">
+                    {accompliceList.map((accomplice: any, index: number) => (
+                      <div
+                        key={`accomplice-${index}`}
+                        className="flex items-center justify-between p-3 bg-police-gray-light dark:bg-gray-700/50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-police-gray dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
+                            <User className="h-4 w-4 text-police-blue-dark dark:text-police-text-muted" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm dark:text-police-text-light">{accomplice.name}</div>
+                            <div className="text-xs text-police-gray-dark dark:text-gray-400">
+                              {accomplice.birthDate || 'Data di nascita non disponibile'}
+                            </div>
                           </div>
                         </div>
                         <Link href={`/citizens/${getCitizenRouteRef(accomplice)}`}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                          >
-                            Profilo
-                          </Button>
+                          <Button variant="outline" size="sm">Profilo</Button>
                         </Link>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-center p-2 text-police-gray-dark dark:text-gray-300 text-sm">
-                      Nessun complice registrato per questo arresto
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </Card>
         </div>
         
