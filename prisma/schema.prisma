@@ -33,6 +33,7 @@ model User {
   reportsAsOfficer   Report[]      @relation("OfficerReports")
   wantedAsOfficer    Wanted[]      @relation("OfficerWanted")
   weaponLicensesAsOfficer WeaponLicense[] @relation("OfficerWeaponLicenses")
+  vatRegistrationsAsOfficer VatRegistration[] @relation("OfficerVatRegistrations")
   citizenNotes       CitizenNote[] @relation("OfficerCitizenNotes")
   tabletLinks        TabletUserLink[]
   apiTokens          ApiToken[]
@@ -236,6 +237,32 @@ model WeaponLicense {
   @@index([status])
   @@index([officerId])
   @@map("fdo_weapon_licenses")
+}
+
+// Modello per le Partite IVA
+model VatRegistration {
+  id                 String    @id @default(cuid())
+  registrationNumber String    @unique // Numero P.IVA (es: "PIVA-20240101-000001-1234")
+  citizenId          Int       // ID del cittadino (riferimento a database IARP)
+  businessName       String    // Nome/ragione sociale attività
+  businessType       String    // Tipo attività
+  taxRegime          String    // Regime fiscale
+  status             String    @default("pending") // pending, active, suspended, revoked
+  issueDate          DateTime? // Data apertura (null finché non attivata)
+  issuingAuthority   String    // Autorità di rilascio
+  notes              String?   @db.Text
+  suspensionReason   String?   @db.Text
+  officerId          String
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  officer User @relation("OfficerVatRegistrations", fields: [officerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([citizenId])
+  @@index([registrationNumber])
+  @@index([status])
+  @@index([officerId])
+  @@map("fdo_vat_registrations")
 }
 
 // Link persistente tra identificatori FiveM e utente FDO

@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { 
-  Home, Users, BookOpen, Shield, FileText, Search, AlertCircle, Target
+import {
+  Home, Users, BookOpen, Shield, FileText, Search, AlertCircle, Target, Briefcase
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { usePermissions, findRouteRules } from '@/contexts/PermissionsContext';
@@ -20,6 +20,7 @@ const sidebarItems = [
   { name: 'Denunce', href: '/reports', icon: FileText },
   { name: 'Ricercati', href: '/wanted', icon: Search },
   { name: "Porto d'Armi", href: '/weapon-licenses', icon: Target },
+  { name: 'Partita IVA', href: '/vat-registrations', icon: Briefcase },
 ];
 
 const Sidebar = () => {
