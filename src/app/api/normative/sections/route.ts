@@ -12,11 +12,6 @@ export interface NormativeTopic {
 export interface NormativeSectionData {
   title: string;
   topics: NormativeTopic[];
-  /**
-   * When true, crime categories are shown as nested sub-items under this section
-   * in the normative sidebar instead of as top-level items.
-   */
-  hasCrimeCategories?: boolean;
 }
 
 export type NormativeSectionsData = Record<string, NormativeSectionData>;
@@ -150,7 +145,6 @@ const DEFAULT_SECTIONS: NormativeSectionsData = {
   },
   'codice-penale': {
     title: 'Codice Penale',
-    hasCrimeCategories: true,
     topics: [
       {
         title: 'Reati e Pene',

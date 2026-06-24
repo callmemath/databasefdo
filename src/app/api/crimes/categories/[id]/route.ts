@@ -15,16 +15,18 @@ export async function PUT(
 
   try {
     const body = await request.json();
-    const { name, color, order } = body as {
+    const { name, color, order, sectionId } = body as {
       name?: string;
       color?: string;
       order?: number;
+      sectionId?: string | null;
     };
 
     const data: Record<string, unknown> = {};
     if (name !== undefined) data.name = name.trim();
     if (color !== undefined) data.color = color;
     if (order !== undefined) data.order = order;
+    if (sectionId !== undefined) data.sectionId = sectionId ?? null;
 
     const category = await prisma.crimeCategory.update({
       where: { id },

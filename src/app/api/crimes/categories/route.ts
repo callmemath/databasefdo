@@ -33,10 +33,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, color, order } = body as {
+    const { name, color, order, sectionId } = body as {
       name: string;
       color?: string;
       order?: number;
+      sectionId?: string;
     };
 
     if (!name || name.trim() === '') {
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         color: color ?? 'blue',
         order: order ?? 0,
+        sectionId: sectionId ?? null,
       },
       include: { crimes: true },
     });

@@ -36,6 +36,7 @@ interface CrimeCategory {
   name: string;
   color: string;
   order: number;
+  sectionId?: string;
   crimes: Crime[];
 }
 
@@ -74,18 +75,17 @@ const COLOR_DOT: Record<string, string> = {
 };
 
 // Build a flat ordered list of IDs used for prev/next navigation.
-// Sections with hasCrimeCategories expand to include their sub-category IDs inline.
+// Sections that have matching categories expand to include their sub-category IDs inline.
 function buildFlatNavIds(
   sectionsData: NormativeSectionsData,
   categories: CrimeCategory[]
 ): string[] {
   const ids: string[] = [];
-  for (const [id, section] of Object.entries(sectionsData)) {
+  for (const [id] of Object.entries(sectionsData)) {
     ids.push(id);
-    if (section.hasCrimeCategories) {
-      for (const cat of categories) {
-        ids.push(`cat-${cat.id}`);
-      }
+    const sectionCats = categories.filter((c) => c.sectionId === id);
+    for (const cat of sectionCats) {
+      ids.push(`cat-${cat.id}`);
     }
   }
   return ids;
@@ -126,12 +126,7 @@ export default function NormativePage() {
           // Set default active section to first key
           const firstKey = Object.keys(fetched)[0];
           if (firstKey) setActiveSection(firstKey);
-          // Auto-expand sections that have crime categories
-          const toExpand = new Set<string>();
-          for (const [id, sec] of Object.entries(fetched)) {
-            if (sec.hasCrimeCategories) toExpand.add(id);
-          }
-          setExpandedSections(toExpand);
+          return fetched;
         }
       } catch {
         // silent fail
@@ -140,12 +135,19 @@ export default function NormativePage() {
       }
     };
 
-    const fetchCategories = async () => {
+    const fetchCategories = async (fetchedSections: NormativeSectionsData) => {
       try {
         const res = await fetch('/api/crimes/categories');
         if (res.ok) {
           const data = await res.json();
-          setCategories(data.categories ?? []);
+          const cats: CrimeCategory[] = data.categories ?? [];
+          setCategories(cats);
+          // Auto-expand sections that have at least one category pointing to them
+          const toExpand = new Set<string>();
+          for (const sectionId of Object.keys(fetchedSections)) {
+            if (cats.some((c) => c.sectionId === sectionId)) toExpand.add(sectionId);
+          }
+          setExpandedSections(toExpand);
         }
       } catch {
         // silent fail
@@ -154,8 +156,7 @@ export default function NormativePage() {
       }
     };
 
-    fetchSections();
-    fetchCategories();
+    fetchSections().then((fetched) => fetchCategories(fetched ?? {}));
   }, [status]);
 
   if (status === 'loading' || status === 'unauthenticated') {
@@ -268,11 +269,13 @@ export default function NormativePage() {
       <nav className="flex-1 overflow-y-auto py-2">
         {Object.entries(sectionsData).map(([sectionId, section]) => {
           const isActive = activeSection === sectionId;
+          const sectionCats = categories.filter((c) => c.sectionId === sectionId);
+          const hasSectionCats = sectionCats.length > 0;
           // Section is highlighted when active OR when a nested sub-category is selected
           const hasSubActive =
-            !!section.hasCrimeCategories &&
+            hasSectionCats &&
             activeCategoryId !== null &&
-            categories.some((c) => `cat-${c.id}` === activeSection);
+            sectionCats.some((c) => `cat-${c.id}` === activeSection);
           const isExpanded = expandedSections.has(sectionId);
 
           return (
@@ -281,7 +284,7 @@ export default function NormativePage() {
               <button
                 onClick={() => {
                   handleSectionChange(sectionId);
-                  if (section.hasCrimeCategories) {
+                  if (hasSectionCats) {
                     // Ensure expanded when navigating to this section
                     setExpandedSections((prev) => new Set([...prev, sectionId]));
                   }
@@ -298,7 +301,7 @@ export default function NormativePage() {
                 )}
                 {SECTION_ICON_MAP[sectionId] ?? DEFAULT_SECTION_ICON}
                 <span className="truncate flex-1 text-left">{section.title}</span>
-                {section.hasCrimeCategories && categories.length > 0 && (
+                {hasSectionCats && (
                   <span
                     role="button"
                     onClick={(e) => {
@@ -315,8 +318,8 @@ export default function NormativePage() {
               </button>
 
               {/* Sub-items: crime categories nested under this section */}
-              {section.hasCrimeCategories && isExpanded &&
-                categories.map((cat) => {
+              {hasSectionCats && isExpanded &&
+                sectionCats.map((cat) => {
                   const catId = `cat-${cat.id}`;
                   const isCatActive = activeSection === catId;
                   return (
@@ -385,7 +388,7 @@ export default function NormativePage() {
                 title={sectionsData[id]?.title ?? id}
                 className={`h-1.5 w-1.5 rounded-full ${
                   activeSection === id ||
-                  (sectionsData[id]?.hasCrimeCategories && activeCategoryId !== null)
+                  (activeCategoryId !== null && categories.some((c) => c.sectionId === id && `cat-${c.id}` === activeSection))
                     ? 'bg-blue-500'
                     : 'bg-gray-300 dark:bg-gray-600'
                 }`}

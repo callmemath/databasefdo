@@ -126,6 +126,7 @@ export default function ConfigPage() {
     name: string;
     color: string;
     order: number;
+    sectionId?: string | null;
     crimes: CrimeData[];
   }
   interface CrimeData {
@@ -143,7 +144,7 @@ export default function ConfigPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   // Category form state
-  const [catForm, setCatForm] = useState({ name: '', color: 'blue' });
+  const [catForm, setCatForm] = useState({ name: '', color: 'blue', sectionId: '' });
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [catSaving, setCatSaving] = useState(false);
 
@@ -362,24 +363,24 @@ export default function ConfigPage() {
         const res = await fetch(`/api/crimes/categories/${editingCatId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: catForm.name.trim(), color: catForm.color }),
+          body: JSON.stringify({ name: catForm.name.trim(), color: catForm.color, sectionId: catForm.sectionId || null }),
         });
         if (res.ok) {
           const data = await res.json();
           setNormCategories((prev) => prev.map((c) => (c.id === editingCatId ? data.category : c)));
           setEditingCatId(null);
-          setCatForm({ name: '', color: 'blue' });
+          setCatForm({ name: '', color: 'blue', sectionId: '' });
         }
       } else {
         const res = await fetch('/api/crimes/categories', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: catForm.name.trim(), color: catForm.color, order: normCategories.length }),
+          body: JSON.stringify({ name: catForm.name.trim(), color: catForm.color, order: normCategories.length, sectionId: catForm.sectionId || null }),
         });
         if (res.ok) {
           const data = await res.json();
           setNormCategories((prev) => [...prev, data.category]);
-          setCatForm({ name: '', color: 'blue' });
+          setCatForm({ name: '', color: 'blue', sectionId: '' });
         }
       }
     } catch { /* silent */ }
@@ -1708,25 +1709,6 @@ export default function ConfigPage() {
                               <p className="text-xs text-gray-400">
                                 ID sezione (slug): <code className="font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded">{selectedSectionId}</code>
                               </p>
-                              <label className="flex items-center gap-2 cursor-pointer select-none">
-                                <input
-                                  type="checkbox"
-                                  checked={!!(normSections[selectedSectionId]?.hasCrimeCategories)}
-                                  onChange={(e) =>
-                                    setNormSections((prev) => ({
-                                      ...prev,
-                                      [selectedSectionId]: {
-                                        ...prev[selectedSectionId],
-                                        hasCrimeCategories: e.target.checked,
-                                      },
-                                    }))
-                                  }
-                                  className="h-4 w-4 rounded border-gray-300 text-police-blue focus:ring-police-blue"
-                                />
-                                <span className="text-sm text-police-gray-dark dark:text-police-text-muted">
-                                  Mostra categorie reati come sotto-sezioni
-                                </span>
-                              </label>
                               <button
                                 onClick={() => handleAddTopic(selectedSectionId)}
                                 className="flex items-center gap-1.5 text-sm text-police-blue hover:text-police-blue-dark font-medium px-3 py-1.5 border border-police-blue/50 rounded-md hover:bg-police-blue/5 transition-colors"
@@ -1831,13 +1813,18 @@ export default function ConfigPage() {
                               {cat.name}
                             </span>
                             <span className="text-xs text-gray-400">{cat.crimes.length} reati</span>
+                            {cat.sectionId && (
+                              <span className="text-xs text-gray-400 font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                                {normSections[cat.sectionId]?.title ?? cat.sectionId}
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-1">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setEditingCatId(cat.id);
-                                setCatForm({ name: cat.name, color: cat.color });
+                                setCatForm({ name: cat.name, color: cat.color, sectionId: cat.sectionId ?? '' });
                               }}
                               className="p-1 text-gray-400 hover:text-police-blue rounded"
                             >
@@ -1880,10 +1867,23 @@ export default function ConfigPage() {
                           ))}
                         </div>
                       </div>
+                      <div>
+                        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Sezione</label>
+                        <select
+                          value={catForm.sectionId}
+                          onChange={(e) => setCatForm((p) => ({ ...p, sectionId: e.target.value }))}
+                          className="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                        >
+                          <option value="">— Nessuna sezione —</option>
+                          {Object.entries(normSections).map(([sectionId, section]) => (
+                            <option key={sectionId} value={sectionId}>{section.title}</option>
+                          ))}
+                        </select>
+                      </div>
                       <div className="flex gap-2 justify-end">
                         {editingCatId && (
                           <button
-                            onClick={() => { setEditingCatId(null); setCatForm({ name: '', color: 'blue' }); }}
+                            onClick={() => { setEditingCatId(null); setCatForm({ name: '', color: 'blue', sectionId: '' }); }}
                             className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1 rounded"
                           >
                             Annulla
