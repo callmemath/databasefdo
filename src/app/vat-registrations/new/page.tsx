@@ -193,9 +193,8 @@ export default function NewVatRegistrationPage() {
                   onChange={(e) => setFormData(prev => ({ ...prev, taxRegime: e.target.value }))}
                   className="w-full px-4 py-2 border border-police-gray dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
-                  <option value="Regime Forfettario">Regime Forfettario</option>
-                  <option value="Regime Ordinario">Regime Ordinario</option>
-                  <option value="Regime dei Minimi">Regime dei Minimi</option>
+                  <option value="Regime Forfettario">Regime Ordinario</option>
+                  <option value="Regime Ordinario">Regime Forfettario</option>
                 </select>
               </div>
 
