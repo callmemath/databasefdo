@@ -522,26 +522,23 @@ export default function NormativePage() {
               </div>
             ) : (
               // Static section content — rendered from XML
-              <div className="space-y-10">
+              <div>
                 {filteredStaticContent.length === 0 && searchQuery ? (
                   <div className="text-center py-12 text-gray-400">
                     <Search className="h-12 w-12 mx-auto mb-3 opacity-40" />
                     <p>Nessun risultato per &quot;{searchQuery}&quot;</p>
                   </div>
                 ) : (
-                  filteredStaticContent.map((topic, index) => (
-                    <div
-                      key={index}
-                      className="border-b border-gray-100 dark:border-gray-800 pb-10 last:border-0"
-                    >
-                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                        {topic.title}
-                      </h2>
-                      <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    {filteredStaticContent.map((topic, index) => (
+                      <div key={index}>
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 mt-8 first:mt-0">
+                          {topic.title}
+                        </h2>
                         {renderXmlContent(topic.content)}
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </div>
             )}
