@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Plus, Save, Trash2, Edit, X, Lock, FileText, Shield, Briefcase, BookOpen, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import type { NormativeSectionsData } from '../api/normative/sections/route';
-import { renderXmlContent } from '@/lib/normative-xml';
+import { renderMarkdownContent } from '@/lib/normative-md';
 import MainLayout from '../../components/layout/MainLayout';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -1733,27 +1733,35 @@ export default function ConfigPage() {
                               </div>
                               <div>
                                 <label className="block text-sm font-medium text-police-gray-dark dark:text-police-text-muted mb-1">
-                                  Contenuto XML
+                                  Contenuto Markdown
                                 </label>
-                                <textarea
-                                  value={selectedTopic.content}
-                                  onChange={(e) => handleUpdateTopicContent(selectedSectionId, selectedTopicIndex, e.target.value)}
-                                  rows={12}
-                                  className="w-full text-xs font-mono border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-police-blue resize-y"
-                                  spellCheck={false}
-                                />
-                              </div>
-                              {/* Live preview */}
-                              {selectedTopic.content.trim() && (
-                                <div>
-                                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Anteprima</div>
-                                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-900 max-h-64 overflow-y-auto">
-                                    <div className="prose prose-sm max-w-none dark:prose-invert text-gray-700 dark:text-gray-300">
-                                      {renderXmlContent(selectedTopic.content)}
+                                {/* Split-pane: editor + live preview affiancati */}
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className="flex flex-col">
+                                    <div className="text-xs text-gray-400 dark:text-gray-500 mb-1">Editor</div>
+                                    <textarea
+                                      value={selectedTopic.content}
+                                      onChange={(e) => handleUpdateTopicContent(selectedSectionId, selectedTopicIndex, e.target.value)}
+                                      rows={16}
+                                      className="flex-1 text-xs font-mono border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-police-blue resize-none"
+                                      spellCheck={false}
+                                      placeholder={`## Titolo\n\nTesto della sezione...\n\n| Colonna A | Colonna B |\n|-----------|----------|\n| valore    | valore   |`}
+                                    />
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <div className="text-xs text-gray-400 dark:text-gray-500 mb-1">Anteprima</div>
+                                    <div className="flex-1 border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-900 overflow-y-auto min-h-[16rem] max-h-[28rem]">
+                                      {selectedTopic.content.trim() ? (
+                                        <div className="prose prose-sm max-w-none dark:prose-invert text-gray-700 dark:text-gray-300">
+                                          {renderMarkdownContent(selectedTopic.content)}
+                                        </div>
+                                      ) : (
+                                        <p className="text-xs text-gray-400 italic">Scrivi del Markdown per vedere l&apos;anteprima...</p>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
-                              )}
+                              </div>
                             </div>
                           ) : null}
                         </div>

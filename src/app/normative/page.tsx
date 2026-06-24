@@ -19,7 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { NormativeSectionsData } from '../api/normative/sections/route';
-import { renderXmlContent } from '@/lib/normative-xml';
+import { renderMarkdownContent } from '@/lib/normative-md';
 
 // ----- Types -----
 interface Crime {
@@ -433,7 +433,7 @@ export default function NormativePage() {
                       <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 mt-8 first:mt-0">
                         {topic.title}
                       </h2>
-                      {renderXmlContent(topic.content)}
+                      {renderMarkdownContent(topic.content)}
                     </div>
                   ))}
 
