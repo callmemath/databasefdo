@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Plus, Save, Trash2, Edit, X, Lock, FileText, Shield, Briefcase, BookOpen, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import type { NormativeSectionsData } from '../api/normative/sections/route';
+import { renderXmlContent } from '@/lib/normative-xml';
 import MainLayout from '../../components/layout/MainLayout';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -1707,6 +1708,25 @@ export default function ConfigPage() {
                               <p className="text-xs text-gray-400">
                                 ID sezione (slug): <code className="font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded">{selectedSectionId}</code>
                               </p>
+                              <label className="flex items-center gap-2 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={!!(normSections[selectedSectionId]?.hasCrimeCategories)}
+                                  onChange={(e) =>
+                                    setNormSections((prev) => ({
+                                      ...prev,
+                                      [selectedSectionId]: {
+                                        ...prev[selectedSectionId],
+                                        hasCrimeCategories: e.target.checked,
+                                      },
+                                    }))
+                                  }
+                                  className="h-4 w-4 rounded border-gray-300 text-police-blue focus:ring-police-blue"
+                                />
+                                <span className="text-sm text-police-gray-dark dark:text-police-text-muted">
+                                  Mostra categorie reati come sotto-sezioni
+                                </span>
+                              </label>
                               <button
                                 onClick={() => handleAddTopic(selectedSectionId)}
                                 className="flex items-center gap-1.5 text-sm text-police-blue hover:text-police-blue-dark font-medium px-3 py-1.5 border border-police-blue/50 rounded-md hover:bg-police-blue/5 transition-colors"
@@ -1731,7 +1751,7 @@ export default function ConfigPage() {
                               </div>
                               <div>
                                 <label className="block text-sm font-medium text-police-gray-dark dark:text-police-text-muted mb-1">
-                                  Contenuto HTML
+                                  Contenuto XML
                                 </label>
                                 <textarea
                                   value={selectedTopic.content}
@@ -1746,10 +1766,9 @@ export default function ConfigPage() {
                                 <div>
                                   <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Anteprima</div>
                                   <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-900 max-h-64 overflow-y-auto">
-                                    <div
-                                      className="prose prose-sm max-w-none dark:prose-invert text-gray-700 dark:text-gray-300"
-                                      dangerouslySetInnerHTML={{ __html: selectedTopic.content }}
-                                    />
+                                    <div className="prose prose-sm max-w-none dark:prose-invert text-gray-700 dark:text-gray-300">
+                                      {renderXmlContent(selectedTopic.content)}
+                                    </div>
                                   </div>
                                 </div>
                               )}

@@ -5,12 +5,18 @@ import prisma from '@/lib/prisma';
 
 export interface NormativeTopic {
   title: string;
+  /** Topic content as XML string matching the <doc> schema defined in src/lib/normative-xml.ts */
   content: string;
 }
 
 export interface NormativeSectionData {
   title: string;
   topics: NormativeTopic[];
+  /**
+   * When true, crime categories are shown as nested sub-items under this section
+   * in the normative sidebar instead of as top-level items.
+   */
+  hasCrimeCategories?: boolean;
 }
 
 export type NormativeSectionsData = Record<string, NormativeSectionData>;
@@ -23,78 +29,42 @@ const DEFAULT_SECTIONS: NormativeSectionsData = {
     topics: [
       {
         title: 'Codici di Emergenza',
-        content: `
-        <h3 class="text-lg font-semibold mb-3">Codici Radio di Emergenza</h3>
-        <p class="mb-4">I seguenti codici sono utilizzati nelle comunicazioni radio per indicare situazioni di emergenza:</p>
-        <div class="space-y-3">
-          <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-md">
-            <div class="font-medium text-gray-900 dark:text-white">Codice 0</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Emergenza massima, agente in pericolo di vita.</div>
-          </div>
-          <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-md">
-            <div class="font-medium text-gray-900 dark:text-white">Codice 1</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Richiesta di supporto urgente, situazione critica.</div>
-          </div>
-          <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-md">
-            <div class="font-medium text-gray-900 dark:text-white">Codice 2</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Rispondere rapidamente, ma senza sirene o luci.</div>
-          </div>
-          <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-md">
-            <div class="font-medium text-gray-900 dark:text-white">Codice 3</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Rispondere con sirene e luci, emergenza.</div>
-          </div>
-        </div>
-      `,
+        content: `<doc>
+  <heading>Codici Radio di Emergenza</heading>
+  <para>I seguenti codici sono utilizzati nelle comunicazioni radio per indicare situazioni di emergenza:</para>
+  <entries>
+    <entry name="Codice 0">Emergenza massima, agente in pericolo di vita.</entry>
+    <entry name="Codice 1">Richiesta di supporto urgente, situazione critica.</entry>
+    <entry name="Codice 2">Rispondere rapidamente, ma senza sirene o luci.</entry>
+    <entry name="Codice 3">Rispondere con sirene e luci, emergenza.</entry>
+  </entries>
+</doc>`,
       },
       {
         title: 'Codici di Situazione',
-        content: `
-        <h3 class="text-lg font-semibold mb-3">Codici di Situazione</h3>
-        <p class="mb-4">Utilizzare questi codici per comunicare lo stato delle situazioni:</p>
-        <div class="space-y-3">
-          <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-md">
-            <div class="font-medium text-gray-900 dark:text-white">Codice 4</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Situazione sotto controllo, non è richiesto ulteriore supporto.</div>
-          </div>
-          <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-md">
-            <div class="font-medium text-gray-900 dark:text-white">Codice 5</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Arresto in corso, richiesta di supporto per trasporto.</div>
-          </div>
-          <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-md">
-            <div class="font-medium text-gray-900 dark:text-white">Codice 6</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Indagine in corso, rimanere in attesa di istruzioni.</div>
-          </div>
-          <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-md">
-            <div class="font-medium text-gray-900 dark:text-white">Codice 7</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Pausa pranzo/cena, agente temporaneamente non disponibile.</div>
-          </div>
-        </div>
-      `,
+        content: `<doc>
+  <heading>Codici di Situazione</heading>
+  <para>Utilizzare questi codici per comunicare lo stato delle situazioni:</para>
+  <entries>
+    <entry name="Codice 4">Situazione sotto controllo, non è richiesto ulteriore supporto.</entry>
+    <entry name="Codice 5">Arresto in corso, richiesta di supporto per trasporto.</entry>
+    <entry name="Codice 6">Indagine in corso, rimanere in attesa di istruzioni.</entry>
+    <entry name="Codice 7">Pausa pranzo/cena, agente temporaneamente non disponibile.</entry>
+  </entries>
+</doc>`,
       },
       {
         title: 'Codici Operativi',
-        content: `
-        <h3 class="text-lg font-semibold mb-3">Codici Operativi</h3>
-        <p class="mb-4">Questi codici sono utilizzati per le operazioni quotidiane:</p>
-        <div class="space-y-3">
-          <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-md">
-            <div class="font-medium text-gray-900 dark:text-white">Codice 10</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">In servizio, disponibile per chiamate.</div>
-          </div>
-          <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-md">
-            <div class="font-medium text-gray-900 dark:text-white">Codice 11</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Fermo veicolo in corso, controllo documenti.</div>
-          </div>
-          <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-md">
-            <div class="font-medium text-gray-900 dark:text-white">Codice 12</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Richiesta informazioni su targa o individuo.</div>
-          </div>
-          <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-md">
-            <div class="font-medium text-gray-900 dark:text-white">Codice 13</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Richiesta assistenza sanitaria.</div>
-          </div>
-        </div>
-      `,
+        content: `<doc>
+  <heading>Codici Operativi</heading>
+  <para>Questi codici sono utilizzati per le operazioni quotidiane:</para>
+  <entries>
+    <entry name="Codice 10">In servizio, disponibile per chiamate.</entry>
+    <entry name="Codice 11">Fermo veicolo in corso, controllo documenti.</entry>
+    <entry name="Codice 12">Richiesta informazioni su targa o individuo.</entry>
+    <entry name="Codice 13">Richiesta assistenza sanitaria.</entry>
+  </entries>
+</doc>`,
       },
     ],
   },
@@ -103,74 +73,56 @@ const DEFAULT_SECTIONS: NormativeSectionsData = {
     topics: [
       {
         title: 'Procedure di Arresto',
-        content: `
-        <h3 class="text-lg font-semibold mb-3">Procedure Standard di Arresto</h3>
-        <p class="mb-4">Le seguenti procedure devono essere seguite durante un arresto:</p>
-        <div class="space-y-5">
-          <div>
-            <h4 class="font-medium text-blue-700 dark:text-blue-400 mb-2">1. Identificazione e Valutazione</h4>
-            <ul class="list-disc pl-5 space-y-1 text-sm text-gray-700 dark:text-gray-300">
-              <li>Identificare il sospetto e verificare eventuali mandati esistenti</li>
-              <li>Valutare la situazione per determinare il livello di rischio</li>
-              <li>Richiedere rinforzi se necessario prima di procedere</li>
-            </ul>
-          </div>
-          <div>
-            <h4 class="font-medium text-blue-700 dark:text-blue-400 mb-2">2. Approccio e Comunicazione</h4>
-            <ul class="list-disc pl-5 space-y-1 text-sm text-gray-700 dark:text-gray-300">
-              <li>Identificarsi chiaramente come agente di polizia</li>
-              <li>Informare il sospetto del motivo dell'arresto</li>
-              <li>Utilizzare comandi chiari e diretti</li>
-              <li>Mantenere una distanza di sicurezza appropriata</li>
-            </ul>
-          </div>
-          <div>
-            <h4 class="font-medium text-blue-700 dark:text-blue-400 mb-2">3. Contenimento e Ammanettamento</h4>
-            <ul class="list-disc pl-5 space-y-1 text-sm text-gray-700 dark:text-gray-300">
-              <li>Utilizzare la forza minima necessaria per effettuare l'arresto</li>
-              <li>Posizionare le manette con le mani dietro la schiena quando possibile</li>
-              <li>Verificare che le manette non siano troppo strette</li>
-              <li>Perquisire il sospetto per eventuali armi o prove</li>
-            </ul>
-          </div>
-          <div>
-            <h4 class="font-medium text-blue-700 dark:text-blue-400 mb-2">4. Trasporto e Registrazione</h4>
-            <ul class="list-disc pl-5 space-y-1 text-sm text-gray-700 dark:text-gray-300">
-              <li>Trasportare il sospetto al dipartimento di polizia</li>
-              <li>Leggere i diritti al sospetto durante il trasporto</li>
-              <li>Documentare tutte le fasi dell'arresto</li>
-              <li>Registrare l'arresto nel sistema FDO</li>
-            </ul>
-          </div>
-        </div>
-      `,
+        content: `<doc>
+  <heading>Procedure Standard di Arresto</heading>
+  <para>Le seguenti procedure devono essere seguite durante un arresto:</para>
+  <steps>
+    <step title="1. Identificazione e Valutazione">
+      <item>Identificare il sospetto e verificare eventuali mandati esistenti</item>
+      <item>Valutare la situazione per determinare il livello di rischio</item>
+      <item>Richiedere rinforzi se necessario prima di procedere</item>
+    </step>
+    <step title="2. Approccio e Comunicazione">
+      <item>Identificarsi chiaramente come agente di polizia</item>
+      <item>Informare il sospetto del motivo dell&apos;arresto</item>
+      <item>Utilizzare comandi chiari e diretti</item>
+      <item>Mantenere una distanza di sicurezza appropriata</item>
+    </step>
+    <step title="3. Contenimento e Ammanettamento">
+      <item>Utilizzare la forza minima necessaria per effettuare l&apos;arresto</item>
+      <item>Posizionare le manette con le mani dietro la schiena quando possibile</item>
+      <item>Verificare che le manette non siano troppo strette</item>
+      <item>Perquisire il sospetto per eventuali armi o prove</item>
+    </step>
+    <step title="4. Trasporto e Registrazione">
+      <item>Trasportare il sospetto al dipartimento di polizia</item>
+      <item>Leggere i diritti al sospetto durante il trasporto</item>
+      <item>Documentare tutte le fasi dell&apos;arresto</item>
+      <item>Registrare l&apos;arresto nel sistema FDO</item>
+    </step>
+  </steps>
+</doc>`,
       },
       {
         title: 'Gestione delle Scene del Crimine',
-        content: `
-        <h3 class="text-lg font-semibold mb-3">Procedure per la Gestione delle Scene del Crimine</h3>
-        <p class="mb-4">Le seguenti linee guida devono essere seguite durante l'intervento su una scena del crimine:</p>
-        <div class="space-y-5">
-          <div>
-            <h4 class="font-medium text-blue-700 dark:text-blue-400 mb-2">1. Arrivo sulla Scena</h4>
-            <ul class="list-disc pl-5 space-y-1 text-sm text-gray-700 dark:text-gray-300">
-              <li>Valutare la sicurezza dell'area e dei presenti</li>
-              <li>Prestare primo soccorso a eventuali feriti</li>
-              <li>Chiamare rinforzi e servizi medici se necessario</li>
-              <li>Stabilire un perimetro di sicurezza</li>
-            </ul>
-          </div>
-          <div>
-            <h4 class="font-medium text-blue-700 dark:text-blue-400 mb-2">2. Protezione della Scena</h4>
-            <ul class="list-disc pl-5 space-y-1 text-sm text-gray-700 dark:text-gray-300">
-              <li>Delimitare l'area con nastro segnaletico</li>
-              <li>Registrare i nomi di tutte le persone presenti all'arrivo</li>
-              <li>Allontanare i non addetti ai lavori</li>
-              <li>Proteggere le prove da contaminazione e agenti atmosferici</li>
-            </ul>
-          </div>
-        </div>
-      `,
+        content: `<doc>
+  <heading>Procedure per la Gestione delle Scene del Crimine</heading>
+  <para>Le seguenti linee guida devono essere seguite durante l&apos;intervento su una scena del crimine:</para>
+  <steps>
+    <step title="1. Arrivo sulla Scena">
+      <item>Valutare la sicurezza dell&apos;area e dei presenti</item>
+      <item>Prestare primo soccorso a eventuali feriti</item>
+      <item>Chiamare rinforzi e servizi medici se necessario</item>
+      <item>Stabilire un perimetro di sicurezza</item>
+    </step>
+    <step title="2. Protezione della Scena">
+      <item>Delimitare l&apos;area con nastro segnaletico</item>
+      <item>Registrare i nomi di tutte le persone presenti all&apos;arrivo</item>
+      <item>Allontanare i non addetti ai lavori</item>
+      <item>Proteggere le prove da contaminazione e agenti atmosferici</item>
+    </step>
+  </steps>
+</doc>`,
       },
     ],
   },
@@ -179,66 +131,45 @@ const DEFAULT_SECTIONS: NormativeSectionsData = {
     topics: [
       {
         title: 'Infrazioni e Sanzioni',
-        content: `
-        <h3 class="text-lg font-semibold mb-3">Infrazioni e Relative Sanzioni</h3>
-        <p class="mb-4">La seguente tabella riporta le principali infrazioni stradali e le relative sanzioni:</p>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-            <thead class="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th class="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Infrazione</th>
-                <th class="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Multa ($)</th>
-                <th class="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Punti Patente</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Eccesso di velocità (10-30 km/h)</td><td class="px-4 py-2">500</td><td class="px-4 py-2">2</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Eccesso di velocità (oltre 30 km/h)</td><td class="px-4 py-2">1000</td><td class="px-4 py-2">4</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Passaggio con semaforo rosso</td><td class="px-4 py-2">800</td><td class="px-4 py-2">3</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Guida in stato di ebbrezza</td><td class="px-4 py-2">1500</td><td class="px-4 py-2">10</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Utilizzo del cellulare alla guida</td><td class="px-4 py-2">300</td><td class="px-4 py-2">2</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Mancato utilizzo delle cinture</td><td class="px-4 py-2">200</td><td class="px-4 py-2">1</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Sosta in divieto</td><td class="px-4 py-2">150</td><td class="px-4 py-2">0</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Guida senza patente</td><td class="px-4 py-2">2000</td><td class="px-4 py-2">N/A</td></tr>
-            </tbody>
-          </table>
-        </div>
-      `,
+        content: `<doc>
+  <heading>Infrazioni e Relative Sanzioni</heading>
+  <para>La seguente tabella riporta le principali infrazioni stradali e le relative sanzioni:</para>
+  <table cols="Infrazione,Multa ($),Punti Patente">
+    <row>Eccesso di velocita (10-30 km/h)|500|2</row>
+    <row>Eccesso di velocita (oltre 30 km/h)|1000|4</row>
+    <row>Passaggio con semaforo rosso|800|3</row>
+    <row>Guida in stato di ebbrezza|1500|10</row>
+    <row>Utilizzo del cellulare alla guida|300|2</row>
+    <row>Mancato utilizzo delle cinture|200|1</row>
+    <row>Sosta in divieto|150|0</row>
+    <row>Guida senza patente|2000|N/A</row>
+  </table>
+</doc>`,
       },
     ],
   },
   'codice-penale': {
     title: 'Codice Penale',
+    hasCrimeCategories: true,
     topics: [
       {
         title: 'Reati e Pene',
-        content: `
-        <h3 class="text-lg font-semibold mb-3">Reati e Relative Pene</h3>
-        <p class="mb-4">La seguente tabella riporta i principali reati e le relative sanzioni previste:</p>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-            <thead class="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th class="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reato</th>
-                <th class="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Multa ($)</th>
-                <th class="px-4 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Mesi Reclusione</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Rapina a mano armata</td><td class="px-4 py-2">5000</td><td class="px-4 py-2">20</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Furto</td><td class="px-4 py-2">1500</td><td class="px-4 py-2">8</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Aggressione</td><td class="px-4 py-2">2000</td><td class="px-4 py-2">10</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Possesso di sostanze stupefacenti</td><td class="px-4 py-2">2500</td><td class="px-4 py-2">12</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Resistenza all'arresto</td><td class="px-4 py-2">1800</td><td class="px-4 py-2">7</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Oltraggio a pubblico ufficiale</td><td class="px-4 py-2">1000</td><td class="px-4 py-2">5</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Omicidio</td><td class="px-4 py-2">15000</td><td class="px-4 py-2">35</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Tentato omicidio</td><td class="px-4 py-2">10000</td><td class="px-4 py-2">25</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Violazione di domicilio</td><td class="px-4 py-2">2000</td><td class="px-4 py-2">8</td></tr>
-              <tr><td class="px-4 py-2 text-gray-900 dark:text-white">Furto d'auto</td><td class="px-4 py-2">4000</td><td class="px-4 py-2">12</td></tr>
-            </tbody>
-          </table>
-        </div>
-      `,
+        content: `<doc>
+  <heading>Reati e Relative Pene</heading>
+  <para>La seguente tabella riporta i principali reati e le relative sanzioni previste:</para>
+  <table cols="Reato,Multa ($),Mesi Reclusione">
+    <row>Rapina a mano armata|5000|20</row>
+    <row>Furto|1500|8</row>
+    <row>Aggressione|2000|10</row>
+    <row>Possesso di sostanze stupefacenti|2500|12</row>
+    <row>Resistenza all&apos;arresto|1800|7</row>
+    <row>Oltraggio a pubblico ufficiale|1000|5</row>
+    <row>Omicidio|15000|35</row>
+    <row>Tentato omicidio|10000|25</row>
+    <row>Violazione di domicilio|2000|8</row>
+    <row>Furto d&apos;auto|4000|12</row>
+  </table>
+</doc>`,
       },
     ],
   },

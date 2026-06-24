@@ -11,6 +11,7 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Menu,
   X,
   Search,
@@ -18,6 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { NormativeSectionsData } from '../api/normative/sections/route';
+import { renderXmlContent } from '@/lib/normative-xml';
 
 // ----- Types -----
 interface Crime {
@@ -71,31 +73,22 @@ const COLOR_DOT: Record<string, string> = {
   gray: 'bg-gray-500',
 };
 
-// Build the full ordered navigation list from static sections + dynamic categories
-function buildNavItems(
+// Build a flat ordered list of IDs used for prev/next navigation.
+// Sections with hasCrimeCategories expand to include their sub-category IDs inline.
+function buildFlatNavIds(
   sectionsData: NormativeSectionsData,
   categories: CrimeCategory[]
-): Array<{ id: string; title: string; icon: React.ReactNode; isCategory?: boolean; color?: string; }> {
-  const items: Array<{ id: string; title: string; icon: React.ReactNode; isCategory?: boolean; color?: string }> = Object.keys(sectionsData).map((id) => ({
-    id,
-    title: sectionsData[id].title,
-    icon: SECTION_ICON_MAP[id] ?? DEFAULT_SECTION_ICON,
-    isCategory: false,
-  }));
-
-  if (categories.length > 0) {
-    categories.forEach((cat) => {
-      items.push({
-        id: `cat-${cat.id}`,
-        title: cat.name,
-        icon: <Tag className="h-4 w-4 shrink-0" />,
-        isCategory: true,
-        color: cat.color,
-      });
-    });
+): string[] {
+  const ids: string[] = [];
+  for (const [id, section] of Object.entries(sectionsData)) {
+    ids.push(id);
+    if (section.hasCrimeCategories) {
+      for (const cat of categories) {
+        ids.push(`cat-${cat.id}`);
+      }
+    }
   }
-
-  return items;
+  return ids;
 }
 
 export default function NormativePage() {
@@ -109,6 +102,8 @@ export default function NormativePage() {
   const [activeSection, setActiveSection] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  // Track which sections with hasCrimeCategories are expanded in the sidebar
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -131,6 +126,12 @@ export default function NormativePage() {
           // Set default active section to first key
           const firstKey = Object.keys(fetched)[0];
           if (firstKey) setActiveSection(firstKey);
+          // Auto-expand sections that have crime categories
+          const toExpand = new Set<string>();
+          for (const [id, sec] of Object.entries(fetched)) {
+            if (sec.hasCrimeCategories) toExpand.add(id);
+          }
+          setExpandedSections(toExpand);
         }
       } catch {
         // silent fail
@@ -189,14 +190,21 @@ export default function NormativePage() {
     STATIC_CONTENT[id] = section.topics;
   }
 
-  const navItems = buildNavItems(sectionsData, categories);
+  // Flat ID list for prev/next navigation
+  const flatNavIds = buildFlatNavIds(sectionsData, categories);
+  const activeIndex = flatNavIds.indexOf(activeSection);
 
-  // Build a flat list of section IDs for prev/next navigation
-  const sectionIds = navItems.map((item) => item.id);
-  const activeIndex = sectionIds.indexOf(activeSection);
+  // Resolve display title for a nav ID
+  const resolveTitle = (id: string): string => {
+    if (id.startsWith('cat-')) {
+      const catId = id.slice(4);
+      return categories.find((c) => c.id === catId)?.name ?? id;
+    }
+    return sectionsData[id]?.title ?? id;
+  };
 
-  const prevSection = activeIndex > 0 ? navItems[activeIndex - 1] : null;
-  const nextSection = activeIndex < navItems.length - 1 ? navItems[activeIndex + 1] : null;
+  const prevId = activeIndex > 0 ? flatNavIds[activeIndex - 1] : null;
+  const nextId = activeIndex < flatNavIds.length - 1 ? flatNavIds[activeIndex + 1] : null;
 
   // Resolve active category if it's a dynamic one
   const activeCategoryId = activeSection.startsWith('cat-')
@@ -217,13 +225,14 @@ export default function NormativePage() {
       )
     : activeStaticContent;
 
-  const filteredCrimes = searchQuery && activeCategory
-    ? activeCategory.crimes.filter(
-        (c) =>
-          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.description.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : activeCategory?.crimes ?? [];
+  const filteredCrimes =
+    searchQuery && activeCategory
+      ? activeCategory.crimes.filter(
+          (c) =>
+            c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            c.description.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : activeCategory?.crimes ?? [];
 
   const handleSectionChange = (id: string) => {
     setActiveSection(id);
@@ -232,8 +241,18 @@ export default function NormativePage() {
     contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const activeSectionTitle =
-    navItems.find((item) => item.id === activeSection)?.title ?? '';
+  const toggleExpanded = (id: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const activeSectionTitle = activeCategoryId
+    ? (categories.find((c) => c.id === activeCategoryId)?.name ?? '')
+    : (sectionsData[activeSection]?.title ?? '');
 
   // Icon strip keys for collapsed sidebar (static sections only)
   const staticSectionIds = Object.keys(sectionsData);
@@ -247,44 +266,80 @@ export default function NormativePage() {
         </div>
       </div>
       <nav className="flex-1 overflow-y-auto py-2">
-        {navItems.map((item, idx) => {
-          // Show separator before first category
-          const prevItem = navItems[idx - 1];
-          const showSeparator = item.isCategory && prevItem && !prevItem.isCategory;
-          const isActive = activeSection === item.id;
+        {Object.entries(sectionsData).map(([sectionId, section]) => {
+          const isActive = activeSection === sectionId;
+          // Section is highlighted when active OR when a nested sub-category is selected
+          const hasSubActive =
+            !!section.hasCrimeCategories &&
+            activeCategoryId !== null &&
+            categories.some((c) => `cat-${c.id}` === activeSection);
+          const isExpanded = expandedSections.has(sectionId);
 
           return (
-            <div key={item.id}>
-              {showSeparator && (
-                <div className="px-4 py-2 mt-2">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 flex items-center gap-2">
-                    <div className="flex-1 border-t border-gray-200 dark:border-gray-700" />
-                    <span>Normative</span>
-                    <div className="flex-1 border-t border-gray-200 dark:border-gray-700" />
-                  </div>
-                </div>
-              )}
+            <div key={sectionId}>
+              {/* Section row */}
               <button
-                onClick={() => handleSectionChange(item.id)}
+                onClick={() => {
+                  handleSectionChange(sectionId);
+                  if (section.hasCrimeCategories) {
+                    // Ensure expanded when navigating to this section
+                    setExpandedSections((prev) => new Set([...prev, sectionId]));
+                  }
+                }}
                 className={`w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors relative
                   ${
-                    isActive
+                    isActive || hasSubActive
                       ? 'font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50'
                   }`}
               >
-                {isActive && (
+                {(isActive || hasSubActive) && (
                   <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-600 dark:bg-blue-400 rounded-r" />
                 )}
-                {item.isCategory && item.color ? (
+                {SECTION_ICON_MAP[sectionId] ?? DEFAULT_SECTION_ICON}
+                <span className="truncate flex-1 text-left">{section.title}</span>
+                {section.hasCrimeCategories && categories.length > 0 && (
                   <span
-                    className={`h-2 w-2 rounded-full shrink-0 ${COLOR_DOT[item.color] ?? COLOR_DOT.gray}`}
-                  />
-                ) : (
-                  item.icon
+                    role="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleExpanded(sectionId);
+                    }}
+                    className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                  >
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                    />
+                  </span>
                 )}
-                <span className="truncate">{item.title}</span>
               </button>
+
+              {/* Sub-items: crime categories nested under this section */}
+              {section.hasCrimeCategories && isExpanded &&
+                categories.map((cat) => {
+                  const catId = `cat-${cat.id}`;
+                  const isCatActive = activeSection === catId;
+                  return (
+                    <button
+                      key={catId}
+                      onClick={() => handleSectionChange(catId)}
+                      className={`w-full flex items-center gap-2 pl-6 pr-4 py-1.5 text-xs transition-colors relative
+                        ${
+                          isCatActive
+                            ? 'font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                            : 'text-gray-500 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                        }`}
+                    >
+                      {isCatActive && (
+                        <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-600 dark:bg-blue-400 rounded-r" />
+                      )}
+                      <span
+                        className={`h-2 w-2 rounded-full shrink-0 ${COLOR_DOT[cat.color] ?? COLOR_DOT.gray}`}
+                      />
+                      <span className="truncate">{cat.name}</span>
+                    </button>
+                  );
+                })}
             </div>
           );
         })}
@@ -328,7 +383,12 @@ export default function NormativePage() {
               <span
                 key={id}
                 title={sectionsData[id]?.title ?? id}
-                className={`h-1.5 w-1.5 rounded-full ${activeSection === id ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                className={`h-1.5 w-1.5 rounded-full ${
+                  activeSection === id ||
+                  (sectionsData[id]?.hasCrimeCategories && activeCategoryId !== null)
+                    ? 'bg-blue-500'
+                    : 'bg-gray-300 dark:bg-gray-600'
+                }`}
               />
             ))}
           </div>
@@ -339,10 +399,7 @@ export default function NormativePage() {
         </div>
 
         {/* Main content */}
-        <div
-          ref={contentRef}
-          className="flex-1 overflow-y-auto"
-        >
+        <div ref={contentRef} className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-6 py-8">
             {/* Breadcrumb */}
             <div className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 mb-6">
@@ -461,7 +518,7 @@ export default function NormativePage() {
                 )}
               </div>
             ) : (
-              // Static section content
+              // Static section content — rendered from XML
               <div className="space-y-10">
                 {filteredStaticContent.length === 0 && searchQuery ? (
                   <div className="text-center py-12 text-gray-400">
@@ -477,10 +534,9 @@ export default function NormativePage() {
                       <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                         {topic.title}
                       </h2>
-                      <div
-                        className="prose prose-sm max-w-none dark:prose-invert text-gray-700 dark:text-gray-300"
-                        dangerouslySetInnerHTML={{ __html: topic.content }}
-                      />
+                      <div className="prose prose-sm max-w-none dark:prose-invert">
+                        {renderXmlContent(topic.content)}
+                      </div>
                     </div>
                   ))
                 )}
@@ -489,28 +545,28 @@ export default function NormativePage() {
 
             {/* Prev / Next navigation */}
             <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              {prevSection ? (
+              {prevId ? (
                 <button
-                  onClick={() => handleSectionChange(prevSection.id)}
+                  onClick={() => handleSectionChange(prevId)}
                   className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-700 dark:hover:text-blue-400 transition-colors group"
                 >
                   <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
                   <span>
                     <div className="text-xs text-gray-400 mb-0.5">Precedente</div>
-                    <div className="font-medium">{prevSection.title}</div>
+                    <div className="font-medium">{resolveTitle(prevId)}</div>
                   </span>
                 </button>
               ) : (
                 <div />
               )}
-              {nextSection ? (
+              {nextId ? (
                 <button
-                  onClick={() => handleSectionChange(nextSection.id)}
+                  onClick={() => handleSectionChange(nextId)}
                   className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-700 dark:hover:text-blue-400 transition-colors group text-right"
                 >
                   <span>
                     <div className="text-xs text-gray-400 mb-0.5">Successivo</div>
-                    <div className="font-medium">{nextSection.title}</div>
+                    <div className="font-medium">{resolveTitle(nextId)}</div>
                   </span>
                   <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
                 </button>
