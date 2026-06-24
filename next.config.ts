@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['react-markdown', 'remark-gfm', 'remark-parse', 'unified', 'bail', 'is-plain-obj', 'trough', 'vfile', 'vfile-message', 'unist-util-stringify-position', 'mdast-util-from-markdown', 'mdast-util-to-string', 'micromark', 'decode-named-character-reference', 'character-entities', 'mdast-util-gfm', 'mdast-util-gfm-autolink-literal', 'mdast-util-gfm-footnote', 'mdast-util-gfm-strikethrough', 'mdast-util-gfm-table', 'mdast-util-gfm-task-list-item', 'mdast-util-find-and-replace', 'micromark-extension-gfm', 'micromark-util-combine-extensions', 'micromark-extension-gfm-autolink-literal', 'micromark-extension-gfm-footnote', 'micromark-extension-gfm-strikethrough', 'micromark-extension-gfm-table', 'micromark-extension-gfm-tagfilter', 'micromark-extension-gfm-task-list-item', 'micromark-util-chunked', 'micromark-util-classify-character', 'micromark-util-html-tag-name', 'micromark-util-normalize-identifier', 'micromark-util-resolve-all', 'micromark-util-sanitize-uri', 'trim-lines', 'unist-util-is', 'unist-util-visit', 'unist-util-visit-parents', 'unist-util-position', 'unist-util-generated', 'devlop', 'hast-util-to-jsx-runtime', 'hast-util-whitespace', 'property-information', 'space-separated-tokens', 'comma-separated-tokens', 'estree-util-is-identifier-name', 'hast-util-is-element', 'html-url-attributes'],
   // Ottimizzazioni per le performance e memoria
   compress: true, // Abilita compressione gzip
   
