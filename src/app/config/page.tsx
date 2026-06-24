@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Check, Plus, Save, Trash2, Edit, X, Lock, FileText, Shield, Briefcase, BookOpen, Tag, ChevronDown } from 'lucide-react';
+import { Check, Plus, Save, Trash2, Edit, X, Lock, FileText, Shield, Briefcase, BookOpen, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import type { NormativeSectionsData } from '../api/normative/sections/route';
 import MainLayout from '../../components/layout/MainLayout';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -150,6 +151,16 @@ export default function ConfigPage() {
   const [editingCrimeId, setEditingCrimeId] = useState<string | null>(null);
   const [crimeSaving, setCrimeSaving] = useState(false);
 
+  // ----- Stato per le Sezioni Statiche Normative -----
+  const [normSections, setNormSections] = useState<NormativeSectionsData>({});
+  const [normSectionsLoading, setNormSectionsLoading] = useState(false);
+  const [normSectionsSaving, setNormSectionsSaving] = useState(false);
+  const [normSectionsSaved, setNormSectionsSaved] = useState(false);
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [selectedTopicIndex, setSelectedTopicIndex] = useState<number | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [staticSectionsOpen, setStaticSectionsOpen] = useState(true);
+
   // Load categories when normative tab is opened
   const loadNormCategories = async () => {
     setNormLoading(true);
@@ -163,12 +174,182 @@ export default function ConfigPage() {
     finally { setNormLoading(false); }
   };
 
+  const loadNormSections = async () => {
+    setNormSectionsLoading(true);
+    try {
+      const res = await fetch('/api/normative/sections');
+      if (res.ok) {
+        const data = await res.json();
+        setNormSections(data.sections ?? {});
+      }
+    } catch { /* silent */ }
+    finally { setNormSectionsLoading(false); }
+  };
+
   useEffect(() => {
-    if (activeTab === 'normative' && normCategories.length === 0 && !normLoading) {
-      loadNormCategories();
+    if (activeTab === 'normative') {
+      if (normCategories.length === 0 && !normLoading) {
+        loadNormCategories();
+      }
+      if (Object.keys(normSections).length === 0 && !normSectionsLoading) {
+        loadNormSections();
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  const handleSaveNormSections = async () => {
+    setNormSectionsSaving(true);
+    try {
+      const res = await fetch('/api/normative/sections', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sections: normSections }),
+      });
+      if (res.ok) {
+        setNormSectionsSaved(true);
+        setTimeout(() => setNormSectionsSaved(false), 2000);
+      }
+    } catch { /* silent */ }
+    finally { setNormSectionsSaving(false); }
+  };
+
+  const generateSectionSlug = (title: string): string => {
+    const base = title
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
+    const slug = base || 'sezione';
+    // ensure uniqueness
+    if (!normSections[slug]) return slug;
+    return `${slug}-${Date.now().toString().slice(-4)}`;
+  };
+
+  const handleAddSection = () => {
+    const slug = generateSectionSlug('nuova-sezione');
+    setNormSections((prev) => ({
+      ...prev,
+      [slug]: { title: 'Nuova Sezione', topics: [] },
+    }));
+    setExpandedSections((prev) => new Set([...prev, slug]));
+    setSelectedSectionId(slug);
+    setSelectedTopicIndex(null);
+  };
+
+  const handleDeleteSection = (id: string) => {
+    if (!confirm('Eliminare questa sezione e tutti i suoi topic?')) return;
+    setNormSections((prev) => {
+      const { [id]: _, ...rest } = prev;
+      return rest;
+    });
+    if (selectedSectionId === id) {
+      setSelectedSectionId(null);
+      setSelectedTopicIndex(null);
+    }
+  };
+
+  const handleMoveSectionUp = (id: string) => {
+    const keys = Object.keys(normSections);
+    const idx = keys.indexOf(id);
+    if (idx <= 0) return;
+    const newKeys = [...keys];
+    [newKeys[idx - 1], newKeys[idx]] = [newKeys[idx], newKeys[idx - 1]];
+    const reordered: NormativeSectionsData = {};
+    for (const k of newKeys) reordered[k] = normSections[k];
+    setNormSections(reordered);
+  };
+
+  const handleMoveSectionDown = (id: string) => {
+    const keys = Object.keys(normSections);
+    const idx = keys.indexOf(id);
+    if (idx < 0 || idx >= keys.length - 1) return;
+    const newKeys = [...keys];
+    [newKeys[idx], newKeys[idx + 1]] = [newKeys[idx + 1], newKeys[idx]];
+    const reordered: NormativeSectionsData = {};
+    for (const k of newKeys) reordered[k] = normSections[k];
+    setNormSections(reordered);
+  };
+
+  const handleAddTopic = (sectionId: string) => {
+    setNormSections((prev) => ({
+      ...prev,
+      [sectionId]: {
+        ...prev[sectionId],
+        topics: [...prev[sectionId].topics, { title: 'Nuovo Topic', content: '' }],
+      },
+    }));
+    const newIdx = normSections[sectionId]?.topics.length ?? 0;
+    setSelectedSectionId(sectionId);
+    setSelectedTopicIndex(newIdx);
+    setExpandedSections((prev) => new Set([...prev, sectionId]));
+  };
+
+  const handleDeleteTopic = (sectionId: string, topicIdx: number) => {
+    if (!confirm('Eliminare questo topic?')) return;
+    setNormSections((prev) => ({
+      ...prev,
+      [sectionId]: {
+        ...prev[sectionId],
+        topics: prev[sectionId].topics.filter((_, i) => i !== topicIdx),
+      },
+    }));
+    if (selectedSectionId === sectionId && selectedTopicIndex === topicIdx) {
+      setSelectedTopicIndex(null);
+    }
+  };
+
+  const handleMoveTopicUp = (sectionId: string, topicIdx: number) => {
+    if (topicIdx <= 0) return;
+    setNormSections((prev) => {
+      const topics = [...prev[sectionId].topics];
+      [topics[topicIdx - 1], topics[topicIdx]] = [topics[topicIdx], topics[topicIdx - 1]];
+      return { ...prev, [sectionId]: { ...prev[sectionId], topics } };
+    });
+    if (selectedSectionId === sectionId && selectedTopicIndex === topicIdx) {
+      setSelectedTopicIndex(topicIdx - 1);
+    }
+  };
+
+  const handleMoveTopicDown = (sectionId: string, topicIdx: number) => {
+    const topics = normSections[sectionId]?.topics ?? [];
+    if (topicIdx >= topics.length - 1) return;
+    setNormSections((prev) => {
+      const t = [...prev[sectionId].topics];
+      [t[topicIdx], t[topicIdx + 1]] = [t[topicIdx + 1], t[topicIdx]];
+      return { ...prev, [sectionId]: { ...prev[sectionId], topics: t } };
+    });
+    if (selectedSectionId === sectionId && selectedTopicIndex === topicIdx) {
+      setSelectedTopicIndex(topicIdx + 1);
+    }
+  };
+
+  const handleUpdateSectionTitle = (sectionId: string, title: string) => {
+    setNormSections((prev) => ({
+      ...prev,
+      [sectionId]: { ...prev[sectionId], title },
+    }));
+  };
+
+  const handleUpdateTopicTitle = (sectionId: string, topicIdx: number, title: string) => {
+    setNormSections((prev) => {
+      const topics = [...prev[sectionId].topics];
+      topics[topicIdx] = { ...topics[topicIdx], title };
+      return { ...prev, [sectionId]: { ...prev[sectionId], topics } };
+    });
+  };
+
+  const handleUpdateTopicContent = (sectionId: string, topicIdx: number, content: string) => {
+    setNormSections((prev) => {
+      const topics = [...prev[sectionId].topics];
+      topics[topicIdx] = { ...topics[topicIdx], content };
+      return { ...prev, [sectionId]: { ...prev[sectionId], topics } };
+    });
+  };
+
+  const selectedTopic =
+    selectedSectionId !== null && selectedTopicIndex !== null
+      ? normSections[selectedSectionId]?.topics[selectedTopicIndex] ?? null
+      : null;
 
   const selectedCategory = normCategories.find((c) => c.id === selectedCategoryId) ?? null;
 
@@ -1359,10 +1540,245 @@ export default function ConfigPage() {
 
           {/* Tab Normative */}
           {activeTab === 'normative' && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <p className="text-sm text-police-gray-dark dark:text-police-text-muted">
-                Gestisci le categorie di reato e i relativi articoli del codice penale.
+                Gestisci le sezioni statiche e le categorie di reato.
               </p>
+
+              {/* ── Sezioni Statiche ── */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                {/* Collapsible header */}
+                <button
+                  onClick={() => setStaticSectionsOpen((o) => !o)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors"
+                >
+                  <div className="flex items-center gap-2 font-medium text-police-blue-dark dark:text-police-text-light">
+                    <FileText className="h-4 w-4" />
+                    Sezioni Statiche
+                    <span className="text-xs font-normal text-gray-400">
+                      ({Object.keys(normSections).length} sezioni)
+                    </span>
+                  </div>
+                  {staticSectionsOpen ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+                </button>
+
+                {staticSectionsOpen && (
+                  <div className="p-4">
+                    {normSectionsLoading ? (
+                      <div className="text-center py-6 text-gray-400 text-sm">Caricamento...</div>
+                    ) : (
+                      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                        {/* Left: section + topic tree */}
+                        <div className="lg:col-span-2 space-y-1">
+                          {Object.keys(normSections).length === 0 && (
+                            <p className="text-sm text-gray-400 italic py-2">Nessuna sezione. Aggiungine una.</p>
+                          )}
+                          {Object.entries(normSections).map(([sectionId, section], sectionIdx) => {
+                            const isExpanded = expandedSections.has(sectionId);
+                            const sectionKeys = Object.keys(normSections);
+                            return (
+                              <div key={sectionId}>
+                                {/* Section row */}
+                                <div
+                                  className={`flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer group transition-colors ${
+                                    selectedSectionId === sectionId && selectedTopicIndex === null
+                                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                                      : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-700 dark:text-gray-300'
+                                  }`}
+                                  onClick={() => {
+                                    setSelectedSectionId(sectionId);
+                                    setSelectedTopicIndex(null);
+                                    setExpandedSections((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(sectionId)) next.delete(sectionId);
+                                      else next.add(sectionId);
+                                      return next;
+                                    });
+                                  }}
+                                >
+                                  <span className="text-xs text-gray-400 mr-0.5">
+                                    {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3 rotate-180" />}
+                                  </span>
+                                  <span className="flex-1 text-sm font-medium truncate">{section.title}</span>
+                                  <span className="text-xs text-gray-400 shrink-0">{section.topics.length}</span>
+                                  {/* reorder + delete */}
+                                  <span className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1 shrink-0">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleMoveSectionUp(sectionId); }}
+                                      disabled={sectionIdx === 0}
+                                      className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-20"
+                                      title="Sposta su"
+                                    >
+                                      <ChevronUp className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleMoveSectionDown(sectionId); }}
+                                      disabled={sectionIdx === sectionKeys.length - 1}
+                                      className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-20"
+                                      title="Sposta giù"
+                                    >
+                                      <ChevronDown className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleAddTopic(sectionId); }}
+                                      className="p-0.5 text-gray-400 hover:text-green-600"
+                                      title="Aggiungi topic"
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleDeleteSection(sectionId); }}
+                                      className="p-0.5 text-gray-400 hover:text-red-500"
+                                      title="Elimina sezione"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </span>
+                                </div>
+                                {/* Topic rows */}
+                                {isExpanded && section.topics.map((topic, topicIdx) => (
+                                  <div
+                                    key={topicIdx}
+                                    onClick={() => { setSelectedSectionId(sectionId); setSelectedTopicIndex(topicIdx); }}
+                                    className={`flex items-center gap-1 pl-6 pr-2 py-1 rounded-md cursor-pointer group transition-colors ${
+                                      selectedSectionId === sectionId && selectedTopicIndex === topicIdx
+                                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                                        : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-600 dark:text-gray-400'
+                                    }`}
+                                  >
+                                    <span className="flex-1 text-sm truncate">{topic.title}</span>
+                                    <span className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleMoveTopicUp(sectionId, topicIdx); }}
+                                        disabled={topicIdx === 0}
+                                        className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-20"
+                                        title="Sposta su"
+                                      >
+                                        <ChevronUp className="h-3 w-3" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleMoveTopicDown(sectionId, topicIdx); }}
+                                        disabled={topicIdx === section.topics.length - 1}
+                                        className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-20"
+                                        title="Sposta giù"
+                                      >
+                                        <ChevronDown className="h-3 w-3" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteTopic(sectionId, topicIdx); }}
+                                        className="p-0.5 text-gray-400 hover:text-red-500"
+                                        title="Elimina topic"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </button>
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })}
+                          <button
+                            onClick={handleAddSection}
+                            className="mt-2 flex items-center gap-1.5 text-sm text-police-blue hover:text-police-blue-dark font-medium px-2 py-1.5 border border-dashed border-police-blue/50 rounded-md hover:bg-police-blue/5 transition-colors w-full justify-center"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Nuova Sezione
+                          </button>
+                        </div>
+
+                        {/* Right: editor */}
+                        <div className="lg:col-span-3">
+                          {!selectedSectionId ? (
+                            <div className="flex items-center justify-center h-48 text-gray-400 text-sm border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                              Seleziona una sezione o un topic per modificarlo
+                            </div>
+                          ) : selectedTopicIndex === null ? (
+                            /* Section title editor */
+                            <div className="space-y-3">
+                              <label className="block text-sm font-medium text-police-gray-dark dark:text-police-text-muted">
+                                Titolo Sezione
+                              </label>
+                              <input
+                                type="text"
+                                value={normSections[selectedSectionId]?.title ?? ''}
+                                onChange={(e) => handleUpdateSectionTitle(selectedSectionId, e.target.value)}
+                                className="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                              />
+                              <p className="text-xs text-gray-400">
+                                ID sezione (slug): <code className="font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded">{selectedSectionId}</code>
+                              </p>
+                              <button
+                                onClick={() => handleAddTopic(selectedSectionId)}
+                                className="flex items-center gap-1.5 text-sm text-police-blue hover:text-police-blue-dark font-medium px-3 py-1.5 border border-police-blue/50 rounded-md hover:bg-police-blue/5 transition-colors"
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                                Aggiungi Topic
+                              </button>
+                            </div>
+                          ) : selectedTopic !== null ? (
+                            /* Topic editor */
+                            <div className="space-y-3">
+                              <div>
+                                <label className="block text-sm font-medium text-police-gray-dark dark:text-police-text-muted mb-1">
+                                  Titolo Topic
+                                </label>
+                                <input
+                                  type="text"
+                                  value={selectedTopic.title}
+                                  onChange={(e) => handleUpdateTopicTitle(selectedSectionId, selectedTopicIndex, e.target.value)}
+                                  className="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-police-gray-dark dark:text-police-text-muted mb-1">
+                                  Contenuto HTML
+                                </label>
+                                <textarea
+                                  value={selectedTopic.content}
+                                  onChange={(e) => handleUpdateTopicContent(selectedSectionId, selectedTopicIndex, e.target.value)}
+                                  rows={12}
+                                  className="w-full text-xs font-mono border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-police-blue resize-y"
+                                  spellCheck={false}
+                                />
+                              </div>
+                              {/* Live preview */}
+                              {selectedTopic.content.trim() && (
+                                <div>
+                                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">Anteprima</div>
+                                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-900 max-h-64 overflow-y-auto">
+                                    <div
+                                      className="prose prose-sm max-w-none dark:prose-invert text-gray-700 dark:text-gray-300"
+                                      dangerouslySetInnerHTML={{ __html: selectedTopic.content }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Save button */}
+                    <div className="flex justify-end mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                      <Button
+                        variant="primary"
+                        onClick={handleSaveNormSections}
+                        disabled={normSectionsSaving}
+                        leftIcon={normSectionsSaved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+                      >
+                        {normSectionsSaved ? 'Salvato!' : normSectionsSaving ? 'Salvataggio...' : 'Salva Sezioni'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Categorie Reato ── */}
+              <div>
+                <p className="text-sm text-police-gray-dark dark:text-police-text-muted mb-4">
+                  Gestisci le categorie di reato e i relativi articoli del codice penale.
+                </p>
 
               {normLoading ? (
                 <div className="text-center py-8 text-gray-400">Caricamento...</div>
@@ -1572,6 +1988,7 @@ export default function ConfigPage() {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           )}
 
