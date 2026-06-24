@@ -80,7 +80,7 @@ function buildNavItems(
     id,
     title: sectionsData[id].title,
     icon: SECTION_ICON_MAP[id] ?? DEFAULT_SECTION_ICON,
-    isCategory: false as const,
+    isCategory: false,
   }));
 
   if (categories.length > 0) {
