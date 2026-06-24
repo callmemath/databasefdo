@@ -75,8 +75,8 @@ const COLOR_DOT: Record<string, string> = {
 function buildNavItems(
   sectionsData: NormativeSectionsData,
   categories: CrimeCategory[]
-): Array<{ id: string; title: string; icon: React.ReactNode; isCategory?: boolean; color?: string }> {
-  const items = Object.keys(sectionsData).map((id) => ({
+): Array<{ id: string; title: string; icon: React.ReactNode; isCategory?: boolean; color?: string; }> {
+  const items: Array<{ id: string; title: string; icon: React.ReactNode; isCategory?: boolean; color?: string }> = Object.keys(sectionsData).map((id) => ({
     id,
     title: sectionsData[id].title,
     icon: SECTION_ICON_MAP[id] ?? DEFAULT_SECTION_ICON,
