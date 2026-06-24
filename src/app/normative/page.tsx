@@ -74,21 +74,9 @@ const COLOR_DOT: Record<string, string> = {
   gray: 'bg-gray-500',
 };
 
-// Build a flat ordered list of IDs used for prev/next navigation.
-// Sections that have matching categories expand to include their sub-category IDs inline.
-function buildFlatNavIds(
-  sectionsData: NormativeSectionsData,
-  categories: CrimeCategory[]
-): string[] {
-  const ids: string[] = [];
-  for (const [id] of Object.entries(sectionsData)) {
-    ids.push(id);
-    const sectionCats = categories.filter((c) => c.sectionId === id);
-    for (const cat of sectionCats) {
-      ids.push(`cat-${cat.id}`);
-    }
-  }
-  return ids;
+// Prev/next uses only top-level section IDs — categories are anchors within their section.
+function buildFlatNavIds(sectionsData: NormativeSectionsData): string[] {
+  return Object.keys(sectionsData);
 }
 
 export default function NormativePage() {
@@ -102,7 +90,6 @@ export default function NormativePage() {
   const [activeSection, setActiveSection] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  // Track which sections with hasCrimeCategories are expanded in the sidebar
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -191,8 +178,8 @@ export default function NormativePage() {
     STATIC_CONTENT[id] = section.topics;
   }
 
-  // Flat ID list for prev/next navigation
-  const flatNavIds = buildFlatNavIds(sectionsData, categories);
+  // Flat ID list for prev/next navigation (sections only)
+  const flatNavIds = buildFlatNavIds(sectionsData);
   const activeIndex = flatNavIds.indexOf(activeSection);
 
   // Resolve display title for a nav ID
@@ -207,15 +194,10 @@ export default function NormativePage() {
   const prevId = activeIndex > 0 ? flatNavIds[activeIndex - 1] : null;
   const nextId = activeIndex < flatNavIds.length - 1 ? flatNavIds[activeIndex + 1] : null;
 
-  // Resolve active category if it's a dynamic one
-  const activeCategoryId = activeSection.startsWith('cat-')
-    ? activeSection.slice(4)
-    : null;
-  const activeCategory = activeCategoryId
-    ? categories.find((c) => c.id === activeCategoryId)
-    : null;
-  const activeStaticContent =
-    !activeCategoryId ? STATIC_CONTENT[activeSection] ?? [] : [];
+  // Static topics for the active section
+  const activeStaticContent = STATIC_CONTENT[activeSection] ?? [];
+  // Crime categories belonging to the active section
+  const activeSectionCats = categories.filter((c) => c.sectionId === activeSection);
 
   // Search filtering
   const filteredStaticContent = searchQuery
@@ -226,20 +208,32 @@ export default function NormativePage() {
       )
     : activeStaticContent;
 
-  const filteredCrimes =
-    searchQuery && activeCategory
-      ? activeCategory.crimes.filter(
-          (c) =>
-            c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            c.description.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : activeCategory?.crimes ?? [];
+  const filteredSectionCats = searchQuery
+    ? activeSectionCats
+        .map((cat) => ({
+          ...cat,
+          crimes: cat.crimes.filter(
+            (c) =>
+              c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              c.description.toLowerCase().includes(searchQuery.toLowerCase())
+          ),
+        }))
+        .filter((cat) => cat.crimes.length > 0 || cat.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : activeSectionCats;
 
   const handleSectionChange = (id: string) => {
     setActiveSection(id);
     setSearchQuery('');
     setMobileSidebarOpen(false);
     contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const scrollToCategory = (catId: string) => {
+    setMobileSidebarOpen(false);
+    const el = document.getElementById(`cat-${catId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   const toggleExpanded = (id: string) => {
@@ -251,9 +245,7 @@ export default function NormativePage() {
     });
   };
 
-  const activeSectionTitle = activeCategoryId
-    ? (categories.find((c) => c.id === activeCategoryId)?.name ?? '')
-    : (sectionsData[activeSection]?.title ?? '');
+  const activeSectionTitle = sectionsData[activeSection]?.title ?? '';
 
   // Icon strip keys for collapsed sidebar (static sections only)
   const staticSectionIds = Object.keys(sectionsData);
@@ -271,11 +263,6 @@ export default function NormativePage() {
           const isActive = activeSection === sectionId;
           const sectionCats = categories.filter((c) => c.sectionId === sectionId);
           const hasSectionCats = sectionCats.length > 0;
-          // Section is highlighted when active OR when a nested sub-category is selected
-          const hasSubActive =
-            hasSectionCats &&
-            activeCategoryId !== null &&
-            sectionCats.some((c) => `cat-${c.id}` === activeSection);
           const isExpanded = expandedSections.has(sectionId);
 
           return (
@@ -291,12 +278,12 @@ export default function NormativePage() {
                 }}
                 className={`w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors relative
                   ${
-                    isActive || hasSubActive
+                    isActive
                       ? 'font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50'
                   }`}
               >
-                {(isActive || hasSubActive) && (
+                {isActive && (
                   <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-600 dark:bg-blue-400 rounded-r" />
                 )}
                 {SECTION_ICON_MAP[sectionId] ?? DEFAULT_SECTION_ICON}
@@ -317,25 +304,23 @@ export default function NormativePage() {
                 )}
               </button>
 
-              {/* Sub-items: crime categories nested under this section */}
+              {/* Sub-items: crime categories as scroll anchors within this section */}
               {hasSectionCats && isExpanded &&
                 sectionCats.map((cat) => {
-                  const catId = `cat-${cat.id}`;
-                  const isCatActive = activeSection === catId;
                   return (
                     <button
-                      key={catId}
-                      onClick={() => handleSectionChange(catId)}
-                      className={`w-full flex items-center gap-2 pl-6 pr-4 py-1.5 text-xs transition-colors relative
-                        ${
-                          isCatActive
-                            ? 'font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                            : 'text-gray-500 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                        }`}
+                      key={cat.id}
+                      onClick={() => {
+                        if (activeSection !== sectionId) {
+                          handleSectionChange(sectionId);
+                          // Scroll after state update + render
+                          setTimeout(() => scrollToCategory(cat.id), 80);
+                        } else {
+                          scrollToCategory(cat.id);
+                        }
+                      }}
+                      className="w-full flex items-center gap-2 pl-6 pr-4 py-1.5 text-xs transition-colors text-gray-500 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                     >
-                      {isCatActive && (
-                        <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-600 dark:bg-blue-400 rounded-r" />
-                      )}
                       <span
                         className={`h-2 w-2 rounded-full shrink-0 ${COLOR_DOT[cat.color] ?? COLOR_DOT.gray}`}
                       />
@@ -387,10 +372,7 @@ export default function NormativePage() {
                 key={id}
                 title={sectionsData[id]?.title ?? id}
                 className={`h-1.5 w-1.5 rounded-full ${
-                  activeSection === id ||
-                  (activeCategoryId !== null && categories.some((c) => c.sectionId === id && `cat-${c.id}` === activeSection))
-                    ? 'bg-blue-500'
-                    : 'bg-gray-300 dark:bg-gray-600'
+                  activeSection === id ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'
                 }`}
               />
             ))}
@@ -448,100 +430,97 @@ export default function NormativePage() {
               />
             </div>
 
-            {/* Content area */}
-            {activeCategoryId ? (
-              // Dynamic crimes table
-              <div>
-                {activeCategory ? (
-                  activeCategory.crimes.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
-                      <Tag className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                      <p>Nessun reato in questa categoria.</p>
-                      <p className="text-sm mt-1">Aggiungi reati dalla pagina di configurazione.</p>
+            {/* Content area: static topics + crime categories inline as subsections */}
+            <div>
+              {filteredStaticContent.length === 0 && filteredSectionCats.length === 0 && searchQuery ? (
+                <div className="text-center py-12 text-gray-400">
+                  <Search className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                  <p>Nessun risultato per &quot;{searchQuery}&quot;</p>
+                </div>
+              ) : (
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  {/* Static topics */}
+                  {filteredStaticContent.map((topic, index) => (
+                    <div key={index}>
+                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 mt-8 first:mt-0">
+                        {topic.title}
+                      </h2>
+                      {renderXmlContent(topic.content)}
                     </div>
-                  ) : filteredCrimes.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
-                      <Search className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                      <p>Nessun risultato per &quot;{searchQuery}&quot;</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-                        <thead className="bg-gray-50 dark:bg-gray-800">
-                          <tr>
-                            <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs">
-                              Nome reato
-                            </th>
-                            <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs">
-                              Descrizione
-                            </th>
-                            <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs whitespace-nowrap">
-                              Pena
-                            </th>
-                            <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs whitespace-nowrap">
-                              Sanzione (€)
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
-                          {filteredCrimes.map((crime) => (
-                            <tr
-                              key={crime.id}
-                              className="hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
-                            >
-                              <td className="px-4 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                                {crime.name}
-                              </td>
-                              <td className="px-4 py-3 text-gray-600 dark:text-gray-400 max-w-xs">
-                                {crime.description || (
-                                  <span className="italic text-gray-400">—</span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3 text-blue-700 dark:text-blue-400 whitespace-nowrap font-mono text-xs">
-                                {crime.sentence}
-                              </td>
-                              <td className="px-4 py-3 text-gray-900 dark:text-white whitespace-nowrap font-mono text-xs">
-                                {crime.fine > 0 ? (
-                                  `€ ${crime.fine.toLocaleString('it-IT')}`
-                                ) : (
-                                  <span className="text-gray-400">—</span>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )
-                ) : (
-                  <div className="text-center py-12 text-gray-400">
-                    <Loader2 className="h-10 w-10 animate-spin mx-auto mb-3" />
-                    Caricamento...
-                  </div>
-                )}
-              </div>
-            ) : (
-              // Static section content — rendered from XML
-              <div>
-                {filteredStaticContent.length === 0 && searchQuery ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <Search className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                    <p>Nessun risultato per &quot;{searchQuery}&quot;</p>
-                  </div>
-                ) : (
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
-                    {filteredStaticContent.map((topic, index) => (
-                      <div key={index}>
-                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 mt-8 first:mt-0">
-                          {topic.title}
+                  ))}
+
+                  {/* Dynamic crime categories as subsections */}
+                  {filteredSectionCats.map((cat) => (
+                    <div key={cat.id} id={`cat-${cat.id}`} className="mt-10 scroll-mt-6">
+                      <div className="flex items-center gap-2.5 mb-4">
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white m-0">
+                          {cat.name}
                         </h2>
-                        {renderXmlContent(topic.content)}
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium not-prose ${
+                            COLOR_BADGE[cat.color] ?? COLOR_BADGE.gray
+                          }`}
+                        >
+                          <Tag className="h-3 w-3" />
+                          Categoria
+                        </span>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                      {cat.crimes.length === 0 ? (
+                        <p className="text-gray-400 text-sm italic">
+                          Nessun reato in questa categoria. Aggiungili dalla pagina di configurazione.
+                        </p>
+                      ) : (
+                        <div className="not-prose overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                            <thead className="bg-gray-50 dark:bg-gray-800">
+                              <tr>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs">
+                                  Nome reato
+                                </th>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs">
+                                  Descrizione
+                                </th>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs whitespace-nowrap">
+                                  Pena
+                                </th>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs whitespace-nowrap">
+                                  Sanzione (€)
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
+                              {cat.crimes.map((crime) => (
+                                <tr
+                                  key={crime.id}
+                                  className="hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+                                >
+                                  <td className="px-4 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                                    {crime.name}
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400 max-w-xs">
+                                    {crime.description || <span className="italic text-gray-400">—</span>}
+                                  </td>
+                                  <td className="px-4 py-3 text-blue-700 dark:text-blue-400 whitespace-nowrap font-mono text-xs">
+                                    {crime.sentence}
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-900 dark:text-white whitespace-nowrap font-mono text-xs">
+                                    {crime.fine > 0 ? (
+                                      `€ ${crime.fine.toLocaleString('it-IT')}`
+                                    ) : (
+                                      <span className="text-gray-400">—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Prev / Next navigation */}
             <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
