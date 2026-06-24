@@ -405,18 +405,6 @@ export default function NormativePage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
               {activeSectionTitle}
             </h1>
-            {activeCategory && (
-              <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium mb-4 ${
-                  COLOR_BADGE[activeCategory.color] ?? COLOR_BADGE.gray
-                }`}
-              >
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${COLOR_DOT[activeCategory.color] ?? COLOR_DOT.gray}`}
-                />
-                Categoria normativa
-              </span>
-            )}
 
             {/* Search bar */}
             <div className="relative mb-8">
