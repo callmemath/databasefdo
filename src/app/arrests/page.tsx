@@ -49,24 +49,8 @@ export default function Arrests() {
   // Il dipartimento viene preso automaticamente dall'utente corrente
   const [currentUserDepartment, setCurrentUserDepartment] = useState('');
   
-  // Available crimes list with sanctions
-  const availableCrimes = [
-    { id: 1, name: 'Rapina a mano armata', sentence: '8 anni', fine: 10000 },
-    { id: 2, name: 'Guida in stato di ebbrezza', sentence: '6 mesi', fine: 1500 },
-    { id: 3, name: 'Possesso di sostanze stupefacenti', sentence: '1 anno', fine: 2000 },
-    { id: 4, name: 'Aggressione a pubblico ufficiale', sentence: '3 anni', fine: 5000 },
-    { id: 5, name: 'Violazione di domicilio', sentence: '1 anno', fine: 1000 },
-    { id: 6, name: 'Tentato omicidio', sentence: '10 anni', fine: 15000 },
-    { id: 7, name: 'Furto d\'auto', sentence: '2 anni', fine: 3000 },
-    { id: 8, name: 'Resistenza all\'arresto', sentence: '2 anni', fine: 2500 },
-    { id: 9, name: 'Spaccio di sostanze stupefacenti', sentence: '5 anni', fine: 8000 },
-    { id: 10, name: 'Omicidio', sentence: '20 anni', fine: 0 },
-    { id: 11, name: 'Favoreggiamento', sentence: '3 anni', fine: 4000 },
-    { id: 12, name: 'Ricettazione', sentence: '4 anni', fine: 6000 },
-    { id: 13, name: 'Porto abusivo d\'armi', sentence: '3 anni', fine: 5000 },
-    { id: 14, name: 'Sequestro di persona', sentence: '7 anni', fine: 9000 },
-    { id: 15, name: 'Estorsione', sentence: '6 anni', fine: 8000 },
-  ];
+  // Available crimes — fetched from API
+  const [availableCrimes, setAvailableCrimes] = useState<{ id: string; name: string; sentence: string; fine: number }[]>([]);
   
   
   // Recupera l'elenco degli arresti
@@ -94,22 +78,43 @@ export default function Arrests() {
     }
   };
 
+  // Carica i reati dal database
+  const fetchCrimes = async () => {
+    try {
+      const res = await fetch('/api/crimes');
+      if (res.ok) {
+        const data = await res.json();
+        const crimes = (data.crimes ?? []).map((c: { id: string; name: string; sentence: string; fine: number }) => ({
+          id: c.id,
+          name: c.name,
+          sentence: c.sentence,
+          fine: c.fine,
+        }));
+        setAvailableCrimes(crimes);
+        setFilteredCrimes(crimes);
+      }
+    } catch (error) {
+      console.error('Errore nel caricamento dei reati:', error);
+    }
+  };
+
   // Carica gli arresti all'avvio e inizializza i reati filtrati e il dipartimento dell'utente
   useEffect(() => {
     fetchArrests();
-    setFilteredCrimes(availableCrimes);
-    
+    fetchCrimes();
+
     // Imposta il dipartimento dell'utente corrente
     if (session?.user?.department) {
       setCurrentUserDepartment(session.user.department);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
   // Removed months and fine calculations as per request #6
   const calculateTotals = () => {
     // Calculate crime totals with sanctions
     const crimes = selectedCrimes.map(crimeId => {
-      const crime = availableCrimes.find(c => c.id === parseInt(crimeId));
+      const crime = availableCrimes.find(c => c.id === crimeId);
       return crime || null;
     }).filter(crime => crime !== null);
     
@@ -370,6 +375,14 @@ export default function Arrests() {
     }
   };
 
+  // Aggiorna i reati filtrati quando availableCrimes cambia
+  useEffect(() => {
+    if (!crimeSearchQuery) {
+      setFilteredCrimes(availableCrimes);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableCrimes]);
+
   // Seleziona un cittadino
   const selectCitizen = (citizen: any) => {
     console.log("Cittadino selezionato:", citizen);
@@ -453,7 +466,7 @@ export default function Arrests() {
     try {
       // Prepara i dati dell'arresto
       const crimesList = selectedCrimes.map(id => {
-        const crime = availableCrimes.find(c => c.id === parseInt(id));
+        const crime = availableCrimes.find(c => c.id === id);
         return crime ? crime.name : '';
       }).filter(name => name !== '');
       

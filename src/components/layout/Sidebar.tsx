@@ -15,7 +15,7 @@ const sidebarItems = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Cittadini', href: '/citizens', icon: Users },
   { name: 'Operatori FDO', href: '/operators', icon: Shield },
-  { name: 'Codici', href: '/codes', icon: BookOpen },
+  { name: 'Normative', href: '/normative', icon: BookOpen },
   { name: 'Sistema Arresti', href: '/arrests', icon: AlertCircle },
   { name: 'Denunce', href: '/reports', icon: FileText },
   { name: 'Ricercati', href: '/wanted', icon: Search },

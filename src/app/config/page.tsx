@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Check, Plus, Save, Trash2, Edit, X, Lock, Settings, FileText, Shield, Globe, Bell, LayoutList, Briefcase } from 'lucide-react';
+import { Check, Plus, Save, Trash2, Edit, X, Lock, FileText, Shield, Briefcase, BookOpen, Tag, ChevronDown } from 'lucide-react';
 import MainLayout from '../../components/layout/MainLayout';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -71,7 +71,7 @@ export default function ConfigPage() {
 
   
   // Categorie selezionate attualmente
-  const [activeTab, setActiveTab] = useState<'reports' | 'permissions' | 'actions' | 'roles'>('reports');
+  const [activeTab, setActiveTab] = useState<'reports' | 'permissions' | 'actions' | 'roles' | 'normative'>('reports');
   
   // Stato per i permessi di accesso alle sezioni
   const { rules: contextRules, reload: reloadPermissions } = usePermissions();
@@ -87,7 +87,7 @@ export default function ConfigPage() {
     '/wanted': 'Ricercati',
     '/weapon-licenses': 'Porto d\'armi',
     '/operators': 'Operatori',
-    '/codes': 'Codici',
+    '/normative': 'Normative',
   };
 
   // Stato per la nuova regola da aggiungere
@@ -118,6 +118,189 @@ export default function ConfigPage() {
   const [newRankPerDept, setNewRankPerDept] = useState<Record<string, { rank_name: string; role_id: string }>>({});
   const [newDept, setNewDept] = useState({ name: '', deptId: '' });
   
+  // ----- Stato per le Normative (CrimeCategory + Crime) -----
+  interface CrimeCategoryData {
+    id: string;
+    name: string;
+    color: string;
+    order: number;
+    crimes: CrimeData[];
+  }
+  interface CrimeData {
+    id: string;
+    name: string;
+    description: string;
+    sentence: string;
+    fine: number;
+    order: number;
+    categoryId: string;
+  }
+
+  const [normCategories, setNormCategories] = useState<CrimeCategoryData[]>([]);
+  const [normLoading, setNormLoading] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+
+  // Category form state
+  const [catForm, setCatForm] = useState({ name: '', color: 'blue' });
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [catSaving, setCatSaving] = useState(false);
+
+  // Crime form state
+  const [crimeForm, setCrimeForm] = useState({ name: '', description: '', sentence: '', fine: '0' });
+  const [editingCrimeId, setEditingCrimeId] = useState<string | null>(null);
+  const [crimeSaving, setCrimeSaving] = useState(false);
+
+  // Load categories when normative tab is opened
+  const loadNormCategories = async () => {
+    setNormLoading(true);
+    try {
+      const res = await fetch('/api/crimes/categories');
+      if (res.ok) {
+        const data = await res.json();
+        setNormCategories(data.categories ?? []);
+      }
+    } catch { /* silent */ }
+    finally { setNormLoading(false); }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'normative' && normCategories.length === 0 && !normLoading) {
+      loadNormCategories();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  const selectedCategory = normCategories.find((c) => c.id === selectedCategoryId) ?? null;
+
+  const handleSaveCategory = async () => {
+    if (!catForm.name.trim()) return;
+    setCatSaving(true);
+    try {
+      if (editingCatId) {
+        const res = await fetch(`/api/crimes/categories/${editingCatId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: catForm.name.trim(), color: catForm.color }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setNormCategories((prev) => prev.map((c) => (c.id === editingCatId ? data.category : c)));
+          setEditingCatId(null);
+          setCatForm({ name: '', color: 'blue' });
+        }
+      } else {
+        const res = await fetch('/api/crimes/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: catForm.name.trim(), color: catForm.color, order: normCategories.length }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setNormCategories((prev) => [...prev, data.category]);
+          setCatForm({ name: '', color: 'blue' });
+        }
+      }
+    } catch { /* silent */ }
+    finally { setCatSaving(false); }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm('Eliminare questa categoria e tutti i reati collegati?')) return;
+    try {
+      const res = await fetch(`/api/crimes/categories/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setNormCategories((prev) => prev.filter((c) => c.id !== id));
+        if (selectedCategoryId === id) setSelectedCategoryId(null);
+      }
+    } catch { /* silent */ }
+  };
+
+  const handleSaveCrime = async () => {
+    if (!crimeForm.name.trim() || !crimeForm.sentence.trim() || !selectedCategoryId) return;
+    setCrimeSaving(true);
+    try {
+      const payload = {
+        name: crimeForm.name.trim(),
+        description: crimeForm.description.trim(),
+        sentence: crimeForm.sentence.trim(),
+        fine: parseInt(crimeForm.fine) || 0,
+        categoryId: selectedCategoryId,
+        order: selectedCategory?.crimes.length ?? 0,
+      };
+      if (editingCrimeId) {
+        const res = await fetch(`/api/crimes/${editingCrimeId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setNormCategories((prev) =>
+            prev.map((c) =>
+              c.id === selectedCategoryId
+                ? { ...c, crimes: c.crimes.map((cr) => (cr.id === editingCrimeId ? data.crime : cr)) }
+                : c
+            )
+          );
+          setEditingCrimeId(null);
+          setCrimeForm({ name: '', description: '', sentence: '', fine: '0' });
+        }
+      } else {
+        const res = await fetch('/api/crimes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setNormCategories((prev) =>
+            prev.map((c) =>
+              c.id === selectedCategoryId
+                ? { ...c, crimes: [...c.crimes, data.crime] }
+                : c
+            )
+          );
+          setCrimeForm({ name: '', description: '', sentence: '', fine: '0' });
+        }
+      }
+    } catch { /* silent */ }
+    finally { setCrimeSaving(false); }
+  };
+
+  const handleDeleteCrime = async (id: string) => {
+    if (!confirm('Eliminare questo reato?')) return;
+    try {
+      const res = await fetch(`/api/crimes/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setNormCategories((prev) =>
+          prev.map((c) =>
+            c.id === selectedCategoryId
+              ? { ...c, crimes: c.crimes.filter((cr) => cr.id !== id) }
+              : c
+          )
+        );
+        if (editingCrimeId === id) {
+          setEditingCrimeId(null);
+          setCrimeForm({ name: '', description: '', sentence: '', fine: '0' });
+        }
+      }
+    } catch { /* silent */ }
+  };
+
+  const normColorBadge: Record<string, string> = {
+    blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+    red: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    green: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    purple: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+    gray: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+  };
+  const normColorDot: Record<string, string> = {
+    blue: 'bg-blue-500', red: 'bg-red-500', green: 'bg-green-500',
+    yellow: 'bg-yellow-500', purple: 'bg-purple-500', gray: 'bg-gray-500',
+  };
+  const normAvailableColors = ['blue', 'red', 'green', 'yellow', 'purple', 'gray'];
+
   // Stato per la modifica
   const [isEditing, setIsEditing] = useState(false);
   const [editItem, setEditItem] = useState<ConfigCategory | null>(null);
@@ -601,6 +784,19 @@ export default function ConfigPage() {
                 <div className="flex items-center">
                   <Shield className="h-4 w-4 mr-2" />
                   Dipartimenti
+                </div>
+              </button>
+
+              <button
+                className={`py-3 px-4 border-b-2 font-medium text-sm focus:outline-none whitespace-nowrap
+                  ${activeTab === 'normative'
+                    ? 'border-police-blue text-police-blue-dark dark:text-police-blue-light'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                onClick={() => setActiveTab('normative')}
+              >
+                <div className="flex items-center">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Normative
                 </div>
               </button>
             </div>
@@ -1158,6 +1354,224 @@ export default function ConfigPage() {
                   {rolesSaved ? 'Salvato!' : rolesSaving ? 'Salvataggio...' : 'Salva configurazione'}
                 </Button>
               </div>
+            </div>
+          )}
+
+          {/* Tab Normative */}
+          {activeTab === 'normative' && (
+            <div className="space-y-4">
+              <p className="text-sm text-police-gray-dark dark:text-police-text-muted">
+                Gestisci le categorie di reato e i relativi articoli del codice penale.
+              </p>
+
+              {normLoading ? (
+                <div className="text-center py-8 text-gray-400">Caricamento...</div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Left panel: Categories */}
+                  <div className="space-y-3">
+                    <h3 className="font-medium text-police-blue-dark dark:text-police-text-light flex items-center gap-2">
+                      <Tag className="h-4 w-4" />
+                      Categorie
+                    </h3>
+
+                    {normCategories.length === 0 && (
+                      <p className="text-sm text-gray-400 italic">Nessuna categoria. Creane una qui sotto.</p>
+                    )}
+
+                    <div className="space-y-2">
+                      {normCategories.map((cat) => (
+                        <div
+                          key={cat.id}
+                          onClick={() => setSelectedCategoryId(cat.id === selectedCategoryId ? null : cat.id)}
+                          className={`flex items-center justify-between px-3 py-2 rounded-md border cursor-pointer transition-colors ${
+                            selectedCategoryId === cat.id
+                              ? 'border-police-blue bg-police-blue/5 dark:border-blue-500 dark:bg-blue-900/20'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`h-2.5 w-2.5 rounded-full ${normColorDot[cat.color] ?? normColorDot.gray}`} />
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${normColorBadge[cat.color] ?? normColorBadge.gray}`}>
+                              {cat.name}
+                            </span>
+                            <span className="text-xs text-gray-400">{cat.crimes.length} reati</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingCatId(cat.id);
+                                setCatForm({ name: cat.name, color: cat.color });
+                              }}
+                              className="p-1 text-gray-400 hover:text-police-blue rounded"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id); }}
+                              className="p-1 text-gray-400 hover:text-red-500 rounded"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                            <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform ${selectedCategoryId === cat.id ? 'rotate-180' : ''}`} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Category form */}
+                    <div className="border border-dashed border-gray-300 dark:border-gray-600 rounded-md p-3 space-y-3">
+                      <h4 className="text-sm font-medium text-police-blue-dark dark:text-police-text-light">
+                        {editingCatId ? 'Modifica categoria' : 'Nuova categoria'}
+                      </h4>
+                      <input
+                        type="text"
+                        placeholder="Nome categoria..."
+                        value={catForm.name}
+                        onChange={(e) => setCatForm((p) => ({ ...p, name: e.target.value }))}
+                        className="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                      />
+                      <div>
+                        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Colore</label>
+                        <div className="flex gap-2 flex-wrap">
+                          {normAvailableColors.map((c) => (
+                            <button
+                              key={c}
+                              onClick={() => setCatForm((p) => ({ ...p, color: c }))}
+                              className={`h-6 w-6 rounded-full ${normColorDot[c]} ${catForm.color === c ? 'ring-2 ring-offset-1 ring-police-blue' : ''}`}
+                              title={c}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        {editingCatId && (
+                          <button
+                            onClick={() => { setEditingCatId(null); setCatForm({ name: '', color: 'blue' }); }}
+                            className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1 rounded"
+                          >
+                            Annulla
+                          </button>
+                        )}
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={handleSaveCategory}
+                          disabled={catSaving || !catForm.name.trim()}
+                          leftIcon={<Save className="h-3.5 w-3.5" />}
+                        >
+                          {catSaving ? 'Salvo...' : editingCatId ? 'Aggiorna' : 'Aggiungi'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right panel: Crimes in selected category */}
+                  <div className="space-y-3">
+                    <h3 className="font-medium text-police-blue-dark dark:text-police-text-light flex items-center gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      {selectedCategory ? `Reati: ${selectedCategory.name}` : 'Reati'}
+                    </h3>
+
+                    {!selectedCategory ? (
+                      <p className="text-sm text-gray-400 italic">Seleziona una categoria per gestire i reati.</p>
+                    ) : (
+                      <>
+                        {selectedCategory.crimes.length === 0 && (
+                          <p className="text-sm text-gray-400 italic">Nessun reato in questa categoria.</p>
+                        )}
+                        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                          {selectedCategory.crimes.map((crime) => (
+                            <div key={crime.id} className="flex items-start justify-between border border-gray-200 dark:border-gray-700 rounded-md p-2.5 bg-gray-50 dark:bg-gray-800/50">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm text-gray-900 dark:text-white truncate">{crime.name}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                  {crime.sentence}{crime.fine > 0 ? ` · €${crime.fine.toLocaleString('it-IT')}` : ''}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 ml-2 shrink-0">
+                                <button
+                                  onClick={() => {
+                                    setEditingCrimeId(crime.id);
+                                    setCrimeForm({ name: crime.name, description: crime.description, sentence: crime.sentence, fine: String(crime.fine) });
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-police-blue rounded"
+                                >
+                                  <Edit className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteCrime(crime.id)}
+                                  className="p-1 text-gray-400 hover:text-red-500 rounded"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Crime form */}
+                        <div className="border border-dashed border-gray-300 dark:border-gray-600 rounded-md p-3 space-y-2.5">
+                          <h4 className="text-sm font-medium text-police-blue-dark dark:text-police-text-light">
+                            {editingCrimeId ? 'Modifica reato' : 'Nuovo reato'}
+                          </h4>
+                          <input
+                            type="text"
+                            placeholder="Nome reato *"
+                            value={crimeForm.name}
+                            onChange={(e) => setCrimeForm((p) => ({ ...p, name: e.target.value }))}
+                            className="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                          />
+                          <textarea
+                            placeholder="Descrizione..."
+                            value={crimeForm.description}
+                            onChange={(e) => setCrimeForm((p) => ({ ...p, description: e.target.value }))}
+                            rows={2}
+                            className="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-police-blue resize-none"
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              type="text"
+                              placeholder="Pena (es. 3 anni) *"
+                              value={crimeForm.sentence}
+                              onChange={(e) => setCrimeForm((p) => ({ ...p, sentence: e.target.value }))}
+                              className="text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                            />
+                            <input
+                              type="number"
+                              placeholder="Sanzione €"
+                              value={crimeForm.fine}
+                              onChange={(e) => setCrimeForm((p) => ({ ...p, fine: e.target.value }))}
+                              min={0}
+                              className="text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-police-blue [appearance:textfield]"
+                            />
+                          </div>
+                          <div className="flex gap-2 justify-end">
+                            {editingCrimeId && (
+                              <button
+                                onClick={() => { setEditingCrimeId(null); setCrimeForm({ name: '', description: '', sentence: '', fine: '0' }); }}
+                                className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1 rounded"
+                              >
+                                Annulla
+                              </button>
+                            )}
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={handleSaveCrime}
+                              disabled={crimeSaving || !crimeForm.name.trim() || !crimeForm.sentence.trim()}
+                              leftIcon={<Save className="h-3.5 w-3.5" />}
+                            >
+                              {crimeSaving ? 'Salvo...' : editingCrimeId ? 'Aggiorna' : 'Aggiungi'}
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
