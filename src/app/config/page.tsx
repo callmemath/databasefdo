@@ -2012,33 +2012,26 @@ export default function ConfigPage() {
           )}
 
         </Card>
-        
-                  <Card>
-          <h2 className="text-lg font-semibold text-police-blue-dark dark:text-police-text-light mb-4">
-            Anteprima
-          </h2>
-          
-          <div className="space-y-4">
-            {activeTab === 'reports' ? (
-              <>
-                <h3 className="text-md font-medium text-police-gray-dark dark:text-police-text-muted">
-                  Categorie di denunce disponibili:
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {reportCategories.map((category) => (
-                    <Badge key={category.id} variant={category.color as any}>
-                      {category.name}
-                    </Badge>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <p className="text-police-gray-dark dark:text-police-text-muted">
-                Seleziona una categoria per visualizzare l'anteprima
-              </p>
-            )}
-          </div>
-        </Card>
+
+        {activeTab === 'reports' && (
+          <Card>
+            <h2 className="text-lg font-semibold text-police-blue-dark dark:text-police-text-light mb-4">
+              Anteprima
+            </h2>
+            <div className="space-y-4">
+              <h3 className="text-md font-medium text-police-gray-dark dark:text-police-text-muted">
+                Categorie di denunce disponibili:
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {reportCategories.map((category) => (
+                  <Badge key={category.id} variant={category.color as any}>
+                    {category.name}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </Card>
+        )}
       </div>
     </MainLayout>
   );
