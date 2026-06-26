@@ -5,11 +5,11 @@ import MainLayout from '../../../components/layout/MainLayout';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
 import Badge from '../../../components/ui/Badge';
-import { 
-  ArrowLeft, User, Calendar, MapPin, Briefcase, Phone, Mail, 
-  AlertCircle, FileText, Shield, Users, Fingerprint, CreditCard, 
+import {
+  ArrowLeft, User, Calendar, MapPin, Briefcase, Phone, Mail,
+  AlertCircle, FileText, Shield, Users, Fingerprint, CreditCard,
   Info, Clock, Flag, Ruler, UserCheck, AlertTriangle, Tag, Target,
-  Edit, Trash2, Save, X
+  Edit, Trash2, Save, X, Building2
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -21,7 +21,7 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
   const [citizen, setCitizen] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'records' | 'reports' | 'accusations' | 'arrests' | 'weapons' | 'notes'>('records');
+  const [activeTab, setActiveTab] = useState<'records' | 'reports' | 'accusations' | 'arrests' | 'weapons' | 'vat' | 'notes'>('records');
   
   // Stato per le note
   const [notes, setNotes] = useState<any[]>([]);
@@ -600,10 +600,27 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                   </div>
                 </button>
 
-                <button 
+                <button
                   className={`py-3 px-4 border-b-2 font-medium text-sm focus:outline-none whitespace-nowrap
-                    ${activeTab === 'notes' 
-                      ? 'border-police-blue text-police-blue-dark dark:text-police-blue-light' 
+                    ${activeTab === 'vat'
+                      ? 'border-police-blue text-police-blue-dark dark:text-police-blue-light'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                  onClick={() => setActiveTab('vat')}
+                >
+                  <div className="flex items-center">
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Partita IVA {citizen.vatRegistrations?.length > 0 && (
+                      <span className="ml-1.5 bg-indigo-100 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-400 text-xs rounded-full w-5 h-5 inline-flex items-center justify-center">
+                        {citizen.vatRegistrations.length}
+                      </span>
+                    )}
+                  </div>
+                </button>
+
+                <button
+                  className={`py-3 px-4 border-b-2 font-medium text-sm focus:outline-none whitespace-nowrap
+                    ${activeTab === 'notes'
+                      ? 'border-police-blue text-police-blue-dark dark:text-police-blue-light'
                       : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                   onClick={() => setActiveTab('notes')}
                 >
@@ -1137,6 +1154,89 @@ export default function CitizenDetailPage({ params }: { params: Promise<{ id: st
                 </div>
               )}
               
+              {/* Tab Partita IVA */}
+              {activeTab === 'vat' && (
+                <div>
+                  <h3 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center">
+                    <Building2 className="h-5 w-5 mr-2 text-indigo-500" />
+                    Partite IVA di {citizen.firstname} {citizen.lastname}
+                  </h3>
+
+                  {citizen.vatRegistrations && citizen.vatRegistrations.length > 0 ? (
+                    <div className="space-y-4">
+                      {citizen.vatRegistrations.map((vat: any) => {
+                        const isPending   = vat.status === 'pending';
+                        const isActive    = vat.status === 'active';
+                        const isSuspended = vat.status === 'suspended';
+                        const isRevoked   = vat.status === 'revoked';
+
+                        const borderClass = isPending
+                          ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-900/30'
+                          : isActive
+                          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/30'
+                          : isSuspended
+                          ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-900/30'
+                          : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30';
+
+                        const statusLabel = isPending ? 'In Attesa' : isActive ? 'Attiva' : isSuspended ? 'Sospesa' : isRevoked ? 'Revocata' : vat.status;
+                        const badgeVariant: 'gray' | 'green' | 'red' | 'yellow' = isPending ? 'gray' : isActive ? 'green' : isSuspended ? 'yellow' : 'red';
+
+                        return (
+                          <div key={vat.id} className={`p-4 border rounded-md transition-colors ${borderClass}`}>
+                            <div className="flex justify-between items-start gap-4">
+                              <div className="flex-1 space-y-1 text-sm">
+                                <div className="flex items-center gap-2 flex-wrap mb-2">
+                                  <h4 className="font-semibold text-gray-800 dark:text-gray-200">
+                                    {vat.registrationNumber}
+                                  </h4>
+                                  <Badge variant={badgeVariant}>{statusLabel}</Badge>
+                                </div>
+                                <p className="text-gray-800 dark:text-gray-200 font-medium">{vat.businessName}</p>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                  <span className="font-medium">Tipo attività:</span> {vat.businessType}
+                                </p>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                  <span className="font-medium">Regime fiscale:</span> {vat.taxRegime}
+                                </p>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                  <span className="font-medium">Autorità:</span> {vat.issuingAuthority}
+                                </p>
+                                {vat.issueDate && (
+                                  <p className="text-gray-600 dark:text-gray-400">
+                                    <span className="font-medium">Data apertura:</span> {formatDate(vat.issueDate)}
+                                  </p>
+                                )}
+                                {(isSuspended || isRevoked) && vat.suspensionReason && (
+                                  <p className="text-yellow-700 dark:text-yellow-400">
+                                    <span className="font-medium">Motivo:</span> {vat.suspensionReason}
+                                  </p>
+                                )}
+                                {vat.notes && (
+                                  <p className="text-gray-500 dark:text-gray-500 italic text-xs mt-1">{vat.notes}</p>
+                                )}
+                                {vat.officer && (
+                                  <div className="flex items-center text-xs text-police-blue-dark dark:text-police-blue-light mt-1">
+                                    <Shield className="h-3 w-3 mr-1" />
+                                    {vat.officer.name} {vat.officer.surname} ({vat.officer.badge})
+                                  </div>
+                                )}
+                              </div>
+                              <Building2 className={`h-6 w-6 shrink-0 ${isActive ? 'text-green-500' : isPending ? 'text-blue-400' : isSuspended ? 'text-yellow-500' : 'text-red-500'}`} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-4 border border-dashed border-gray-200 dark:border-gray-700 rounded-md text-center">
+                      <p className="text-police-gray-dark dark:text-police-text-muted">
+                        Nessuna partita IVA registrata per questo cittadino.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Tab Note */}
               {activeTab === 'notes' && (
                 <div>

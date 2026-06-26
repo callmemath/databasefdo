@@ -207,13 +207,41 @@ export async function GET(
       });
     }
     
+    // Carica le partite IVA del cittadino
+    let vatRegistrations: any[] = [];
+    try {
+      vatRegistrations = await prisma.vatRegistration.findMany({
+        where: { citizenId },
+        select: {
+          id: true,
+          registrationNumber: true,
+          businessName: true,
+          businessType: true,
+          taxRegime: true,
+          status: true,
+          issueDate: true,
+          issuingAuthority: true,
+          notes: true,
+          suspensionReason: true,
+          createdAt: true,
+          officer: {
+            select: { id: true, name: true, surname: true, badge: true, department: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    } catch {
+      // tabella non ancora creata — ignora
+    }
+
     // Combina i risultati
     const citizenWithDetails = {
       ...citizen,
       arrests,
       reports,
       accusedReports: enrichedAccusedReports,
-      weaponLicenses
+      weaponLicenses,
+      vatRegistrations
     };
 
     return NextResponse.json({ citizen: citizenWithDetails });
