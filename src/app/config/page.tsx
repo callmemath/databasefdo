@@ -88,6 +88,7 @@ export default function ConfigPage() {
     '/reports': 'Denunce',
     '/wanted': 'Ricercati',
     '/weapon-licenses': 'Porto d\'armi',
+    '/vat-registrations': 'Partita IVA',
     '/operators': 'Operatori',
     '/normative': 'Normative',
   };
