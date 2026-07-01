@@ -64,6 +64,8 @@ export default function VatRegistrationDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [suspensionReason, setSuspensionReason] = useState('');
+  const [showRevokeModal, setShowRevokeModal] = useState(false);
+  const [revocationReason, setRevocationReason] = useState('');
 
   useEffect(() => {
     if (registrationId) fetchRegistration();
@@ -182,6 +184,42 @@ export default function VatRegistrationDetailPage() {
         </div>
       )}
 
+      {showRevokeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold text-red-700 dark:text-red-400 mb-4">
+              Revoca Partita IVA
+            </h3>
+            <p className="text-police-gray-dark dark:text-gray-400 mb-4">
+              La revoca è definitiva. Inserisci la motivazione:
+            </p>
+            <textarea
+              rows={4}
+              value={revocationReason}
+              onChange={(e) => setRevocationReason(e.target.value)}
+              className="w-full px-4 py-2 border border-red-300 dark:border-red-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-4"
+              placeholder="Motivazione della revoca..."
+            />
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => { setShowRevokeModal(false); setRevocationReason(''); }}
+                disabled={actionLoading}
+              >
+                Annulla
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => updateStatus('revoked', revocationReason)}
+                disabled={actionLoading || !revocationReason}
+              >
+                {actionLoading ? 'Revoca...' : 'Conferma Revoca'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6">
         <div className="flex items-center">
           <Link href="/vat-registrations" className="mr-4">
@@ -272,7 +310,7 @@ export default function VatRegistrationDetailPage() {
               <div className="mt-4 pt-4 border-t border-red-200 dark:border-red-800">
                 <div className="bg-red-50 dark:bg-red-900/10 rounded-md p-4">
                   <div className="text-sm font-medium text-red-800 dark:text-red-400 mb-1">
-                    Motivo Sospensione/Revoca
+                    {registration.status === 'revoked' ? 'Motivazione Revoca' : 'Motivo Sospensione'}
                   </div>
                   <p className="text-red-900 dark:text-red-300">{registration.suspensionReason}</p>
                 </div>
@@ -362,6 +400,17 @@ export default function VatRegistrationDetailPage() {
                   disabled={actionLoading}
                 >
                   Sospendi Registrazione
+                </Button>
+              )}
+              {(registration.status === 'active' || registration.status === 'suspended') && (
+                <Button
+                  variant="danger"
+                  fullWidth
+                  leftIcon={<XCircle className="h-4 w-4" />}
+                  onClick={() => setShowRevokeModal(true)}
+                  disabled={actionLoading}
+                >
+                  Revoca Registrazione
                 </Button>
               )}
               {(registration.status === 'suspended' || registration.status === 'revoked') && (
