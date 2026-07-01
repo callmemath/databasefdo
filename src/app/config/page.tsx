@@ -1972,7 +1972,7 @@ export default function ConfigPage() {
                           />
                           <input
                             type="text"
-                            placeholder="Articolo c.p. (es. Art. 624 c.p.)"
+                            placeholder="Articolo (es. Art. 624 c.p.)"
                             value={crimeForm.articleCode}
                             onChange={(e) => setCrimeForm((p) => ({ ...p, articleCode: e.target.value }))}
                             className="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-police-blue"

@@ -464,7 +464,7 @@ export default function NormativePage() {
                             <thead className="bg-gray-50 dark:bg-gray-800">
                               <tr>
                                 <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs whitespace-nowrap">
-                                  Articolo c.p.
+                                  Articolo
                                 </th>
                                 <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs">
                                   Nome reato
