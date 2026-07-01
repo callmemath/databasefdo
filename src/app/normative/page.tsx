@@ -492,7 +492,7 @@ export default function NormativePage() {
                                   <td className="px-4 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
                                     {crime.name}
                                   </td>
-                                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400 max-w-xs">
+                                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
                                     {crime.description || <span className="italic text-gray-400">—</span>}
                                   </td>
                                   <td className="px-4 py-3 text-blue-700 dark:text-blue-400 whitespace-nowrap font-mono text-xs">
