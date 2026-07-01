@@ -28,6 +28,7 @@ interface Crime {
   description: string;
   sentence: string;
   fine: number;
+  articleCode?: string | null;
   order: number;
 }
 
@@ -385,7 +386,7 @@ export default function NormativePage() {
 
         {/* Main content */}
         <div ref={contentRef} className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto px-6 py-8">
+          <div className="max-w-5xl mx-auto px-6 py-8">
             {/* Breadcrumb */}
             <div className="flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 mb-6">
               <BookOpen className="h-4 w-4" />
@@ -462,6 +463,9 @@ export default function NormativePage() {
                           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                             <thead className="bg-gray-50 dark:bg-gray-800">
                               <tr>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs whitespace-nowrap">
+                                  Articolo c.p.
+                                </th>
                                 <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider text-xs">
                                   Nome reato
                                 </th>
@@ -482,6 +486,9 @@ export default function NormativePage() {
                                   key={crime.id}
                                   className="hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
                                 >
+                                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400 font-mono text-xs whitespace-nowrap">
+                                    {crime.articleCode || <span className="text-gray-300 dark:text-gray-600">—</span>}
+                                  </td>
                                   <td className="px-4 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
                                     {crime.name}
                                   </td>
