@@ -119,6 +119,7 @@ model Crime {
   description  String        @db.Text
   sentence     String        // e.g. "3 anni 6 mesi"
   fine         Int           @default(0) // sanzione amministrativa in €
+  articleCode  String?       // es. "Art. 624 c.p."
   categoryId   String
   category     CrimeCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   order        Int           @default(0)

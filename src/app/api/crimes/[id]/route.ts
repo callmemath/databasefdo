@@ -15,11 +15,12 @@ export async function PUT(
 
   try {
     const body = await request.json();
-    const { name, description, sentence, fine, categoryId, order } = body as {
+    const { name, description, sentence, fine, articleCode, categoryId, order } = body as {
       name?: string;
       description?: string;
       sentence?: string;
       fine?: number;
+      articleCode?: string | null;
       categoryId?: string;
       order?: number;
     };
@@ -29,6 +30,7 @@ export async function PUT(
     if (description !== undefined) data.description = description.trim();
     if (sentence !== undefined) data.sentence = sentence.trim();
     if (fine !== undefined) data.fine = fine;
+    if (articleCode !== undefined) data.articleCode = articleCode?.trim() || null;
     if (categoryId !== undefined) data.categoryId = categoryId;
     if (order !== undefined) data.order = order;
 
