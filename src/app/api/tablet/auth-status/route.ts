@@ -12,9 +12,10 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const identifiers = body?.identifiers || {};
+    const characterId = body?.characterId || null;
     const characterName = body?.characterName || null;
 
-    const result = await resolveTabletLinkedUser({ identifiers, characterName });
+    const result = await resolveTabletLinkedUser({ identifiers, characterId, characterName });
 
     if (!result.linked) {
       return NextResponse.json({ linked: false });

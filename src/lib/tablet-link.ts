@@ -22,6 +22,7 @@ type LinkedUser = {
 type LinkRow = {
   id: string;
   userId: string;
+  characterId: string | null;
   license: string | null;
   discord: string | null;
   steam: string | null;
@@ -47,10 +48,12 @@ function hasAnyIdentifier(identifiers: ReturnType<typeof normalizeIdentifiers>) 
 }
 
 async function ensureLinkTable() {
+  // Crea la tabella se non esiste (schema nuovo con characterId)
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS fdo_tablet_user_links (
       id VARCHAR(191) NOT NULL,
       userId VARCHAR(191) NOT NULL,
+      characterId VARCHAR(191) NULL,
       license VARCHAR(191) NULL,
       discord VARCHAR(191) NULL,
       steam VARCHAR(191) NULL,
@@ -59,52 +62,53 @@ async function ensureLinkTable() {
       lastLoginAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
       lastCharacterName VARCHAR(191) NULL,
       PRIMARY KEY (id),
-      UNIQUE KEY ux_tablet_links_userId (userId),
-      UNIQUE KEY ux_tablet_links_license (license),
-      UNIQUE KEY ux_tablet_links_discord (discord),
-      UNIQUE KEY ux_tablet_links_steam (steam),
-      UNIQUE KEY ux_tablet_links_fivem (fivem),
+      UNIQUE KEY ux_tablet_links_characterId (characterId),
       INDEX idx_tablet_links_userId (userId),
+      INDEX idx_tablet_links_license (license),
       CONSTRAINT fk_tablet_links_user FOREIGN KEY (userId) REFERENCES fdo_users(id) ON DELETE CASCADE ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+
+  // Migrazione per tabelle esistenti: aggiunge characterId se mancante
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE fdo_tablet_user_links
+    ADD COLUMN IF NOT EXISTS characterId VARCHAR(191) NULL AFTER userId
+  `).catch(() => {
+    // MySQL < 8.0 non supporta IF NOT EXISTS su ALTER COLUMN — ignora
+  });
 }
 
-async function findLinkByIdentifiers(identifiers: ReturnType<typeof normalizeIdentifiers>) {
-  if (!hasAnyIdentifier(identifiers)) {
-    return null;
+// Cerca prima per characterId (preciso), poi fallback su identifiers (backward compat)
+async function findLinkByCharacterOrIdentifiers(
+  characterId: string | null,
+  identifiers: ReturnType<typeof normalizeIdentifiers>
+): Promise<LinkRow | null> {
+  if (characterId) {
+    const rows = await prisma.$queryRawUnsafe<LinkRow[]>(
+      `SELECT id, userId, characterId, license, discord, steam, fivem
+       FROM fdo_tablet_user_links WHERE characterId = ? LIMIT 1`,
+      characterId
+    );
+    if (rows[0]) return rows[0];
   }
+
+  // Fallback: lookup per identifier (per link senza characterId)
+  if (!hasAnyIdentifier(identifiers)) return null;
 
   const whereClauses: string[] = [];
   const params: string[] = [];
 
-  if (identifiers.license) {
-    whereClauses.push("license = ?");
-    params.push(identifiers.license);
-  }
-
-  if (identifiers.discord) {
-    whereClauses.push("discord = ?");
-    params.push(identifiers.discord);
-  }
-
-  if (identifiers.steam) {
-    whereClauses.push("steam = ?");
-    params.push(identifiers.steam);
-  }
-
-  if (identifiers.fivem) {
-    whereClauses.push("fivem = ?");
-    params.push(identifiers.fivem);
-  }
+  if (identifiers.license) { whereClauses.push("license = ?"); params.push(identifiers.license); }
+  if (identifiers.discord) { whereClauses.push("discord = ?"); params.push(identifiers.discord); }
+  if (identifiers.steam)   { whereClauses.push("steam = ?");   params.push(identifiers.steam); }
+  if (identifiers.fivem)   { whereClauses.push("fivem = ?");   params.push(identifiers.fivem); }
 
   const query = `
-    SELECT id, userId, license, discord, steam, fivem
+    SELECT id, userId, characterId, license, discord, steam, fivem
     FROM fdo_tablet_user_links
-    WHERE ${whereClauses.join(" OR ")}
+    WHERE (${whereClauses.join(" OR ")}) AND characterId IS NULL
     LIMIT 1
   `;
-
   const rows = await prisma.$queryRawUnsafe<LinkRow[]>(query, ...params);
   return rows[0] || null;
 }
@@ -134,12 +138,14 @@ async function touchLink(linkId: string, characterName?: string | null) {
 
 export async function resolveTabletLinkedUser(input: {
   identifiers: TabletIdentifiers;
+  characterId?: string | null;
   characterName?: string | null;
 }) {
   await ensureLinkTable();
 
   const identifiers = normalizeIdentifiers(input.identifiers);
-  const link = await findLinkByIdentifiers(identifiers);
+  const characterId = cleanIdentifier(input.characterId);
+  const link = await findLinkByCharacterOrIdentifiers(characterId, identifiers);
 
   if (!link) {
     return { linked: false as const };
@@ -162,12 +168,15 @@ export async function loginAndLinkTabletUser(input: {
   email: string;
   password: string;
   identifiers: TabletIdentifiers;
+  characterId?: string | null;
   characterName?: string | null;
 }) {
   await ensureLinkTable();
 
   const identifiers = normalizeIdentifiers(input.identifiers);
-  if (!hasAnyIdentifier(identifiers)) {
+  const characterId = cleanIdentifier(input.characterId);
+
+  if (!hasAnyIdentifier(identifiers) && !characterId) {
     throw new Error("Nessun identificatore FiveM disponibile per associare l'account");
   }
 
@@ -181,40 +190,50 @@ export async function loginAndLinkTabletUser(input: {
     return { success: false as const, error: "Credenziali non valide" };
   }
 
-  const existingByIdentifiers = await findLinkByIdentifiers(identifiers);
-  if (existingByIdentifiers && existingByIdentifiers.userId !== user.id) {
-    return { success: false as const, error: "Questo account FiveM e' gia' associato a un altro operatore" };
+  // Verifica che il characterId non sia già associato a un altro operatore
+  if (characterId) {
+    const existingByChar = await prisma.$queryRawUnsafe<LinkRow[]>(
+      "SELECT id, userId, characterId, license, discord, steam, fivem FROM fdo_tablet_user_links WHERE characterId = ? LIMIT 1",
+      characterId
+    );
+    if (existingByChar[0] && existingByChar[0].userId !== user.id) {
+      return { success: false as const, error: "Questo personaggio è già associato a un altro operatore" };
+    }
   }
 
-  const existingByUserRows = await prisma.$queryRawUnsafe<LinkRow[]>(
-    "SELECT id, userId, license, discord, steam, fivem FROM fdo_tablet_user_links WHERE userId = ? LIMIT 1",
-    user.id
-  );
-  const existingByUser = existingByUserRows[0] || null;
+  // Cerca link esistente per questo personaggio specifico
+  const existingRows = characterId
+    ? await prisma.$queryRawUnsafe<LinkRow[]>(
+        "SELECT id, userId, characterId, license, discord, steam, fivem FROM fdo_tablet_user_links WHERE userId = ? AND characterId = ? LIMIT 1",
+        user.id,
+        characterId
+      )
+    : await prisma.$queryRawUnsafe<LinkRow[]>(
+        "SELECT id, userId, characterId, license, discord, steam, fivem FROM fdo_tablet_user_links WHERE userId = ? AND characterId IS NULL LIMIT 1",
+        user.id
+      );
+  const existingLink = existingRows[0] || null;
 
-  if (existingByUser) {
+  if (existingLink) {
     await prisma.$executeRawUnsafe(
-      `
-      UPDATE fdo_tablet_user_links
-      SET license = ?, discord = ?, steam = ?, fivem = ?, lastLoginAt = NOW(3), lastCharacterName = ?
-      WHERE id = ?
-      `,
-      identifiers.license || existingByUser.license,
-      identifiers.discord || existingByUser.discord,
-      identifiers.steam || existingByUser.steam,
-      identifiers.fivem || existingByUser.fivem,
+      `UPDATE fdo_tablet_user_links
+       SET license = ?, discord = ?, steam = ?, fivem = ?, lastLoginAt = NOW(3), lastCharacterName = ?
+       WHERE id = ?`,
+      identifiers.license || existingLink.license,
+      identifiers.discord || existingLink.discord,
+      identifiers.steam || existingLink.steam,
+      identifiers.fivem || existingLink.fivem,
       cleanIdentifier(input.characterName) || null,
-      existingByUser.id
+      existingLink.id
     );
   } else {
     await prisma.$executeRawUnsafe(
-      `
-      INSERT INTO fdo_tablet_user_links
-      (id, userId, license, discord, steam, fivem, firstLinkedAt, lastLoginAt, lastCharacterName)
-      VALUES (?, ?, ?, ?, ?, ?, NOW(3), NOW(3), ?)
-      `,
+      `INSERT INTO fdo_tablet_user_links
+       (id, userId, characterId, license, discord, steam, fivem, firstLinkedAt, lastLoginAt, lastCharacterName)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3), ?)`,
       randomUUID(),
       user.id,
+      characterId,
       identifiers.license,
       identifiers.discord,
       identifiers.steam,

@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       email,
       password,
       identifiers: body?.identifiers || {},
+      characterId: body?.characterId || null,
       characterName: body?.characterName || null,
     });
 
