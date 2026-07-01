@@ -136,6 +136,7 @@ export default function ConfigPage() {
     description: string;
     sentence: string;
     fine: number;
+    articleCode?: string | null;
     order: number;
     categoryId: string;
   }
@@ -150,7 +151,7 @@ export default function ConfigPage() {
   const [catSaving, setCatSaving] = useState(false);
 
   // Crime form state
-  const [crimeForm, setCrimeForm] = useState({ name: '', description: '', sentence: '', fine: '0' });
+  const [crimeForm, setCrimeForm] = useState({ name: '', description: '', sentence: '', fine: '0', articleCode: '' });
   const [editingCrimeId, setEditingCrimeId] = useState<string | null>(null);
   const [crimeSaving, setCrimeSaving] = useState(false);
 
@@ -408,6 +409,7 @@ export default function ConfigPage() {
         description: crimeForm.description.trim(),
         sentence: crimeForm.sentence.trim(),
         fine: parseInt(crimeForm.fine) || 0,
+        articleCode: crimeForm.articleCode.trim() || null,
         categoryId: selectedCategoryId,
         order: selectedCategory?.crimes.length ?? 0,
       };
@@ -427,7 +429,7 @@ export default function ConfigPage() {
             )
           );
           setEditingCrimeId(null);
-          setCrimeForm({ name: '', description: '', sentence: '', fine: '0' });
+          setCrimeForm({ name: '', description: '', sentence: '', fine: '0', articleCode: '' });
         }
       } else {
         const res = await fetch('/api/crimes', {
@@ -444,7 +446,7 @@ export default function ConfigPage() {
                 : c
             )
           );
-          setCrimeForm({ name: '', description: '', sentence: '', fine: '0' });
+          setCrimeForm({ name: '', description: '', sentence: '', fine: '0', articleCode: '' });
         }
       }
     } catch { /* silent */ }
@@ -465,7 +467,7 @@ export default function ConfigPage() {
         );
         if (editingCrimeId === id) {
           setEditingCrimeId(null);
-          setCrimeForm({ name: '', description: '', sentence: '', fine: '0' });
+          setCrimeForm({ name: '', description: '', sentence: '', fine: '0', articleCode: '' });
         }
       }
     } catch { /* silent */ }
@@ -1931,6 +1933,7 @@ export default function ConfigPage() {
                               <div className="flex-1 min-w-0">
                                 <div className="font-medium text-sm text-gray-900 dark:text-white truncate">{crime.name}</div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                  {crime.articleCode && <span className="font-mono mr-1.5">{crime.articleCode}</span>}
                                   {crime.sentence}{crime.fine > 0 ? ` · €${crime.fine.toLocaleString('it-IT')}` : ''}
                                 </div>
                               </div>
@@ -1938,7 +1941,7 @@ export default function ConfigPage() {
                                 <button
                                   onClick={() => {
                                     setEditingCrimeId(crime.id);
-                                    setCrimeForm({ name: crime.name, description: crime.description, sentence: crime.sentence, fine: String(crime.fine) });
+                                    setCrimeForm({ name: crime.name, description: crime.description, sentence: crime.sentence, fine: String(crime.fine), articleCode: crime.articleCode ?? '' });
                                   }}
                                   className="p-1 text-gray-400 hover:text-police-blue rounded"
                                 >
@@ -1965,6 +1968,13 @@ export default function ConfigPage() {
                             placeholder="Nome reato *"
                             value={crimeForm.name}
                             onChange={(e) => setCrimeForm((p) => ({ ...p, name: e.target.value }))}
+                            className="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-police-blue"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Articolo c.p. (es. Art. 624 c.p.)"
+                            value={crimeForm.articleCode}
+                            onChange={(e) => setCrimeForm((p) => ({ ...p, articleCode: e.target.value }))}
                             className="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-police-blue"
                           />
                           <textarea
@@ -1994,7 +2004,7 @@ export default function ConfigPage() {
                           <div className="flex gap-2 justify-end">
                             {editingCrimeId && (
                               <button
-                                onClick={() => { setEditingCrimeId(null); setCrimeForm({ name: '', description: '', sentence: '', fine: '0' }); }}
+                                onClick={() => { setEditingCrimeId(null); setCrimeForm({ name: '', description: '', sentence: '', fine: '0', articleCode: '' }); }}
                                 className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1 rounded"
                               >
                                 Annulla

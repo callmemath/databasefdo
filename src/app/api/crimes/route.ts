@@ -31,11 +31,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, description, sentence, fine, categoryId, order } = body as {
+    const { name, description, sentence, fine, articleCode, categoryId, order } = body as {
       name: string;
       description: string;
       sentence: string;
       fine?: number;
+      articleCode?: string | null;
       categoryId: string;
       order?: number;
     };
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
         description: description?.trim() ?? '',
         sentence: sentence.trim(),
         fine: fine ?? 0,
+        articleCode: articleCode?.trim() || null,
         categoryId,
         order: order ?? 0,
       },
