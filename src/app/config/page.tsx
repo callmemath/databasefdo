@@ -1981,8 +1981,8 @@ export default function ConfigPage() {
                             placeholder="Descrizione..."
                             value={crimeForm.description}
                             onChange={(e) => setCrimeForm((p) => ({ ...p, description: e.target.value }))}
-                            rows={2}
-                            className="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-police-blue resize-none"
+                            rows={4}
+                            className="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-police-blue"
                           />
                           <div className="grid grid-cols-2 gap-2">
                             <input
